@@ -20,11 +20,42 @@
     .orderItem.active{border-color:#111}
     .nav{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
     .thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-    .thumbs img{width:70px;height:70px;object-fit:cover;border-radius:12px;border:1px solid #eee}
+    .thumbs img{width:70px;height:70px;object-fit:cover;border-radius:12px;border:1px solid #eee; cursor:pointer;}
     a{color:#0b57d0;text-decoration:none}
     a:hover{text-decoration:underline}
     .hidden{display:none}
     .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px}
+
+    /* ===== Lightbox لتكبير الصور ===== */
+    #lightbox{
+      position:fixed; inset:0;
+      background:rgba(0,0,0,.75);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      z-index:9999;
+    }
+    #lightbox.open{ display:flex; }
+    #lightbox img{
+      max-width:min(95vw, 900px);
+      max-height:90vh;
+      border-radius:16px;
+      background:#fff;
+    }
+    #lightboxClose{
+      position:absolute;
+      top:14px;
+      left:14px; /* RTL */
+      border:1px solid rgba(255,255,255,.35);
+      background:rgba(0,0,0,.35);
+      color:#fff;
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-size:18px;
+      line-height:1;
+    }
   </style>
 </head>
 <body>
@@ -32,7 +63,7 @@
   <div class="row" style="justify-content:space-between">
     <div>
       <b style="font-size:20px">عرض الطلبية</b>
-      <div class="muted">اختاري طلبية من القائمة، وبعدين تنقّلي بين المشتريات بأسهم يمين/يسار.</div>
+      <div class="muted">اختاري طلبية من القائمة، وبعدين تنقّلي بين المشتريات بأسهم يمين/يسار. (تكبس/ي الصورة بتكبر)</div>
     </div>
     <a class="btn" href="./index.html">رجوع للإدارة</a>
   </div>
@@ -118,6 +149,12 @@
   </div>
 </div>
 
+<!-- Lightbox -->
+<div id="lightbox" aria-hidden="true">
+  <button id="lightboxClose" title="إغلاق">×</button>
+  <img id="lightboxImg" alt="صورة كبيرة" />
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   const SUPABASE_URL = "https://maucjvxhrnkdeybltjco.supabase.co";
@@ -159,6 +196,11 @@
   const cancelBtn = document.getElementById("cancelBtn");
   const editMsg = document.getElementById("editMsg");
 
+  // Lightbox refs
+  const lightbox = document.getElementById("lightbox");
+  const lightboxImg = document.getElementById("lightboxImg");
+  const lightboxClose = document.getElementById("lightboxClose");
+
   let activeOrder = null;
   let purchases = [];
   let idx = 0;
@@ -169,6 +211,19 @@
     }[m]));
   }
   function escAttr(s=""){ return escapeHtml(s); }
+
+  function openLightbox(src){
+    lightboxImg.src = src;
+    lightbox.classList.add("open");
+    lightbox.setAttribute("aria-hidden", "false");
+  }
+  function closeLightbox(){
+    lightbox.classList.remove("open");
+    lightbox.setAttribute("aria-hidden", "true");
+    lightboxImg.src = "";
+  }
+  lightboxClose.onclick = closeLightbox;
+  lightbox.onclick = (e) => { if(e.target === lightbox) closeLightbox(); };
 
   function renderEditLinks(values=[]){
     eLinks.innerHTML = "";
@@ -212,7 +267,7 @@
       div.onclick = async () => {
         activeOrder = o;
         await loadPurchases(o.id);
-        await loadOrders(); // refresh active highlight
+        await loadOrders(); // refresh highlight
       };
       ordersList.appendChild(div);
     });
@@ -238,23 +293,19 @@
     idx = 0;
     status.textContent = "";
 
+    orderTitle.textContent = activeOrder.order_name;
+    orderMeta.textContent = "تاريخ الإنشاء: " + new Date(activeOrder.created_at).toLocaleString("ar");
+    pCount.textContent = `${purchases.length} مشتريات`;
+
     if(!purchases.length){
       empty.textContent = "هاي الطلبية ما فيها مشتريات.";
       empty.style.display = "";
       viewer.classList.add("hidden");
-      orderTitle.textContent = activeOrder.order_name;
-      orderMeta.textContent = new Date(activeOrder.created_at).toLocaleString("ar");
-      pCount.textContent = "0 مشتريات";
       return;
     }
 
     empty.style.display = "none";
     viewer.classList.remove("hidden");
-
-    orderTitle.textContent = activeOrder.order_name;
-    orderMeta.textContent = "تاريخ الإنشاء: " + new Date(activeOrder.created_at).toLocaleString("ar");
-    pCount.textContent = `${purchases.length} مشتريات`;
-
     render();
   }
 
@@ -275,9 +326,14 @@
     vImages.innerHTML = imgs.length
       ? imgs.map(path=>{
           const url = sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
-          return `<img src="${escAttr(url)}" alt="صورة">`;
+          return `<img src="${escAttr(url)}" alt="صورة" data-full="${escAttr(url)}">`;
         }).join("")
       : `<span class="muted">—</span>`;
+
+    // ربط الضغط على الصورة لتكبيرها
+    vImages.querySelectorAll("img[data-full]").forEach(img=>{
+      img.onclick = () => openLightbox(img.dataset.full);
+    });
 
     editForm.classList.add("hidden");
     editMsg.textContent = "";
@@ -286,8 +342,9 @@
   prevBtn.onclick = () => { if(!purchases.length) return; idx = (idx-1+purchases.length)%purchases.length; render(); };
   nextBtn.onclick = () => { if(!purchases.length) return; idx = (idx+1)%purchases.length; render(); };
 
-  // keyboard arrows
+  // keyboard arrows + ESC (لـ lightbox)
   document.addEventListener("keydown", (e) => {
+    if(e.key === "Escape") closeLightbox();
     if(viewer.classList.contains("hidden")) return;
     if(e.key === "ArrowRight") prevBtn.click();
     if(e.key === "ArrowLeft") nextBtn.click();
@@ -338,7 +395,7 @@
       await sb.from("purchase_links").insert(urls.map(url => ({ purchase_id: p.id, url })));
     }
 
-    // reload purchases, keep position if possible
+    // reload purchases, keep position
     const currentId = p.id;
     await loadPurchases(activeOrder.id);
     idx = Math.max(0, purchases.findIndex(x=>x.id === currentId));
