@@ -26,7 +26,7 @@
     .hidden{display:none}
     .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px}
 
-    /* ===== Lightbox لتكبير الصور ===== */
+    /* Lightbox */
     #lightbox{
       position:fixed; inset:0;
       background:rgba(0,0,0,.75);
@@ -46,7 +46,7 @@
     #lightboxClose{
       position:absolute;
       top:14px;
-      left:14px; /* RTL */
+      left:14px;
       border:1px solid rgba(255,255,255,.35);
       background:rgba(0,0,0,.35);
       color:#fff;
@@ -60,92 +60,109 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="row" style="justify-content:space-between">
-    <div>
-      <b style="font-size:20px">عرض الطلبية</b>
-      <div class="muted">اختاري طلبية من القائمة، وبعدين تنقّلي بين المشتريات بأسهم يمين/يسار. (تكبس/ي الصورة بتكبر)</div>
+
+  <!-- AUTH CARD -->
+  <div class="card" id="authCard" style="margin-bottom:12px">
+    <div class="row" style="justify-content:space-between">
+      <b>تسجيل الدخول</b>
+      <button class="btn" id="logoutBtn" style="display:none">تسجيل خروج</button>
     </div>
-    <a class="btn" href="./index.html">رجوع للإدارة</a>
+
+    <div class="row" id="loginRow" style="margin-top:10px">
+      <input id="username" placeholder="اسم المستخدم" />
+      <input id="password" type="password" placeholder="كلمة المرور" />
+      <button class="btn primary" id="loginBtn">دخول</button>
+    </div>
+
+    <div class="muted" id="authMsg" style="margin-top:8px"></div>
   </div>
 
-  <div class="grid">
-    <!-- Orders list -->
-    <aside class="card">
-      <div class="row" style="justify-content:space-between">
-        <b>اختاري طلبية</b>
-        <span class="pill" id="ordersCount">0</span>
+  <!-- APP -->
+  <div id="app">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <b style="font-size:20px">عرض الطلبية</b>
+        <div class="muted">اختاري طلبية من القائمة، وبعدين تنقّلي بين المشتريات بأسهم يمين/يسار. (تكبس/ي الصورة بتكبر)</div>
       </div>
-      <div class="muted" id="status" style="margin:8px 0"></div>
-      <div id="ordersList"></div>
-    </aside>
+      <a class="btn" href="./index.html">رجوع للإدارة</a>
+    </div>
 
-    <!-- Viewer -->
-    <main class="card">
-      <div id="empty" class="muted">اختاري طلبية من اليسار…</div>
-
-      <div id="viewer" class="hidden">
-        <div class="row" style="justify-content:space-between;align-items:flex-start">
-          <div>
-            <b id="orderTitle"></b>
-            <div class="muted" id="orderMeta"></div>
-          </div>
-          <span class="pill" id="pCount"></span>
-        </div>
-
-        <div class="nav">
-          <button class="btn" id="prevBtn">→ السابق</button>
-          <div>
-            <b id="counter"></b>
-            <div class="muted">المشترى الحالي</div>
-          </div>
-          <button class="btn" id="nextBtn">التالي ←</button>
-        </div>
-
-        <hr style="border:none;border-top:1px solid #eee;margin:12px 0">
-
+    <div class="grid">
+      <aside class="card">
         <div class="row" style="justify-content:space-between">
-          <div>
-            <div><b>اسم الزبون:</b> <span id="vCustomer"></span></div>
-            <div><b>السعر:</b> <span id="vPrice"></span></div>
-            <div><b>العدد:</b> <span id="vQty"></span></div>
-          </div>
-          <div class="row">
-            <button class="btn primary" id="editBtn">تعديل</button>
-            <button class="btn danger" id="deleteBtn">حذف</button>
-          </div>
+          <b>اختاري طلبية</b>
+          <span class="pill" id="ordersCount">0</span>
         </div>
+        <div class="muted" id="status" style="margin:8px 0"></div>
+        <div id="ordersList"></div>
+      </aside>
 
-        <div style="margin-top:10px">
-          <b>روابط السلة/العنصر</b>
-          <div id="vLinks" class="muted" style="margin-top:6px"></div>
-        </div>
+      <main class="card">
+        <div id="empty" class="muted">اختاري طلبية من اليسار…</div>
 
-        <div style="margin-top:10px">
-          <b>صور</b>
-          <div id="vImages" class="thumbs"></div>
-        </div>
-
-        <hr style="border:none;border-top:1px solid #eee;margin:12px 0">
-
-        <!-- Edit form (hidden until edit) -->
-        <div id="editForm" class="hidden">
-          <b>تعديل المشترى</b>
-          <div class="row" style="margin-top:10px">
-            <input id="eCustomer" placeholder="اسم الزبون" />
-            <input id="ePrice" type="number" step="0.01" min="0" placeholder="السعر" />
-            <input id="eQty" type="number" step="1" min="1" placeholder="العدد" />
+        <div id="viewer" class="hidden">
+          <div class="row" style="justify-content:space-between;align-items:flex-start">
+            <div>
+              <b id="orderTitle"></b>
+              <div class="muted" id="orderMeta"></div>
+            </div>
+            <span class="pill" id="pCount"></span>
           </div>
 
-          <div class="row" style="margin-top:10px" id="eLinks"></div>
+          <div class="nav">
+            <button class="btn" id="prevBtn">→ السابق</button>
+            <div>
+              <b id="counter"></b>
+              <div class="muted">المشترى الحالي</div>
+            </div>
+            <button class="btn" id="nextBtn">التالي ←</button>
+          </div>
 
-          <div class="row" style="margin-top:10px">
-            <button class="btn primary" id="saveBtn">حفظ</button>
-            <button class="btn" id="cancelBtn">إلغاء</button>
-            <span class="muted" id="editMsg"></span>
+          <hr style="border:none;border-top:1px solid #eee;margin:12px 0">
+
+          <div class="row" style="justify-content:space-between">
+            <div>
+              <div><b>اسم الزبون:</b> <span id="vCustomer"></span></div>
+              <div><b>السعر:</b> <span id="vPrice"></span></div>
+              <div><b>العدد:</b> <span id="vQty"></span></div>
+            </div>
+            <div class="row">
+              <button class="btn primary" id="editBtn">تعديل</button>
+              <button class="btn danger" id="deleteBtn">حذف</button>
+            </div>
+          </div>
+
+          <div style="margin-top:10px">
+            <b>روابط السلة/العنصر</b>
+            <div id="vLinks" class="muted" style="margin-top:6px"></div>
+          </div>
+
+          <div style="margin-top:10px">
+            <b>صور</b>
+            <div id="vImages" class="thumbs"></div>
+          </div>
+
+          <hr style="border:none;border-top:1px solid #eee;margin:12px 0">
+
+          <div id="editForm" class="hidden">
+            <b>تعديل المشترى</b>
+            <div class="row" style="margin-top:10px">
+              <input id="eCustomer" placeholder="اسم الزبون" />
+              <input id="ePrice" type="number" step="0.01" min="0" placeholder="السعر" />
+              <input id="eQty" type="number" step="1" min="1" placeholder="العدد" />
+            </div>
+
+            <div class="row" style="margin-top:10px" id="eLinks"></div>
+
+            <div class="row" style="margin-top:10px">
+              <button class="btn primary" id="saveBtn">حفظ</button>
+              <button class="btn" id="cancelBtn">إلغاء</button>
+              <span class="muted" id="editMsg"></span>
+            </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   </div>
 </div>
 
@@ -157,12 +174,79 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+  // ================== SUPABASE CONFIG ==================
   const SUPABASE_URL = "https://maucjvxhrnkdeybltjco.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const BUCKET = "purchase-images";
 
+  // ================== AUTH (username -> fake email) ==================
+  const authMsg = document.getElementById("authMsg");
+  const loginRow = document.getElementById("loginRow");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const loginBtn = document.getElementById("loginBtn");
+  const usernameEl = document.getElementById("username");
+  const passwordEl = document.getElementById("password");
+  const app = document.getElementById("app");
+
+  const EMAIL_DOMAIN = "she-store.local";
+
+  function usernameToEmail(username){
+    const u = username.trim().toLowerCase();
+    const safe = u.replace(/[^a-z0-9._-]/g, "");
+    return `${safe}@${EMAIL_DOMAIN}`;
+  }
+
+  async function refreshAuthUI() {
+    const { data } = await sb.auth.getSession();
+    const session = data.session;
+
+    if (session) {
+      authMsg.textContent = "تم تسجيل الدخول ✅";
+      loginRow.style.display = "none";
+      logoutBtn.style.display = "";
+      app.style.display = "";
+    } else {
+      authMsg.textContent = "الرجاء تسجيل الدخول للمتابعة.";
+      loginRow.style.display = "";
+      logoutBtn.style.display = "none";
+      app.style.display = "none";
+    }
+  }
+
+  loginBtn.onclick = async () => {
+    authMsg.textContent = "جاري تسجيل الدخول...";
+    const username = usernameEl.value;
+    const password = passwordEl.value;
+
+    if(!username.trim() || !password){
+      authMsg.textContent = "اكتبي اسم المستخدم وكلمة المرور.";
+      return;
+    }
+
+    const email = usernameToEmail(username);
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      console.error(error);
+      authMsg.textContent = "فشل الدخول. تأكدي من اسم المستخدم وكلمة المرور.";
+      return;
+    }
+
+    await refreshAuthUI();
+    loadOrders();
+  };
+
+  logoutBtn.onclick = async () => {
+    await sb.auth.signOut();
+    await refreshAuthUI();
+  };
+
+  sb.auth.onAuthStateChange(() => refreshAuthUI());
+  refreshAuthUI();
+
+  // ================== UI REFS ==================
   const ordersList = document.getElementById("ordersList");
   const ordersCount = document.getElementById("ordersCount");
   const status = document.getElementById("status");
@@ -196,21 +280,10 @@
   const cancelBtn = document.getElementById("cancelBtn");
   const editMsg = document.getElementById("editMsg");
 
-  // Lightbox refs
+  // Lightbox
   const lightbox = document.getElementById("lightbox");
   const lightboxImg = document.getElementById("lightboxImg");
   const lightboxClose = document.getElementById("lightboxClose");
-
-  let activeOrder = null;
-  let purchases = [];
-  let idx = 0;
-
-  function escapeHtml(s=""){
-    return String(s).replace(/[&<>"']/g, m => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-    }[m]));
-  }
-  function escAttr(s=""){ return escapeHtml(s); }
 
   function openLightbox(src){
     lightboxImg.src = src;
@@ -224,6 +297,17 @@
   }
   lightboxClose.onclick = closeLightbox;
   lightbox.onclick = (e) => { if(e.target === lightbox) closeLightbox(); };
+
+  let activeOrder = null;
+  let purchases = [];
+  let idx = 0;
+
+  function escapeHtml(s=""){
+    return String(s).replace(/[&<>"']/g, m => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[m]));
+  }
+  function escAttr(s=""){ return escapeHtml(s); }
 
   function renderEditLinks(values=[]){
     eLinks.innerHTML = "";
@@ -267,7 +351,7 @@
       div.onclick = async () => {
         activeOrder = o;
         await loadPurchases(o.id);
-        await loadOrders(); // refresh highlight
+        await loadOrders();
       };
       ordersList.appendChild(div);
     });
@@ -330,7 +414,6 @@
         }).join("")
       : `<span class="muted">—</span>`;
 
-    // ربط الضغط على الصورة لتكبيرها
     vImages.querySelectorAll("img[data-full]").forEach(img=>{
       img.onclick = () => openLightbox(img.dataset.full);
     });
@@ -342,7 +425,6 @@
   prevBtn.onclick = () => { if(!purchases.length) return; idx = (idx-1+purchases.length)%purchases.length; render(); };
   nextBtn.onclick = () => { if(!purchases.length) return; idx = (idx+1)%purchases.length; render(); };
 
-  // keyboard arrows + ESC (لـ lightbox)
   document.addEventListener("keydown", (e) => {
     if(e.key === "Escape") closeLightbox();
     if(viewer.classList.contains("hidden")) return;
@@ -386,7 +468,6 @@
 
     if(uErr){ console.error(uErr); editMsg.textContent="فشل الحفظ."; return; }
 
-    // replace links
     await sb.from("purchase_links").delete().eq("purchase_id", p.id);
 
     const linkInputs = [...eLinks.querySelectorAll("input[data-link]")];
@@ -395,7 +476,6 @@
       await sb.from("purchase_links").insert(urls.map(url => ({ purchase_id: p.id, url })));
     }
 
-    // reload purchases, keep position
     const currentId = p.id;
     await loadPurchases(activeOrder.id);
     idx = Math.max(0, purchases.findIndex(x=>x.id === currentId));
@@ -407,7 +487,6 @@
     const p = purchases[idx];
     if(!confirm("متأكدة بدك تحذفي هذا المشترى؟")) return;
 
-    // cleanup storage files
     const { data: imgs } = await sb
       .from("purchase_images")
       .select("storage_path")
@@ -424,7 +503,10 @@
     await loadOrders();
   };
 
-  loadOrders();
+  // Load if already logged in
+  sb.auth.getSession().then(({data})=>{
+    if(data.session) loadOrders();
+  });
 </script>
 </body>
 </html>
