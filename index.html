@@ -151,20 +151,30 @@
   }
 
   async function refreshAuthUI() {
-    const { data } = await sb.auth.getSession();
-    const session = data.session;
+  const { data } = await sb.auth.getSession();
+  const session = data.session;
 
-    if (session) {
-      authMsg.textContent = "تم تسجيل الدخول ✅";
-      loginRow.style.display = "none";
-      logoutBtn.style.display = "";
-      app.style.display = "";
-    } else {
-      authMsg.textContent = "الرجاء تسجيل الدخول للمتابعة.";
-      loginRow.style.display = "";
-      logoutBtn.style.display = "none";
-      app.style.display = "none";
-    }
+  if (session) {
+    // أخفي كارد تسجيل الدخول بالكامل
+    authCard.style.display = "none";
+
+    // أظهر التطبيق
+    app.style.display = "";
+
+    // (اختياري) إذا الصفحة فيها loadOrders حمّلي البيانات
+    if (typeof loadOrders === "function") loadOrders();
+
+  } else {
+    // أظهر كارد تسجيل الدخول
+    authCard.style.display = "";
+
+    authMsg.textContent = "الرجاء تسجيل الدخول للمتابعة.";
+    loginRow.style.display = "";
+    logoutBtn.style.display = "none";
+
+    // أخفي التطبيق
+    app.style.display = "none";
+  }
   }
 
   loginBtn.onclick = async () => {
@@ -493,4 +503,5 @@
 </script>
 </body>
 </html>
+
 
