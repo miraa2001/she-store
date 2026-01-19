@@ -23,91 +23,182 @@
     .orderItem.active{border-color:#111}
     a{color:#0b57d0;text-decoration:none}
     a:hover{text-decoration:underline}
+    .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px}
+    .thumbs{display:flex;gap:6px;flex-wrap:wrap}
+    .thumbs img{width:44px;height:44px;object-fit:cover;border-radius:10px;border:1px solid #eee}
   </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="row" style="justify-content:space-between">
-    <div>
-      <b style="font-size:20px">إدارة الطلبيات</b>
-      <div class="muted">مشتركة (Supabase) + عربي.</div>
+
+  <!-- AUTH CARD -->
+  <div class="card" id="authCard" style="margin-bottom:12px">
+    <div class="row" style="justify-content:space-between">
+      <b>تسجيل الدخول</b>
+      <button class="btn" id="logoutBtn" style="display:none">تسجيل خروج</button>
     </div>
-    <div class="row">
-      <a class="btn" href="./view.html" target="_blank" rel="noopener">صفحة عرض الطلبية</a>
-      <button class="btn primary" id="newOrderBtn">+ طلبية جديدة (اليوم)</button>
+
+    <div class="row" id="loginRow" style="margin-top:10px">
+      <input id="username" placeholder="اسم المستخدم" />
+      <input id="password" type="password" placeholder="كلمة المرور" />
+      <button class="btn primary" id="loginBtn">دخول</button>
     </div>
+
+    <div class="muted" id="authMsg" style="margin-top:8px"></div>
   </div>
 
-  <div class="grid" style="margin-top:12px">
-    <aside class="card">
-      <div class="row" style="justify-content:space-between">
-        <b>الطلبيات</b>
-        <button class="btn danger" id="deleteOrderBtn" disabled>حذف الطلبية</button>
+  <!-- APP -->
+  <div id="app">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <b style="font-size:20px">إدارة الطلبيات</b>
+        <div class="muted">هذه الصفحة للإضافة والحذف. صفحة العرض موجودة تحت.</div>
       </div>
-      <div class="muted" id="ordersMsg" style="margin:8px 0"></div>
-      <div id="ordersList"></div>
-    </aside>
+      <div class="row">
+        <a class="btn" href="./view.html">صفحة عرض الطلبية</a>
+        <button class="btn primary" id="newOrderBtn">+ طلبية جديدة (اليوم)</button>
+      </div>
+    </div>
 
-    <main class="card">
-      <div id="mainEmpty" class="muted">اختاري طلبية…</div>
-
-      <div id="main" style="display:none">
+    <div class="grid" style="margin-top:12px">
+      <aside class="card">
         <div class="row" style="justify-content:space-between">
-          <div>
-            <b id="activeOrderTitle"></b>
-            <div class="muted" id="activeOrderMeta"></div>
+          <b>الطلبيات</b>
+          <button class="btn danger" id="deleteOrderBtn" disabled>حذف الطلبية</button>
+        </div>
+        <div class="muted" id="ordersMsg" style="margin:8px 0"></div>
+        <div id="ordersList"></div>
+      </aside>
+
+      <main class="card">
+        <div id="mainEmpty" class="muted">اختاري طلبية…</div>
+
+        <div id="main" style="display:none">
+          <div class="row" style="justify-content:space-between">
+            <div>
+              <b id="activeOrderTitle"></b>
+              <div class="muted" id="activeOrderMeta"></div>
+            </div>
+          </div>
+
+          <hr style="border:none;border-top:1px solid #eee;margin:12px 0">
+
+          <b>إضافة مشترى</b>
+          <div class="muted">حتى 5 روابط (رابط السلة/العنصر) + 10 صور</div>
+
+          <div class="row" style="margin-top:10px">
+            <input id="customerName" placeholder="اسم الزبون" />
+            <input id="price" type="number" step="0.01" min="0" placeholder="السعر" />
+            <input id="qty" type="number" step="1" min="1" value="1" placeholder="العدد" />
+          </div>
+
+          <div class="row" style="margin-top:10px" id="links"></div>
+
+          <div class="row" style="margin-top:10px">
+            <input id="images" type="file" accept="image/*" multiple />
+            <button class="btn primary" id="addPurchaseBtn">إضافة</button>
+            <span class="muted" id="formMsg"></span>
+          </div>
+
+          <hr style="border:none;border-top:1px solid #eee;margin:12px 0">
+
+          <b>المشتريات</b>
+          <div style="overflow:auto;margin-top:8px">
+            <table>
+              <thead>
+                <tr>
+                  <th>اسم الزبون</th>
+                  <th>السعر</th>
+                  <th>العدد</th>
+                  <th>روابط السلة/العنصر</th>
+                  <th>صور</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="purchasesBody"></tbody>
+            </table>
           </div>
         </div>
-
-        <hr style="border:none;border-top:1px solid #eee;margin:12px 0">
-
-        <b>إضافة مشترى</b>
-        <div class="muted">حتى 5 روابط (رابط السلة/العنصر) + 10 صور</div>
-
-        <div class="row" style="margin-top:10px">
-          <input id="customerName" placeholder="اسم الزبون" />
-          <input id="price" type="number" step="0.01" min="0" placeholder="السعر" />
-          <input id="qty" type="number" step="1" min="1" value="1" placeholder="العدد" />
-        </div>
-
-        <div class="row" style="margin-top:10px" id="links"></div>
-
-        <div class="row" style="margin-top:10px">
-          <input id="images" type="file" accept="image/*" multiple />
-          <button class="btn primary" id="addPurchaseBtn">إضافة</button>
-          <span class="muted" id="formMsg"></span>
-        </div>
-
-        <hr style="border:none;border-top:1px solid #eee;margin:12px 0">
-
-        <b>المشتريات</b>
-        <div style="overflow:auto;margin-top:8px">
-          <table>
-            <thead>
-              <tr>
-                <th>اسم الزبون</th>
-                <th>السعر</th>
-                <th>العدد</th>
-                <th>روابط السلة/العنصر</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="purchasesBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </main>
+      </main>
+    </div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+  // ================== SUPABASE CONFIG ==================
   const SUPABASE_URL = "https://maucjvxhrnkdeybltjco.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const BUCKET = "purchase-images";
 
+  // ================== AUTH (username -> fake email) ==================
+  const authMsg = document.getElementById("authMsg");
+  const loginRow = document.getElementById("loginRow");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const loginBtn = document.getElementById("loginBtn");
+  const usernameEl = document.getElementById("username");
+  const passwordEl = document.getElementById("password");
+  const app = document.getElementById("app");
+
+  const EMAIL_DOMAIN = "she-store.local";
+
+  function usernameToEmail(username){
+    const u = username.trim().toLowerCase();
+    const safe = u.replace(/[^a-z0-9._-]/g, "");
+    return `${safe}@${EMAIL_DOMAIN}`;
+  }
+
+  async function refreshAuthUI() {
+    const { data } = await sb.auth.getSession();
+    const session = data.session;
+
+    if (session) {
+      authMsg.textContent = "تم تسجيل الدخول ✅";
+      loginRow.style.display = "none";
+      logoutBtn.style.display = "";
+      app.style.display = "";
+    } else {
+      authMsg.textContent = "الرجاء تسجيل الدخول للمتابعة.";
+      loginRow.style.display = "";
+      logoutBtn.style.display = "none";
+      app.style.display = "none";
+    }
+  }
+
+  loginBtn.onclick = async () => {
+    authMsg.textContent = "جاري تسجيل الدخول...";
+    const username = usernameEl.value;
+    const password = passwordEl.value;
+
+    if(!username.trim() || !password){
+      authMsg.textContent = "اكتبي اسم المستخدم وكلمة المرور.";
+      return;
+    }
+
+    const email = usernameToEmail(username);
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      console.error(error);
+      authMsg.textContent = "فشل الدخول. تأكدي من اسم المستخدم وكلمة المرور.";
+      return;
+    }
+
+    await refreshAuthUI();
+    loadOrders();
+  };
+
+  logoutBtn.onclick = async () => {
+    await sb.auth.signOut();
+    await refreshAuthUI();
+  };
+
+  sb.auth.onAuthStateChange(() => refreshAuthUI());
+  refreshAuthUI();
+
+  // ================== UI REFS ==================
   const ordersList = document.getElementById("ordersList");
   const ordersMsg = document.getElementById("ordersMsg");
   const newOrderBtn = document.getElementById("newOrderBtn");
@@ -158,6 +249,7 @@
 
   async function loadOrders(){
     ordersMsg.textContent = "جاري التحميل...";
+
     const { data, error } = await sb
       .from("orders")
       .select("id, order_name, created_at, purchases:purchases(count)")
@@ -176,13 +268,15 @@
       const div = document.createElement("div");
       div.className = "orderItem" + (o.id === activeOrderId ? " active" : "");
       const count = o.purchases?.[0]?.count ?? 0;
+
       div.innerHTML = `
         <div>
           <b>${escapeHtml(o.order_name)}</b>
           <div class="muted">عدد المشتريات: ${count}</div>
         </div>
-        <div class="muted">${count}</div>
+        <span class="pill">${count}</span>
       `;
+
       div.onclick = () => { activeOrderId = o.id; showOrder(o); };
       ordersList.appendChild(div);
     });
@@ -192,7 +286,7 @@
     if(!activeOrderId && data[0]){
       activeOrderId = data[0].id;
       showOrder(data[0]);
-      await loadOrders(); // refresh highlight
+      await loadOrders();
     }
   }
 
@@ -208,30 +302,42 @@
 
   async function loadPurchases(){
     if(!activeOrderId) return;
-    purchasesBody.innerHTML = `<tr><td colspan="5" class="muted">جاري التحميل...</td></tr>`;
+    purchasesBody.innerHTML = `<tr><td colspan="6" class="muted">جاري التحميل...</td></tr>`;
 
     const { data, error } = await sb
       .from("purchases")
-      .select(`id, customer_name, price, qty, created_at, purchase_links(url)`)
+      .select(`id, customer_name, price, qty, created_at,
+               purchase_links(url),
+               purchase_images(storage_path)`)
       .eq("order_id", activeOrderId)
       .order("created_at", { ascending: false });
 
     if(error){
-      purchasesBody.innerHTML = `<tr><td colspan="5" class="muted">صار خطأ.</td></tr>`;
+      purchasesBody.innerHTML = `<tr><td colspan="6" class="muted">صار خطأ.</td></tr>`;
       console.error(error);
       return;
     }
 
     if(!data.length){
-      purchasesBody.innerHTML = `<tr><td colspan="5" class="muted">ما في مشتريات.</td></tr>`;
+      purchasesBody.innerHTML = `<tr><td colspan="6" class="muted">ما في مشتريات.</td></tr>`;
       return;
     }
 
     purchasesBody.innerHTML = "";
+
     data.forEach(p=>{
       const links = (p.purchase_links || []).slice(0,5);
+      const imgs = (p.purchase_images || []).slice(0,10);
+
       const linksHtml = links.length
         ? links.map((l,i)=>`<div><a href="${escapeAttr(l.url)}" target="_blank" rel="noopener">رابط ${i+1}</a></div>`).join("")
+        : `<span class="muted">—</span>`;
+
+      const thumbs = imgs.length
+        ? `<div class="thumbs">${imgs.map(x=>{
+            const url = sb.storage.from(BUCKET).getPublicUrl(x.storage_path).data.publicUrl;
+            return `<img src="${escapeAttr(url)}" alt="صورة">`;
+          }).join("")}</div>`
         : `<span class="muted">—</span>`;
 
       const tr = document.createElement("tr");
@@ -240,6 +346,7 @@
         <td>${Number(p.price).toLocaleString("ar",{maximumFractionDigits:2})}</td>
         <td>${p.qty}</td>
         <td>${linksHtml}</td>
+        <td>${thumbs}</td>
         <td><button class="btn danger" data-del="${p.id}">حذف</button></td>
       `;
       purchasesBody.appendChild(tr);
@@ -250,21 +357,16 @@
         const pid = btn.getAttribute("data-del");
         if(!confirm("متأكدة بدك تحذفي هذا المشترى؟")) return;
 
-        // delete images metadata + storage files (optional cleanup)
-        // 1) get image paths
         const { data: imgs } = await sb
           .from("purchase_images")
           .select("storage_path")
           .eq("purchase_id", pid);
 
-        // 2) delete db rows (cascade will delete links/images rows if FK set to cascade, but we still clean storage)
         const { error } = await sb.from("purchases").delete().eq("id", pid);
         if(error){ console.error(error); alert("فشل الحذف."); return; }
 
-        // 3) remove files from storage
         if(imgs?.length){
-          const paths = imgs.map(x=>x.storage_path);
-          await sb.storage.from(BUCKET).remove(paths);
+          await sb.storage.from(BUCKET).remove(imgs.map(x=>x.storage_path));
         }
 
         await loadPurchases();
@@ -295,7 +397,6 @@
     if(!activeOrderId) return;
     if(!confirm("متأكدة بدك تحذفي الطلبية كاملة بكل مشترياتها؟")) return;
 
-    // optional: cleanup storage files for all purchases in this order
     const { data: imgs } = await sb
       .from("purchase_images")
       .select("storage_path, purchases!inner(order_id)")
@@ -305,8 +406,7 @@
     if(error){ console.error(error); alert("فشل حذف الطلبية."); return; }
 
     if(imgs?.length){
-      const paths = imgs.map(x=>x.storage_path);
-      await sb.storage.from(BUCKET).remove(paths);
+      await sb.storage.from(BUCKET).remove(imgs.map(x=>x.storage_path));
     }
 
     activeOrderId = null;
@@ -345,20 +445,35 @@
     const linkInputs = [...linksWrap.querySelectorAll("input[data-link]")];
     const urls = linkInputs.map(i=>i.value.trim()).filter(Boolean).slice(0,5);
     if(urls.length){
-      await sb.from("purchase_links").insert(urls.map(url => ({ purchase_id: purchase.id, url })));
+      const { error } = await sb.from("purchase_links").insert(urls.map(url => ({ purchase_id: purchase.id, url })));
+      if(error) console.error(error);
     }
 
-    // Images
+    // Images (show errors clearly)
     const files = [...(images.files || [])].slice(0,10);
-    for(const f of files){
-      if(!f.type.startsWith("image/")) continue;
-      const safeName = `${Date.now()}-${f.name}`.replace(/\s+/g,"_");
+    for (const f of files) {
+      if (!f.type.startsWith("image/")) continue;
+
+      const safeName = `${Date.now()}-${f.name}`.replace(/\s+/g, "_");
       const path = `${activeOrderId}/${purchase.id}/${safeName}`;
 
       const { error: upErr } = await sb.storage.from(BUCKET).upload(path, f);
-      if(upErr){ console.error(upErr); continue; }
 
-      await sb.from("purchase_images").insert({ purchase_id: purchase.id, storage_path: path });
+      if (upErr) {
+        console.error("فشل رفع الصورة:", upErr);
+        formMsg.textContent = `فشل رفع صورة: ${upErr.message || "خطأ"}`;
+        continue;
+      }
+
+      const { error: imgErr } = await sb.from("purchase_images").insert({
+        purchase_id: purchase.id,
+        storage_path: path
+      });
+
+      if (imgErr) {
+        console.error("فشل حفظ مسار الصورة:", imgErr);
+        formMsg.textContent = `تم رفع الصورة لكن فشل حفظها في قاعدة البيانات.`;
+      }
     }
 
     // reset
@@ -370,7 +485,11 @@
   };
 
   renderLinkInputs();
-  loadOrders();
+
+  // If already logged in, load orders
+  sb.auth.getSession().then(({data})=>{
+    if(data.session) loadOrders();
+  });
 </script>
 </body>
 </html>
