@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>الطلبيات</title>
+  <title>إدارة الطلبيات</title>
   <style>
     body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa;color:#111}
     .wrap{max-width:1100px;margin:auto;padding:16px}
@@ -12,31 +12,38 @@
     .card{background:#fff;border:1px solid #e7e7e7;border-radius:14px;padding:12px}
     .btn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
     .btn.primary{background:#111;color:#fff;border-color:#111}
+    .btn.danger{border-color:#f2c2c2;color:#b00020}
     input{padding:10px;border:1px solid #e7e7e7;border-radius:10px;width:220px;max-width:100%}
     table{width:100%;border-collapse:collapse}
     th,td{border-bottom:1px solid #eee;padding:10px;text-align:right;vertical-align:top}
     th{color:#666;font-weight:600;font-size:13px}
     .muted{color:#666;font-size:13px}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .orderItem{border:1px solid #e7e7e7;border-radius:12px;padding:10px;cursor:pointer;display:flex;justify-content:space-between}
+    .orderItem{border:1px solid #e7e7e7;border-radius:12px;padding:10px;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
     .orderItem.active{border-color:#111}
-    .thumbs{display:flex;gap:6px;flex-wrap:wrap}
-    .thumbs img{width:44px;height:44px;object-fit:cover;border-radius:10px;border:1px solid #eee}
+    a{color:#0b57d0;text-decoration:none}
+    a:hover{text-decoration:underline}
   </style>
 </head>
 <body>
 <div class="wrap">
   <div class="row" style="justify-content:space-between">
     <div>
-      <b style="font-size:20px">نظام طلبيات بسيط</b>
-      <div class="muted">نسخة مشتركة: أي شخص عنده الرابط يشوف نفس البيانات.</div>
+      <b style="font-size:20px">إدارة الطلبيات</b>
+      <div class="muted">مشتركة (Supabase) + عربي.</div>
     </div>
-    <button class="btn primary" id="newOrderBtn">+ طلبية جديدة (اليوم)</button>
+    <div class="row">
+      <a class="btn" href="./view.html" target="_blank" rel="noopener">صفحة عرض الطلبية</a>
+      <button class="btn primary" id="newOrderBtn">+ طلبية جديدة (اليوم)</button>
+    </div>
   </div>
 
   <div class="grid" style="margin-top:12px">
     <aside class="card">
-      <b>الطلبيات</b>
+      <div class="row" style="justify-content:space-between">
+        <b>الطلبيات</b>
+        <button class="btn danger" id="deleteOrderBtn" disabled>حذف الطلبية</button>
+      </div>
       <div class="muted" id="ordersMsg" style="margin:8px 0"></div>
       <div id="ordersList"></div>
     </aside>
@@ -54,11 +61,11 @@
 
         <hr style="border:none;border-top:1px solid #eee;margin:12px 0">
 
-        <b>إضافة شراء</b>
-        <div class="muted">حتى 5 روابط + 10 صور</div>
+        <b>إضافة مشترى</b>
+        <div class="muted">حتى 5 روابط (رابط السلة/العنصر) + 10 صور</div>
 
         <div class="row" style="margin-top:10px">
-          <input id="itemName" placeholder="اسم الشراء" />
+          <input id="customerName" placeholder="اسم الزبون" />
           <input id="price" type="number" step="0.01" min="0" placeholder="السعر" />
           <input id="qty" type="number" step="1" min="1" value="1" placeholder="العدد" />
         </div>
@@ -78,7 +85,11 @@
           <table>
             <thead>
               <tr>
-                <th>الاسم</th><th>السعر</th><th>العدد</th><th>روابط</th><th>صور</th>
+                <th>اسم الزبون</th>
+                <th>السعر</th>
+                <th>العدد</th>
+                <th>روابط السلة/العنصر</th>
+                <th></th>
               </tr>
             </thead>
             <tbody id="purchasesBody"></tbody>
@@ -89,27 +100,25 @@
   </div>
 </div>
 
-<!-- Supabase JS (CDN) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  // 1) Configure
   const SUPABASE_URL = "https://maucjvxhrnkdeybltjco.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const BUCKET = "purchase-images";
 
-  // UI refs
   const ordersList = document.getElementById("ordersList");
   const ordersMsg = document.getElementById("ordersMsg");
   const newOrderBtn = document.getElementById("newOrderBtn");
+  const deleteOrderBtn = document.getElementById("deleteOrderBtn");
 
   const mainEmpty = document.getElementById("mainEmpty");
   const main = document.getElementById("main");
   const activeOrderTitle = document.getElementById("activeOrderTitle");
   const activeOrderMeta = document.getElementById("activeOrderMeta");
 
-  const itemName = document.getElementById("itemName");
+  const customerName = document.getElementById("customerName");
   const price = document.getElementById("price");
   const qty = document.getElementById("qty");
   const images = document.getElementById("images");
@@ -134,11 +143,18 @@
     linksWrap.innerHTML = "";
     for(let i=1;i<=5;i++){
       const input = document.createElement("input");
-      input.placeholder = `رابط ${i} (اختياري)`;
+      input.placeholder = `رابط السلة/العنصر ${i} (اختياري)`;
       input.dataset.link = i;
       linksWrap.appendChild(input);
     }
   }
+
+  function escapeHtml(s=""){
+    return String(s).replace(/[&<>"']/g, m => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[m]));
+  }
+  function escapeAttr(s=""){ return escapeHtml(s); }
 
   async function loadOrders(){
     ordersMsg.textContent = "جاري التحميل...";
@@ -160,17 +176,23 @@
       const div = document.createElement("div");
       div.className = "orderItem" + (o.id === activeOrderId ? " active" : "");
       const count = o.purchases?.[0]?.count ?? 0;
-      div.innerHTML = `<div><b>${o.order_name}</b><div class="muted">عدد المشتريات: ${count}</div></div><div class="muted">${count}</div>`;
+      div.innerHTML = `
+        <div>
+          <b>${escapeHtml(o.order_name)}</b>
+          <div class="muted">عدد المشتريات: ${count}</div>
+        </div>
+        <div class="muted">${count}</div>
+      `;
       div.onclick = () => { activeOrderId = o.id; showOrder(o); };
       ordersList.appendChild(div);
     });
 
-    // auto select first
+    deleteOrderBtn.disabled = !activeOrderId;
+
     if(!activeOrderId && data[0]){
       activeOrderId = data[0].id;
       showOrder(data[0]);
-      await loadPurchases();
-      await loadOrders(); // refresh active highlight
+      await loadOrders(); // refresh highlight
     }
   }
 
@@ -179,8 +201,9 @@
     main.style.display = "";
     activeOrderTitle.textContent = order.order_name;
     activeOrderMeta.textContent = new Date(order.created_at).toLocaleString("ar");
+    deleteOrderBtn.disabled = false;
     loadPurchases();
-    loadOrders(); // refresh highlight
+    loadOrders();
   }
 
   async function loadPurchases(){
@@ -189,11 +212,7 @@
 
     const { data, error } = await sb
       .from("purchases")
-      .select(`
-        id, item_name, price, qty, created_at,
-        purchase_links(url),
-        purchase_images(storage_path)
-      `)
+      .select(`id, customer_name, price, qty, created_at, purchase_links(url)`)
       .eq("order_id", activeOrderId)
       .order("created_at", { ascending: false });
 
@@ -211,45 +230,53 @@
     purchasesBody.innerHTML = "";
     data.forEach(p=>{
       const links = (p.purchase_links || []).slice(0,5);
-      const imgs = (p.purchase_images || []).slice(0,10);
-
       const linksHtml = links.length
         ? links.map((l,i)=>`<div><a href="${escapeAttr(l.url)}" target="_blank" rel="noopener">رابط ${i+1}</a></div>`).join("")
         : `<span class="muted">—</span>`;
 
-      const thumbs = imgs.length
-        ? `<div class="thumbs">${imgs.map(x=>{
-            const url = sb.storage.from(BUCKET).getPublicUrl(x.storage_path).data.publicUrl;
-            return `<img src="${escapeAttr(url)}" alt="صورة">`;
-          }).join("")}</div>`
-        : `<span class="muted">—</span>`;
-
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${escapeHtml(p.item_name)}</td>
+        <td>${escapeHtml(p.customer_name || "")}</td>
         <td>${Number(p.price).toLocaleString("ar",{maximumFractionDigits:2})}</td>
         <td>${p.qty}</td>
         <td>${linksHtml}</td>
-        <td>${thumbs}</td>
+        <td><button class="btn danger" data-del="${p.id}">حذف</button></td>
       `;
       purchasesBody.appendChild(tr);
     });
-  }
 
-  function escapeHtml(s=""){
-    return String(s).replace(/[&<>"']/g, m => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-    }[m]));
+    purchasesBody.querySelectorAll("button[data-del]").forEach(btn=>{
+      btn.onclick = async () => {
+        const pid = btn.getAttribute("data-del");
+        if(!confirm("متأكدة بدك تحذفي هذا المشترى؟")) return;
+
+        // delete images metadata + storage files (optional cleanup)
+        // 1) get image paths
+        const { data: imgs } = await sb
+          .from("purchase_images")
+          .select("storage_path")
+          .eq("purchase_id", pid);
+
+        // 2) delete db rows (cascade will delete links/images rows if FK set to cascade, but we still clean storage)
+        const { error } = await sb.from("purchases").delete().eq("id", pid);
+        if(error){ console.error(error); alert("فشل الحذف."); return; }
+
+        // 3) remove files from storage
+        if(imgs?.length){
+          const paths = imgs.map(x=>x.storage_path);
+          await sb.storage.from(BUCKET).remove(paths);
+        }
+
+        await loadPurchases();
+        await loadOrders();
+      };
+    });
   }
-  function escapeAttr(s=""){ return escapeHtml(s); }
 
   newOrderBtn.onclick = async () => {
-    const order_name = todayLabel();
-    const order_date = todayDateISO();
-
     const { data, error } = await sb
       .from("orders")
-      .insert({ order_name, order_date })
+      .insert({ order_name: todayLabel(), order_date: todayDateISO() })
       .select("id, order_name, created_at")
       .single();
 
@@ -264,28 +291,52 @@
     await loadOrders();
   };
 
+  deleteOrderBtn.onclick = async () => {
+    if(!activeOrderId) return;
+    if(!confirm("متأكدة بدك تحذفي الطلبية كاملة بكل مشترياتها؟")) return;
+
+    // optional: cleanup storage files for all purchases in this order
+    const { data: imgs } = await sb
+      .from("purchase_images")
+      .select("storage_path, purchases!inner(order_id)")
+      .eq("purchases.order_id", activeOrderId);
+
+    const { error } = await sb.from("orders").delete().eq("id", activeOrderId);
+    if(error){ console.error(error); alert("فشل حذف الطلبية."); return; }
+
+    if(imgs?.length){
+      const paths = imgs.map(x=>x.storage_path);
+      await sb.storage.from(BUCKET).remove(paths);
+    }
+
+    activeOrderId = null;
+    main.style.display = "none";
+    mainEmpty.style.display = "";
+    deleteOrderBtn.disabled = true;
+
+    await loadOrders();
+  };
+
   addPurchaseBtn.onclick = async () => {
     formMsg.textContent = "";
-
     if(!activeOrderId){ formMsg.textContent = "اختاري طلبية."; return; }
 
-    const name = itemName.value.trim();
+    const cname = customerName.value.trim();
     const pr = Number(price.value);
     const q = Number(qty.value);
 
-    if(!name){ formMsg.textContent = "اسم الشراء مطلوب."; return; }
+    if(!cname){ formMsg.textContent = "اسم الزبون مطلوب."; return; }
     if(!Number.isFinite(pr) || pr < 0){ formMsg.textContent = "السعر غير صحيح."; return; }
     if(!Number.isFinite(q) || q < 1){ formMsg.textContent = "العدد غير صحيح."; return; }
 
-    // Insert purchase
     const { data: purchase, error: pErr } = await sb
       .from("purchases")
-      .insert({ order_id: activeOrderId, item_name: name, price: pr, qty: q })
+      .insert({ order_id: activeOrderId, customer_name: cname, price: pr, qty: q })
       .select("id")
       .single();
 
     if(pErr){
-      formMsg.textContent = "فشل إضافة الشراء.";
+      formMsg.textContent = "فشل إضافة المشترى.";
       console.error(pErr);
       return;
     }
@@ -294,39 +345,30 @@
     const linkInputs = [...linksWrap.querySelectorAll("input[data-link]")];
     const urls = linkInputs.map(i=>i.value.trim()).filter(Boolean).slice(0,5);
     if(urls.length){
-      const rows = urls.map(url => ({ purchase_id: purchase.id, url }));
-      const { error } = await sb.from("purchase_links").insert(rows);
-      if(error) console.error(error);
+      await sb.from("purchase_links").insert(urls.map(url => ({ purchase_id: purchase.id, url })));
     }
 
-    // Images (up to 10)
+    // Images
     const files = [...(images.files || [])].slice(0,10);
     for(const f of files){
       if(!f.type.startsWith("image/")) continue;
-      // path: orderId/purchaseId/filename
       const safeName = `${Date.now()}-${f.name}`.replace(/\s+/g,"_");
       const path = `${activeOrderId}/${purchase.id}/${safeName}`;
 
       const { error: upErr } = await sb.storage.from(BUCKET).upload(path, f);
-      if(upErr){
-        console.error(upErr);
-        continue;
-      }
-      const { error: imgErr } = await sb.from("purchase_images").insert({
-        purchase_id: purchase.id,
-        storage_path: path
-      });
-      if(imgErr) console.error(imgErr);
+      if(upErr){ console.error(upErr); continue; }
+
+      await sb.from("purchase_images").insert({ purchase_id: purchase.id, storage_path: path });
     }
 
-    // reset form
-    itemName.value = ""; price.value = ""; qty.value = 1;
+    // reset
+    customerName.value=""; price.value=""; qty.value=1;
     linkInputs.forEach(i=>i.value=""); images.value="";
+
     await loadPurchases();
     await loadOrders();
   };
 
-  // init
   renderLinkInputs();
   loadOrders();
 </script>
