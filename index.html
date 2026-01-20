@@ -425,10 +425,14 @@ async function loadPurchases(){
   });
 }
 async function openEditPurchase(purchaseId){
-  // Get purchase + existing links
+  // Fetch purchase + links + images
   const { data: p, error } = await sb
     .from("purchases")
-    .select("id, customer_name, price, qty, purchase_links(url)")
+    .select(`
+      id, customer_name, price, qty,
+      purchase_links(url),
+      purchase_images(id, storage_path)
+    `)
     .eq("id", purchaseId)
     .single();
 
@@ -438,6 +442,7 @@ async function openEditPurchase(purchaseId){
     return;
   }
 
+  /* ===== Basic fields ===== */
   const name = prompt("اسم الزبون", p.customer_name || "");
   if(name === null) return;
 
@@ -450,30 +455,63 @@ async function openEditPurchase(purchaseId){
   const priceNum = Number(pr);
   const qtyNum = Number(q);
 
-  if(!name.trim()){
-    alert("اسم الزبون مطلوب");
-    return;
-  }
-  if(!Number.isFinite(priceNum) || priceNum < 0){
-    alert("السعر غير صحيح");
-    return;
-  }
-  if(!Number.isFinite(qtyNum) || qtyNum < 1){
-    alert("العدد غير صحيح");
-    return;
-  }
+  if(!name.trim()){ alert("اسم الزبون مطلوب"); return; }
+  if(!Number.isFinite(priceNum) || priceNum < 0){ alert("السعر غير صحيح"); return; }
+  if(!Number.isFinite(qtyNum) || qtyNum < 1){ alert("العدد غير صحيح"); return; }
 
-  // Collect up to 5 links (replace all)
-  const existing = (p.purchase_links || []).slice(0,5).map(x=>x.url || "");
+  /* ===== Links ===== */
+  const existingLinks = (p.purchase_links || []).slice(0,5).map(x=>x.url || "");
   const newLinks = [];
   for(let i=0;i<5;i++){
-    const val = prompt(`رابط السلة/العنصر ${i+1}`, existing[i] || "");
-    if(val === null) return; // cancel whole edit
-    const trimmed = val.trim();
-    if(trimmed) newLinks.push(trimmed);
+    const val = prompt(`رابط السلة/العنصر ${i+1}`, existingLinks[i] || "");
+    if(val === null) return;
+    const t = val.trim();
+    if(t) newLinks.push(t);
   }
 
-  // Update purchase fields
+  /* ===== Images: delete ===== */
+  const existingImages = p.purchase_images || [];
+  const toDelete = [];
+
+  for(const img of existingImages){
+    const url = sb.storage.from(BUCKET)
+      .getPublicUrl(img.storage_path).data.publicUrl;
+
+    const del = confirm(`هل تريدين حذف هذه الصورة؟\n${url}`);
+    if(del) toDelete.push(img);
+  }
+
+  /* ===== Images: add new ===== */
+  const addNew = confirm("هل تريدين إضافة صور جديدة؟ (تحميل / لصق / سحب)");
+  let newFiles = [];
+
+  if(addNew){
+    const picker = document.createElement("input");
+    picker.type = "file";
+    picker.accept = "image/*";
+    picker.multiple = true;
+
+    picker.onchange = () => {
+      newFiles = [...picker.files].filter(f => f.type.startsWith("image/"));
+    };
+
+    picker.click();
+
+    // Wait until user selects files
+    await new Promise(resolve => {
+      picker.onchange = () => {
+        newFiles = [...picker.files].filter(f => f.type.startsWith("image/"));
+        resolve();
+      };
+    });
+  }
+
+  /* ===== Enforce max 10 images ===== */
+  const remainingCount = existingImages.length - toDelete.length;
+  const allowedNew = Math.max(0, 10 - remainingCount);
+  newFiles = newFiles.slice(0, allowedNew);
+
+  /* ===== Update DB ===== */
   const { error: upErr } = await sb
     .from("purchases")
     .update({
@@ -489,19 +527,41 @@ async function openEditPurchase(purchaseId){
     return;
   }
 
-  // Replace links
+  /* ===== Replace links ===== */
   await sb.from("purchase_links").delete().eq("purchase_id", purchaseId);
   if(newLinks.length){
-    const { error: linkErr } = await sb
-      .from("purchase_links")
-      .insert(newLinks.map(url => ({ purchase_id: purchaseId, url })));
-
-    if(linkErr) console.error(linkErr);
+    await sb.from("purchase_links").insert(
+      newLinks.map(url => ({ purchase_id: purchaseId, url }))
+    );
   }
 
-  // Refresh table
+  /* ===== Delete images ===== */
+  if(toDelete.length){
+    await sb.storage.from(BUCKET)
+      .remove(toDelete.map(x => x.storage_path));
+
+    await sb.from("purchase_images")
+      .delete()
+      .in("id", toDelete.map(x => x.id));
+  }
+
+  /* ===== Upload new images ===== */
+  for(const f of newFiles){
+    const safeName = `${Date.now()}-${f.name}`.replace(/\s+/g,"_");
+    const path = `${activeOrder.id}/${purchaseId}/${safeName}`;
+
+    const { error: upImgErr } = await sb.storage.from(BUCKET).upload(path, f);
+    if(upImgErr){ console.error(upImgErr); continue; }
+
+    await sb.from("purchase_images").insert({
+      purchase_id: purchaseId,
+      storage_path: path
+    });
+  }
+
   loadPurchases();
 }
+
 
 async function deletePurchase(id){
   if(!confirm("حذف؟"))return;
@@ -577,6 +637,7 @@ loadOrders();
 </script>
 </body>
 </html>
+
 
 
 
