@@ -104,6 +104,15 @@ async function requireAuth(){
   }
 }
 requireAuth();
+async function requireAdminPage(){
+  const { data, error } = await sb.from("user_roles").select("role").single();
+  if(error){ console.error(error); return; }
+  if(data.role !== "admin"){
+    window.location.href = "./view.html";
+  }
+}
+
+requireAdminPage();
 
 /* ===== Logout ===== */
 document.getElementById("logoutBtn").onclick = async ()=>{
@@ -277,6 +286,7 @@ loadOrders();
 </script>
 </body>
 </html>
+
 
 
 
