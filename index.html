@@ -23,6 +23,8 @@
     .orderItem{border:1px solid #e7e7e7;border-radius:12px;padding:10px;cursor:pointer;display:flex;justify-content:space-between}
     .orderItem.active{border-color:#111}
     .thumbs img{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid #eee}
+
+    /* Dropzone */
     .dropZone{
       border:2px dashed #d8d8d8;
       border-radius:14px;
@@ -64,6 +66,15 @@
     }
     .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px}
 
+    /* Inline edit form */
+    .inlineEditRow td{ background:#fcfcfc; }
+    .inlineEditBox{
+      border:1px solid #eee;
+      border-radius:12px;
+      padding:10px;
+    }
+    .inlineEditBox .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .inlineEditBox input{ padding:10px; border:1px solid #e7e7e7; border-radius:10px; }
   </style>
 </head>
 <body>
@@ -110,7 +121,7 @@
           <button class="btn primary" id="saveOrderBtn">حفظ</button>
           <button class="btn" id="cancelOrderBtn">إلغاء</button>
         </div>
-        
+
         <hr>
 
         <b>إضافة مشترى</b>
@@ -130,23 +141,21 @@
               <br>
               (حد أقصى: 10 صور)
             </div>
-        
+
             <div class="row" style="margin-top:10px">
               <button class="btn" id="pickImagesBtn" type="button">اختيار صور</button>
               <span class="pill" id="imgCount">0/10</span>
             </div>
-        
+
             <div id="preview" class="preview" style="margin-top:10px"></div>
-        
-            <!-- hidden file input -->
+
             <input id="images" type="file" multiple accept="image/*" style="display:none">
           </div>
-        
+
           <div class="row" style="margin-top:10px">
             <button class="btn primary" id="addBtn">إضافة</button>
           </div>
         </div>
-
 
         <hr>
 
@@ -170,6 +179,14 @@ const SUPABASE_ANON_KEY = "sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const BUCKET = "purchase-images";
 
+/* ===== Helpers ===== */
+function escapeHtml(s=""){
+  return String(s).replace(/[&<>"']/g, m => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[m]));
+}
+function escapeAttr(s=""){ return escapeHtml(s); }
+
 /* ===== Auth guard ===== */
 async function requireAuth(){
   const { data } = await sb.auth.getSession();
@@ -178,6 +195,7 @@ async function requireAuth(){
   }
 }
 requireAuth();
+
 async function requireAdminPage(){
   const { data, error } = await sb.from("user_roles").select("role").single();
   if(error){ console.error(error); return; }
@@ -185,7 +203,6 @@ async function requireAdminPage(){
     window.location.href = "./view.html";
   }
 }
-
 requireAdminPage();
 
 /* ===== Logout ===== */
@@ -209,42 +226,36 @@ const images = document.getElementById("images");
 const linksWrap = document.getElementById("links");
 const addBtn = document.getElementById("addBtn");
 const deleteOrderBtn = document.getElementById("deleteOrderBtn");
+
 const dropZone = document.getElementById("dropZone");
 const pickImagesBtn = document.getElementById("pickImagesBtn");
 const preview = document.getElementById("preview");
 const imgCount = document.getElementById("imgCount");
+
 const editOrderBtn = document.getElementById("editOrderBtn");
 const editOrderRow = document.getElementById("editOrderRow");
 const editOrderInput = document.getElementById("editOrderInput");
 const saveOrderBtn = document.getElementById("saveOrderBtn");
 const cancelOrderBtn = document.getElementById("cancelOrderBtn");
+
+let activeOrder = null;
+
+/* ===== Order name edit ===== */
 editOrderBtn.onclick = () => {
   if(!activeOrder) return;
   editOrderInput.value = activeOrder.order_name;
   editOrderRow.style.display = "";
 };
-
-cancelOrderBtn.onclick = () => {
-  editOrderRow.style.display = "none";
-};
-
+cancelOrderBtn.onclick = () => { editOrderRow.style.display = "none"; };
 saveOrderBtn.onclick = async () => {
   const newName = editOrderInput.value.trim();
-  if(!newName){
-    alert("اسم الطلبية مطلوب");
-    return;
-  }
+  if(!newName){ alert("اسم الطلبية مطلوب"); return; }
 
-  const { error } = await sb
-    .from("orders")
+  const { error } = await sb.from("orders")
     .update({ order_name: newName })
     .eq("id", activeOrder.id);
 
-  if(error){
-    console.error(error);
-    alert("فشل تعديل اسم الطلبية");
-    return;
-  }
+  if(error){ console.error(error); alert("فشل تعديل اسم الطلبية"); return; }
 
   activeOrder.order_name = newName;
   orderTitle.textContent = newName;
@@ -252,13 +263,25 @@ saveOrderBtn.onclick = async () => {
   loadOrders();
 };
 
+/* ===== Links inputs for NEW purchase ===== */
+for(let i=1;i<=5;i++){
+  const input = document.createElement("input");
+  input.placeholder = `رابط ${i}`;
+  linksWrap.appendChild(input);
+}
+
+function todayName(){
+  const d=new Date();
+  return `طلبية ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+}
+
+/* ===== Drag/Drop/Paste images (NEW purchase) ===== */
 let selectedImages = []; // File[]
 const MAX_IMAGES = 10;
 
 function updatePreview(){
   imgCount.textContent = `${selectedImages.length}/${MAX_IMAGES}`;
   preview.innerHTML = "";
-
   selectedImages.forEach((file, i) => {
     const url = URL.createObjectURL(file);
     const div = document.createElement("div");
@@ -272,7 +295,6 @@ function updatePreview(){
     preview.appendChild(div);
   });
 }
-
 function addFiles(files){
   const arr = [...files].filter(f => f && f.type && f.type.startsWith("image/"));
   for(const f of arr){
@@ -281,40 +303,26 @@ function addFiles(files){
   }
   updatePreview();
 }
-
-// Pick images button
 pickImagesBtn.onclick = () => images.click();
-
-// File picker selection
 images.addEventListener("change", () => {
   addFiles(images.files);
-  images.value = ""; // reset so same file can be picked again
+  images.value = "";
 });
-
-// Drag & drop
 ["dragenter","dragover"].forEach(evt=>{
   dropZone.addEventListener(evt, (e)=>{
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     dropZone.classList.add("dragover");
   });
 });
 ["dragleave","drop"].forEach(evt=>{
   dropZone.addEventListener(evt, (e)=>{
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     dropZone.classList.remove("dragover");
   });
 });
-dropZone.addEventListener("drop", (e)=>{
-  addFiles(e.dataTransfer.files);
-});
-
-// Paste (Ctrl+V)
+dropZone.addEventListener("drop", (e)=> addFiles(e.dataTransfer.files));
 document.addEventListener("paste", (e)=>{
-  // Only accept paste when user is on this page and zone is visible
   if(!dropZone) return;
-
   const items = e.clipboardData?.items || [];
   const pasted = [];
   for(const it of items){
@@ -323,28 +331,14 @@ document.addEventListener("paste", (e)=>{
       if(f) pasted.push(f);
     }
   }
-  if(pasted.length){
-    addFiles(pasted);
-  }
+  if(pasted.length) addFiles(pasted);
 });
 
-let activeOrder = null;
-
-for(let i=1;i<=5;i++){
-  const input = document.createElement("input");
-  input.placeholder = `رابط ${i}`;
-  linksWrap.appendChild(input);
-}
-
-function todayName(){
-  const d=new Date();
-  return `طلبية ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
-}
-
+/* ===== Orders ===== */
 async function loadOrders(){
   const { data } = await sb.from("orders").select("*").order("created_at",{ascending:false});
   ordersList.innerHTML="";
-  data.forEach(o=>{
+  (data||[]).forEach(o=>{
     const div=document.createElement("div");
     div.className="orderItem"+(activeOrder?.id===o.id?" active":"");
     div.textContent=o.order_name;
@@ -359,9 +353,28 @@ async function selectOrder(o){
   empty.style.display="none";
   main.style.display="";
   orderTitle.textContent=o.order_name;
-  loadPurchases();
-  loadOrders();
+  await loadPurchases();
+  await loadOrders();
 }
+
+const orderNameInput = document.getElementById("orderNameInput");
+orderNameInput.value = todayName();
+
+newOrderBtn.onclick = async () => {
+  const name = orderNameInput.value.trim();
+  if (!name) { alert("اكتبي اسم الطلبية"); return; }
+
+  const { data, error } = await sb
+    .from("orders")
+    .insert({ order_name: name })
+    .select()
+    .single();
+
+  if (error) { console.error(error); alert("فشل إنشاء الطلبية"); return; }
+
+  orderNameInput.value = "";
+  selectOrder(data);
+};
 
 deleteOrderBtn.onclick = async () => {
   if(!activeOrder) return;
@@ -387,7 +400,73 @@ deleteOrderBtn.onclick = async () => {
   loadOrders();
 };
 
+/* ===== Purchases table + INLINE EDIT ===== */
+function closeAllEditRows(){
+  tbody.querySelectorAll('tr[data-edit-row]').forEach(r => r.style.display = "none");
+}
+
+function toggleEditRow(purchaseId){
+  const row = tbody.querySelector(`tr[data-edit-row="${purchaseId}"]`);
+  if(!row) return;
+  tbody.querySelectorAll('tr[data-edit-row]').forEach(r=>{
+    if(r !== row) r.style.display = "none";
+  });
+  row.style.display = (row.style.display === "none") ? "" : "none";
+}
+
+function closeEditRow(purchaseId){
+  const row = tbody.querySelector(`tr[data-edit-row="${purchaseId}"]`);
+  if(row) row.style.display = "none";
+}
+
+async function saveInlineEdit(purchaseId){
+  const row = tbody.querySelector(`tr[data-edit-row="${purchaseId}"]`);
+  if(!row) return;
+
+  const msgEl = row.querySelector(`[data-msg="${purchaseId}"]`);
+  msgEl.textContent = "جاري الحفظ...";
+
+  const name = row.querySelector(`[data-f="name"]`).value.trim();
+  const priceVal = Number(row.querySelector(`[data-f="price"]`).value);
+  const qtyVal = Number(row.querySelector(`[data-f="qty"]`).value);
+
+  if(!name){ msgEl.textContent = "اسم الزبون مطلوب."; return; }
+  if(!Number.isFinite(priceVal) || priceVal < 0){ msgEl.textContent = "السعر غير صحيح."; return; }
+  if(!Number.isFinite(qtyVal) || qtyVal < 1){ msgEl.textContent = "العدد غير صحيح."; return; }
+
+  const links = [];
+  for(let i=1;i<=5;i++){
+    const v = row.querySelector(`[data-l="${i}"]`).value.trim();
+    if(v) links.push(v);
+  }
+
+  const { error: upErr } = await sb
+    .from("purchases")
+    .update({ customer_name: name, price: priceVal, qty: qtyVal })
+    .eq("id", purchaseId);
+
+  if(upErr){
+    console.error(upErr);
+    msgEl.textContent = "فشل حفظ التعديل.";
+    return;
+  }
+
+  await sb.from("purchase_links").delete().eq("purchase_id", purchaseId);
+  if(links.length){
+    const { error: linkErr } = await sb
+      .from("purchase_links")
+      .insert(links.map(url => ({ purchase_id: purchaseId, url })));
+    if(linkErr) console.error(linkErr);
+  }
+
+  msgEl.textContent = "تم ✅";
+  await loadPurchases();
+  closeAllEditRows();
+}
+
 async function loadPurchases(){
+  if(!activeOrder) return;
+
   const { data } = await sb
     .from("purchases")
     .select("*,purchase_links(url),purchase_images(storage_path)")
@@ -395,229 +474,121 @@ async function loadPurchases(){
     .order("created_at",{ascending:false});
 
   tbody.innerHTML="";
-  data.forEach(p=>{
-    const tr=document.createElement("tr");
+
+  (data||[]).forEach(p=>{
     const imgs=(p.purchase_images||[]).map(i=>{
       const url=sb.storage.from(BUCKET).getPublicUrl(i.storage_path).data.publicUrl;
-      return `<img src="${url}">`;
+      return `<img src="${escapeAttr(url)}" alt="صورة">`;
     }).join("");
+
+    // Display row
+    const tr=document.createElement("tr");
     tr.innerHTML=`
-      <td>${p.customer_name}</td>
-      <td>${p.price}</td>
-      <td>${p.qty}</td>
-      <td>${(p.purchase_links||[]).map((l,i)=>`<a href="${l.url}" target="_blank" rel="noopener">رابط ${i+1}</a>`).join("<br>") || "—"}</td>
+      <td>${escapeHtml(p.customer_name || "")}</td>
+      <td>${escapeHtml(p.price ?? "")}</td>
+      <td>${escapeHtml(p.qty ?? "")}</td>
+      <td>${(p.purchase_links||[]).map((l,i)=>`<a href="${escapeAttr(l.url)}" target="_blank" rel="noopener">رابط ${i+1}</a>`).join("<br>") || "—"}</td>
       <td class="thumbs">${imgs}</td>
       <td>
         <button class="btn" data-edit="${p.id}" title="تعديل">✏️</button>
         <button class="btn danger" data-del="${p.id}" title="حذف">🗑</button>
       </td>
     `;
+
+    // Edit row under it (hidden)
+    const editTr = document.createElement("tr");
+    editTr.className = "inlineEditRow";
+    editTr.dataset.editRow = p.id;
+    editTr.style.display = "none";
+
+    const links = (p.purchase_links || []).slice(0,5).map(x=>x.url || "");
+    while(links.length < 5) links.push("");
+
+    editTr.innerHTML = `
+      <td colspan="6">
+        <div class="inlineEditBox">
+          <b>تعديل المشترى</b>
+
+          <div class="row" style="margin-top:10px">
+            <input data-f="name" placeholder="اسم الزبون" value="${escapeAttr(p.customer_name || "")}">
+            <input data-f="price" type="number" step="0.01" min="0" placeholder="السعر" value="${escapeAttr(p.price ?? "")}">
+            <input data-f="qty" type="number" step="1" min="1" placeholder="العدد" value="${escapeAttr(p.qty ?? 1)}">
+          </div>
+
+          <div class="row" style="margin-top:10px">
+            <input data-l="1" placeholder="رابط السلة/العنصر 1" value="${escapeAttr(links[0])}">
+            <input data-l="2" placeholder="رابط السلة/العنصر 2" value="${escapeAttr(links[1])}">
+            <input data-l="3" placeholder="رابط السلة/العنصر 3" value="${escapeAttr(links[2])}">
+            <input data-l="4" placeholder="رابط السلة/العنصر 4" value="${escapeAttr(links[3])}">
+            <input data-l="5" placeholder="رابط السلة/العنصر 5" value="${escapeAttr(links[4])}">
+          </div>
+
+          <div class="row" style="margin-top:10px;justify-content:space-between">
+            <div class="row">
+              <button class="btn primary" data-save="${p.id}" type="button">حفظ</button>
+              <button class="btn" data-cancel="${p.id}" type="button">إلغاء</button>
+            </div>
+            <span class="muted" data-msg="${p.id}"></span>
+          </div>
+        </div>
+      </td>
+    `;
+
     tbody.appendChild(tr);
+    tbody.appendChild(editTr);
   });
-  // Delete handlers
+
+  // Handlers
   tbody.querySelectorAll("button[data-del]").forEach(btn=>{
     btn.onclick = () => deletePurchase(btn.dataset.del);
   });
-  
-  // Edit handlers
   tbody.querySelectorAll("button[data-edit]").forEach(btn=>{
-    btn.onclick = () => openEditPurchase(btn.dataset.edit);
+    btn.onclick = () => toggleEditRow(btn.dataset.edit);
+  });
+  tbody.querySelectorAll("button[data-cancel]").forEach(btn=>{
+    btn.onclick = () => closeEditRow(btn.dataset.cancel);
+  });
+  tbody.querySelectorAll("button[data-save]").forEach(btn=>{
+    btn.onclick = () => saveInlineEdit(btn.dataset.save);
   });
 }
-async function openEditPurchase(purchaseId){
-  // Fetch purchase + links + images
-  const { data: p, error } = await sb
-    .from("purchases")
-    .select(`
-      id, customer_name, price, qty,
-      purchase_links(url),
-      purchase_images(id, storage_path)
-    `)
-    .eq("id", purchaseId)
-    .single();
-
-  if(error){
-    console.error(error);
-    alert("فشل تحميل بيانات المشترى");
-    return;
-  }
-
-  /* ===== Basic fields ===== */
-  const name = prompt("اسم الزبون", p.customer_name || "");
-  if(name === null) return;
-
-  const pr = prompt("السعر", p.price ?? "");
-  if(pr === null) return;
-
-  const q = prompt("العدد", p.qty ?? 1);
-  if(q === null) return;
-
-  const priceNum = Number(pr);
-  const qtyNum = Number(q);
-
-  if(!name.trim()){ alert("اسم الزبون مطلوب"); return; }
-  if(!Number.isFinite(priceNum) || priceNum < 0){ alert("السعر غير صحيح"); return; }
-  if(!Number.isFinite(qtyNum) || qtyNum < 1){ alert("العدد غير صحيح"); return; }
-
-  /* ===== Links ===== */
-  const existingLinks = (p.purchase_links || []).slice(0,5).map(x=>x.url || "");
-  const newLinks = [];
-  for(let i=0;i<5;i++){
-    const val = prompt(`رابط السلة/العنصر ${i+1}`, existingLinks[i] || "");
-    if(val === null) return;
-    const t = val.trim();
-    if(t) newLinks.push(t);
-  }
-
-  /* ===== Images: delete ===== */
-  const existingImages = p.purchase_images || [];
-  const toDelete = [];
-
-  for(const img of existingImages){
-    const url = sb.storage.from(BUCKET)
-      .getPublicUrl(img.storage_path).data.publicUrl;
-
-    const del = confirm(`هل تريدين حذف هذه الصورة؟\n${url}`);
-    if(del) toDelete.push(img);
-  }
-
-  /* ===== Images: add new ===== */
-  const addNew = confirm("هل تريدين إضافة صور جديدة؟ (تحميل / لصق / سحب)");
-  let newFiles = [];
-
-  if(addNew){
-    const picker = document.createElement("input");
-    picker.type = "file";
-    picker.accept = "image/*";
-    picker.multiple = true;
-
-    picker.onchange = () => {
-      newFiles = [...picker.files].filter(f => f.type.startsWith("image/"));
-    };
-
-    picker.click();
-
-    // Wait until user selects files
-    await new Promise(resolve => {
-      picker.onchange = () => {
-        newFiles = [...picker.files].filter(f => f.type.startsWith("image/"));
-        resolve();
-      };
-    });
-  }
-
-  /* ===== Enforce max 10 images ===== */
-  const remainingCount = existingImages.length - toDelete.length;
-  const allowedNew = Math.max(0, 10 - remainingCount);
-  newFiles = newFiles.slice(0, allowedNew);
-
-  /* ===== Update DB ===== */
-  const { error: upErr } = await sb
-    .from("purchases")
-    .update({
-      customer_name: name.trim(),
-      price: priceNum,
-      qty: qtyNum
-    })
-    .eq("id", purchaseId);
-
-  if(upErr){
-    console.error(upErr);
-    alert("فشل حفظ التعديل");
-    return;
-  }
-
-  /* ===== Replace links ===== */
-  await sb.from("purchase_links").delete().eq("purchase_id", purchaseId);
-  if(newLinks.length){
-    await sb.from("purchase_links").insert(
-      newLinks.map(url => ({ purchase_id: purchaseId, url }))
-    );
-  }
-
-  /* ===== Delete images ===== */
-  if(toDelete.length){
-    await sb.storage.from(BUCKET)
-      .remove(toDelete.map(x => x.storage_path));
-
-    await sb.from("purchase_images")
-      .delete()
-      .in("id", toDelete.map(x => x.id));
-  }
-
-  /* ===== Upload new images ===== */
-  for(const f of newFiles){
-    const safeName = `${Date.now()}-${f.name}`.replace(/\s+/g,"_");
-    const path = `${activeOrder.id}/${purchaseId}/${safeName}`;
-
-    const { error: upImgErr } = await sb.storage.from(BUCKET).upload(path, f);
-    if(upImgErr){ console.error(upImgErr); continue; }
-
-    await sb.from("purchase_images").insert({
-      purchase_id: purchaseId,
-      storage_path: path
-    });
-  }
-
-  loadPurchases();
-}
-
 
 async function deletePurchase(id){
-  if(!confirm("حذف؟"))return;
+  if(!confirm("حذف؟")) return;
   await sb.from("purchases").delete().eq("id",id);
   loadPurchases();
 }
 
-const orderNameInput = document.getElementById("orderNameInput");
-orderNameInput.value = todayName();
-newOrderBtn.onclick = async () => {
-  const name = orderNameInput.value.trim();
+/* ===== Add new purchase ===== */
+addBtn.onclick = async () => {
+  if(!activeOrder) return;
 
-  if (!name) {
-    alert("اكتبي اسم الطلبية");
-    return;
-  }
-
-  const { data, error } = await sb
-    .from("orders")
-    .insert({ order_name: name })
+  const { data:p, error: pErr } = await sb.from("purchases")
+    .insert({
+      order_id: activeOrder.id,
+      customer_name: customer.value,
+      price: Number(price.value),
+      qty: Number(qty.value)
+    })
     .select()
     .single();
 
-  if (error) {
-    console.error(error);
-    alert("فشل إنشاء الطلبية");
-    return;
-  }
-
-  orderNameInput.value = "";
-  selectOrder(data);
-};
-
-
-addBtn.onclick=async()=>{
-  if(!activeOrder)return;
-  const { data:p } = await sb.from("purchases")
-    .insert({
-      order_id:activeOrder.id,
-      customer_name:customer.value,
-      price:Number(price.value),
-      qty:Number(qty.value)
-    }).select().single();
+  if(pErr){ console.error(pErr); alert("فشل إضافة المشترى"); return; }
 
   const urls=[...linksWrap.querySelectorAll("input")].map(i=>i.value).filter(Boolean);
   if(urls.length){
-    await sb.from("purchase_links").insert(urls.map(u=>({purchase_id:p.id,url:u})));
+    const { error: lErr } = await sb.from("purchase_links")
+      .insert(urls.map(u=>({purchase_id:p.id,url:u})));
+    if(lErr) console.error(lErr);
   }
 
   for(const f of selectedImages){
     const safeName = `${Date.now()}-${f.name}`.replace(/\s+/g, "_");
     const path = `${activeOrder.id}/${p.id}/${safeName}`;
-  
+
     const { error: upErr } = await sb.storage.from(BUCKET).upload(path, f);
     if(upErr){ console.error(upErr); alert("فشل رفع صورة."); continue; }
-  
+
     const { error: dbErr } = await sb.from("purchase_images").insert({
       purchase_id: p.id,
       storage_path: path
@@ -625,11 +596,16 @@ addBtn.onclick=async()=>{
     if(dbErr){ console.error(dbErr); alert("فشل حفظ مسار الصورة."); }
   }
 
-
-  customer.value=""; price.value=""; qty.value=1; images.value="";
+  // reset form
+  customer.value="";
+  price.value="";
+  qty.value=1;
+  images.value="";
   linksWrap.querySelectorAll("input").forEach(i=>i.value="");
+
   selectedImages = [];
   updatePreview();
+
   loadPurchases();
 };
 
@@ -637,11 +613,3 @@ loadOrders();
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
