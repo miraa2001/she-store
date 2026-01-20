@@ -1,523 +1,122 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>عرض الطلبية</title>
-  <style>
-    body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa;color:#111}
-    .wrap{max-width:1000px;margin:auto;padding:16px}
-    .card{background:#fff;border:1px solid #e7e7e7;border-radius:14px;padding:12px}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .btn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
-    .btn.primary{background:#111;color:#fff;border-color:#111}
-    .btn.danger{border-color:#f2c2c2;color:#b00020}
-    .muted{color:#666;font-size:13px}
-    input{padding:10px;border:1px solid #e7e7e7;border-radius:10px}
-    .grid{display:grid;grid-template-columns:340px 1fr;gap:12px;margin-top:12px}
-    @media(max-width:900px){.grid{grid-template-columns:1fr}}
-    .orderItem{border:1px solid #e7e7e7;border-radius:12px;padding:10px;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
-    .orderItem.active{border-color:#111}
-    .nav{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
-    .thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-    .thumbs img{width:70px;height:70px;object-fit:cover;border-radius:12px;border:1px solid #eee; cursor:pointer;}
-    a{color:#0b57d0;text-decoration:none}
-    a:hover{text-decoration:underline}
-    .hidden{display:none}
-    .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px}
 
-    /* Lightbox */
-    #lightbox{
-      position:fixed; inset:0;
-      background:rgba(0,0,0,.75);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      padding:20px;
-      z-index:9999;
-    }
-    #lightbox.open{ display:flex; }
-    #lightbox img{
-      max-width:min(95vw, 900px);
-      max-height:90vh;
-      border-radius:16px;
-      background:#fff;
-    }
-    #lightboxClose{
-      position:absolute;
-      top:14px;
-      left:14px;
-      border:1px solid rgba(255,255,255,.35);
-      background:rgba(0,0,0,.35);
-      color:#fff;
-      padding:10px 12px;
-      border-radius:12px;
-      cursor:pointer;
-      font-size:18px;
-      line-height:1;
-    }
+  <style>
+    body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa}
+    .wrap{max-width:900px;margin:auto;padding:16px}
+    .card{background:#fff;border:1px solid #e7e7e7;border-radius:14px;padding:12px}
+    .row{display:flex;gap:10px;align-items:center;justify-content:space-between}
+    .btn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
+    .thumbs img{width:90px;height:90px;object-fit:cover;border-radius:12px;border:1px solid #eee;cursor:pointer}
+    .nav{display:flex;justify-content:space-between;margin:12px 0}
+    #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center}
+    #lightbox img{max-width:90vw;max-height:90vh;border-radius:16px}
   </style>
 </head>
 <body>
+
 <div class="wrap">
-
-  <!-- AUTH CARD -->
-  <div class="card" id="authCard" style="margin-bottom:12px">
-    <div class="row" style="justify-content:space-between">
-      <b>تسجيل الدخول</b>
-      <button class="btn" id="logoutBtn" style="display:none">تسجيل خروج</button>
-    </div>
-
-    <div class="row" id="loginRow" style="margin-top:10px">
-      <input id="username" placeholder="اسم المستخدم" />
-      <input id="password" type="password" placeholder="كلمة المرور" />
-      <button class="btn primary" id="loginBtn">دخول</button>
-    </div>
-
-    <div class="muted" id="authMsg" style="margin-top:8px"></div>
+  <div class="row" style="margin-bottom:12px">
+    <a class="btn" href="./index.html">رجوع</a>
+    <button class="btn" id="logoutBtn">تسجيل خروج</button>
   </div>
 
-  <!-- APP -->
-  <div id="app">
-    <div class="row" style="justify-content:space-between">
-      <div>
-        <b style="font-size:20px">عرض الطلبية</b>
-        <div class="muted">اختاري طلبية من القائمة، وبعدين تنقّلي بين المشتريات بأسهم يمين/يسار. (تكبس/ي الصورة بتكبر)</div>
-      </div>
-      <a class="btn" href="./index.html">رجوع للإدارة</a>
+  <div class="card">
+    <b id="title"></b>
+
+    <div class="nav">
+      <button class="btn" id="prev">→</button>
+      <span id="counter"></span>
+      <button class="btn" id="next">←</button>
     </div>
 
-    <div class="grid">
-      <aside class="card">
-        <div class="row" style="justify-content:space-between">
-          <b>اختاري طلبية</b>
-          <span class="pill" id="ordersCount">0</span>
-        </div>
-        <div class="muted" id="status" style="margin:8px 0"></div>
-        <div id="ordersList"></div>
-      </aside>
-
-      <main class="card">
-        <div id="empty" class="muted">اختاري طلبية من اليسار…</div>
-
-        <div id="viewer" class="hidden">
-          <div class="row" style="justify-content:space-between;align-items:flex-start">
-            <div>
-              <b id="orderTitle"></b>
-              <div class="muted" id="orderMeta"></div>
-            </div>
-            <span class="pill" id="pCount"></span>
-          </div>
-
-          <div class="nav">
-            <button class="btn" id="prevBtn">→ السابق</button>
-            <div>
-              <b id="counter"></b>
-              <div class="muted">المشترى الحالي</div>
-            </div>
-            <button class="btn" id="nextBtn">التالي ←</button>
-          </div>
-
-          <hr style="border:none;border-top:1px solid #eee;margin:12px 0">
-
-          <div class="row" style="justify-content:space-between">
-            <div>
-              <div><b>اسم الزبون:</b> <span id="vCustomer"></span></div>
-              <div><b>السعر:</b> <span id="vPrice"></span></div>
-              <div><b>العدد:</b> <span id="vQty"></span></div>
-            </div>
-            <div class="row">
-              <button class="btn primary" id="editBtn">تعديل</button>
-              <button class="btn danger" id="deleteBtn">حذف</button>
-            </div>
-          </div>
-
-          <div style="margin-top:10px">
-            <b>روابط السلة/العنصر</b>
-            <div id="vLinks" class="muted" style="margin-top:6px"></div>
-          </div>
-
-          <div style="margin-top:10px">
-            <b>صور</b>
-            <div id="vImages" class="thumbs"></div>
-          </div>
-
-          <hr style="border:none;border-top:1px solid #eee;margin:12px 0">
-
-          <div id="editForm" class="hidden">
-            <b>تعديل المشترى</b>
-            <div class="row" style="margin-top:10px">
-              <input id="eCustomer" placeholder="اسم الزبون" />
-              <input id="ePrice" type="number" step="0.01" min="0" placeholder="السعر" />
-              <input id="eQty" type="number" step="1" min="1" placeholder="العدد" />
-            </div>
-
-            <div class="row" style="margin-top:10px" id="eLinks"></div>
-
-            <div class="row" style="margin-top:10px">
-              <button class="btn primary" id="saveBtn">حفظ</button>
-              <button class="btn" id="cancelBtn">إلغاء</button>
-              <span class="muted" id="editMsg"></span>
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
+    <div id="content"></div>
   </div>
 </div>
 
-<!-- Lightbox -->
-<div id="lightbox" aria-hidden="true">
-  <button id="lightboxClose" title="إغلاق">×</button>
-  <img id="lightboxImg" alt="صورة كبيرة" />
-</div>
+<div id="lightbox"><img></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  // ================== SUPABASE CONFIG ==================
-  const SUPABASE_URL = "https://maucjvxhrnkdeybltjco.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_URL="https://maucjvxhrnkdeybltjco.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const BUCKET="purchase-images";
 
-  const BUCKET = "purchase-images";
-
-  // ================== AUTH (username -> fake email) ==================
-  const authMsg = document.getElementById("authMsg");
-  const loginRow = document.getElementById("loginRow");
-  const logoutBtn = document.getElementById("logoutBtn");
-  const loginBtn = document.getElementById("loginBtn");
-  const usernameEl = document.getElementById("username");
-  const passwordEl = document.getElementById("password");
-  const app = document.getElementById("app");
-
-  const EMAIL_DOMAIN = "she-store.com";
-
-  function usernameToEmail(username){
-    const u = username.trim().toLowerCase();
-    const safe = u.replace(/[^a-z0-9._-]/g, "");
-    return `${safe}@${EMAIL_DOMAIN}`;
-  }
-
-  async function refreshAuthUI() {
+/* ===== Auth guard ===== */
+async function requireAuth(){
   const { data } = await sb.auth.getSession();
-  const session = data.session;
-
-  if (session) {
-    // أخفي كارد تسجيل الدخول بالكامل
-    authCard.style.display = "none";
-
-    // أظهر التطبيق
-    app.style.display = "";
-
-    // (اختياري) إذا الصفحة فيها loadOrders حمّلي البيانات
-    if (typeof loadOrders === "function") loadOrders();
-
-  } else {
-    // أظهر كارد تسجيل الدخول
-    authCard.style.display = "";
-
-    authMsg.textContent = "الرجاء تسجيل الدخول للمتابعة.";
-    loginRow.style.display = "";
-    logoutBtn.style.display = "none";
-
-    // أخفي التطبيق
-    app.style.display = "none";
+  if(!data.session){
+    window.location.href="./login.html?next=view.html";
   }
-  }
+}
+requireAuth();
 
-  loginBtn.onclick = async () => {
-    authMsg.textContent = "جاري تسجيل الدخول...";
-    const username = usernameEl.value;
-    const password = passwordEl.value;
+document.getElementById("logoutBtn").onclick=async()=>{
+  await sb.auth.signOut();
+  window.location.href="./login.html";
+};
 
-    if(!username.trim() || !password){
-      authMsg.textContent = "اكتبي اسم المستخدم وكلمة المرور.";
-      return;
-    }
+const title=document.getElementById("title");
+const content=document.getElementById("content");
+const counter=document.getElementById("counter");
+const prev=document.getElementById("prev");
+const next=document.getElementById("next");
+const lb=document.getElementById("lightbox");
+const lbImg=lb.querySelector("img");
 
-    const email = usernameToEmail(username);
-    const { error } = await sb.auth.signInWithPassword({ email, password });
+let purchases=[],idx=0;
 
-    if (error) {
-      console.error(error);
-      authMsg.textContent = "فشل الدخول. تأكدي من اسم المستخدم وكلمة المرور.";
-      return;
-    }
+async function init(){
+  const { data:orders }=await sb.from("orders").select("*").order("created_at",{ascending:false}).limit(1);
+  if(!orders.length)return;
+  title.textContent=orders[0].order_name;
 
-    await refreshAuthUI();
-    loadOrders();
-  };
+  const { data }=await sb
+    .from("purchases")
+    .select("*,purchase_links(url),purchase_images(storage_path)")
+    .eq("order_id",orders[0].id)
+    .order("created_at",{ascending:false});
 
-  logoutBtn.onclick = async () => {
-    await sb.auth.signOut();
-    await refreshAuthUI();
-  };
+  purchases=data;
+  render();
+}
 
-  sb.auth.onAuthStateChange(() => refreshAuthUI());
-  refreshAuthUI();
+function render(){
+  if(!purchases.length)return;
+  const p=purchases[idx];
+  counter.textContent=`${idx+1}/${purchases.length}`;
 
-  // ================== UI REFS ==================
-  const ordersList = document.getElementById("ordersList");
-  const ordersCount = document.getElementById("ordersCount");
-  const status = document.getElementById("status");
+  const imgs=(p.purchase_images||[]).map(i=>{
+    const url=sb.storage.from(BUCKET).getPublicUrl(i.storage_path).data.publicUrl;
+    return `<img src="${url}">`;
+  }).join("");
 
-  const empty = document.getElementById("empty");
-  const viewer = document.getElementById("viewer");
+  content.innerHTML=`
+    <div><b>الزبون:</b> ${p.customer_name}</div>
+    <div><b>السعر:</b> ${p.price}</div>
+    <div><b>العدد:</b> ${p.qty}</div>
+    <div>${(p.purchase_links||[]).map(l=>`<a href="${l.url}" target="_blank">رابط</a>`).join("<br>")}</div>
+    <div class="thumbs">${imgs}</div>
+  `;
 
-  const orderTitle = document.getElementById("orderTitle");
-  const orderMeta = document.getElementById("orderMeta");
-  const pCount = document.getElementById("pCount");
-
-  const prevBtn = document.getElementById("prevBtn");
-  const nextBtn = document.getElementById("nextBtn");
-  const counter = document.getElementById("counter");
-
-  const vCustomer = document.getElementById("vCustomer");
-  const vPrice = document.getElementById("vPrice");
-  const vQty = document.getElementById("vQty");
-  const vLinks = document.getElementById("vLinks");
-  const vImages = document.getElementById("vImages");
-
-  const editBtn = document.getElementById("editBtn");
-  const deleteBtn = document.getElementById("deleteBtn");
-
-  const editForm = document.getElementById("editForm");
-  const eCustomer = document.getElementById("eCustomer");
-  const ePrice = document.getElementById("ePrice");
-  const eQty = document.getElementById("eQty");
-  const eLinks = document.getElementById("eLinks");
-  const saveBtn = document.getElementById("saveBtn");
-  const cancelBtn = document.getElementById("cancelBtn");
-  const editMsg = document.getElementById("editMsg");
-  const authCard = document.getElementById("authCard");
-
-  // Lightbox
-  const lightbox = document.getElementById("lightbox");
-  const lightboxImg = document.getElementById("lightboxImg");
-  const lightboxClose = document.getElementById("lightboxClose");
-
-  function openLightbox(src){
-    lightboxImg.src = src;
-    lightbox.classList.add("open");
-    lightbox.setAttribute("aria-hidden", "false");
-  }
-  function closeLightbox(){
-    lightbox.classList.remove("open");
-    lightbox.setAttribute("aria-hidden", "true");
-    lightboxImg.src = "";
-  }
-  lightboxClose.onclick = closeLightbox;
-  lightbox.onclick = (e) => { if(e.target === lightbox) closeLightbox(); };
-
-  let activeOrder = null;
-  let purchases = [];
-  let idx = 0;
-
-  function escapeHtml(s=""){
-    return String(s).replace(/[&<>"']/g, m => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-    }[m]));
-  }
-  function escAttr(s=""){ return escapeHtml(s); }
-
-  function renderEditLinks(values=[]){
-    eLinks.innerHTML = "";
-    for(let i=1;i<=5;i++){
-      const input = document.createElement("input");
-      input.placeholder = `رابط السلة/العنصر ${i} (اختياري)`;
-      input.dataset.link = i;
-      input.value = values[i-1] || "";
-      eLinks.appendChild(input);
-    }
-  }
-
-  async function loadOrders(){
-    status.textContent = "جاري تحميل الطلبيات...";
-    const { data, error } = await sb
-      .from("orders")
-      .select("id, order_name, created_at, purchases:purchases(count)")
-      .order("created_at", { ascending: false });
-
-    if(error){
-      console.error(error);
-      status.textContent = "صار خطأ بتحميل الطلبيات.";
-      return;
-    }
-
-    ordersCount.textContent = data.length;
-    status.textContent = data.length ? "" : "ما في طلبيات.";
-    ordersList.innerHTML = "";
-
-    data.forEach(o=>{
-      const count = o.purchases?.[0]?.count ?? 0;
-      const div = document.createElement("div");
-      div.className = "orderItem" + (activeOrder?.id === o.id ? " active" : "");
-      div.innerHTML = `
-        <div>
-          <b>${escapeHtml(o.order_name)}</b>
-          <div class="muted">عدد المشتريات: ${count}</div>
-        </div>
-        <div class="pill">${count}</div>
-      `;
-      div.onclick = async () => {
-        activeOrder = o;
-        await loadPurchases(o.id);
-        await loadOrders();
-      };
-      ordersList.appendChild(div);
-    });
-  }
-
-  async function loadPurchases(orderId){
-    status.textContent = "جاري تحميل المشتريات...";
-    const { data, error } = await sb
-      .from("purchases")
-      .select(`id, customer_name, price, qty, created_at,
-               purchase_links(url),
-               purchase_images(storage_path)`)
-      .eq("order_id", orderId)
-      .order("created_at", { ascending: false });
-
-    if(error){
-      console.error(error);
-      status.textContent = "خطأ بتحميل المشتريات.";
-      return;
-    }
-
-    purchases = data || [];
-    idx = 0;
-    status.textContent = "";
-
-    orderTitle.textContent = activeOrder.order_name;
-    orderMeta.textContent = "تاريخ الإنشاء: " + new Date(activeOrder.created_at).toLocaleString("ar");
-    pCount.textContent = `${purchases.length} مشتريات`;
-
-    if(!purchases.length){
-      empty.textContent = "هاي الطلبية ما فيها مشتريات.";
-      empty.style.display = "";
-      viewer.classList.add("hidden");
-      return;
-    }
-
-    empty.style.display = "none";
-    viewer.classList.remove("hidden");
-    render();
-  }
-
-  function render(){
-    const p = purchases[idx];
-    counter.textContent = `${idx+1} / ${purchases.length}`;
-
-    vCustomer.textContent = p.customer_name || "";
-    vPrice.textContent = Number(p.price).toLocaleString("ar", { maximumFractionDigits: 2 });
-    vQty.textContent = p.qty;
-
-    const links = (p.purchase_links || []).slice(0,5).map(x=>x.url).filter(Boolean);
-    vLinks.innerHTML = links.length
-      ? links.map((u,i)=>`<div><a href="${escAttr(u)}" target="_blank" rel="noopener">رابط ${i+1}</a></div>`).join("")
-      : `<span class="muted">—</span>`;
-
-    const imgs = (p.purchase_images || []).slice(0,10).map(x=>x.storage_path);
-    vImages.innerHTML = imgs.length
-      ? imgs.map(path=>{
-          const url = sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
-          return `<img src="${escAttr(url)}" alt="صورة" data-full="${escAttr(url)}">`;
-        }).join("")
-      : `<span class="muted">—</span>`;
-
-    vImages.querySelectorAll("img[data-full]").forEach(img=>{
-      img.onclick = () => openLightbox(img.dataset.full);
-    });
-
-    editForm.classList.add("hidden");
-    editMsg.textContent = "";
-  }
-
-  prevBtn.onclick = () => { if(!purchases.length) return; idx = (idx-1+purchases.length)%purchases.length; render(); };
-  nextBtn.onclick = () => { if(!purchases.length) return; idx = (idx+1)%purchases.length; render(); };
-
-  document.addEventListener("keydown", (e) => {
-    if(e.key === "Escape") closeLightbox();
-    if(viewer.classList.contains("hidden")) return;
-    if(e.key === "ArrowRight") prevBtn.click();
-    if(e.key === "ArrowLeft") nextBtn.click();
+  content.querySelectorAll("img").forEach(img=>{
+    img.onclick=()=>{
+      lb.style.display="flex";
+      lbImg.src=img.src;
+    };
   });
+}
 
-  editBtn.onclick = () => {
-    const p = purchases[idx];
-    eCustomer.value = p.customer_name || "";
-    ePrice.value = p.price;
-    eQty.value = p.qty;
+prev.onclick=()=>{idx=(idx-1+purchases.length)%purchases.length;render();};
+next.onclick=()=>{idx=(idx+1)%purchases.length;render();};
+lb.onclick=()=>lb.style.display="none";
 
-    const links = (p.purchase_links || []).slice(0,5).map(x=>x.url);
-    renderEditLinks(links);
-
-    editForm.classList.remove("hidden");
-  };
-
-  cancelBtn.onclick = () => {
-    editForm.classList.add("hidden");
-    editMsg.textContent = "";
-  };
-
-  saveBtn.onclick = async () => {
-    editMsg.textContent = "";
-    const p = purchases[idx];
-
-    const cname = eCustomer.value.trim();
-    const pr = Number(ePrice.value);
-    const q = Number(eQty.value);
-
-    if(!cname){ editMsg.textContent="اسم الزبون مطلوب."; return; }
-    if(!Number.isFinite(pr) || pr < 0){ editMsg.textContent="السعر غير صحيح."; return; }
-    if(!Number.isFinite(q) || q < 1){ editMsg.textContent="العدد غير صحيح."; return; }
-
-    const { error: uErr } = await sb
-      .from("purchases")
-      .update({ customer_name: cname, price: pr, qty: q })
-      .eq("id", p.id);
-
-    if(uErr){ console.error(uErr); editMsg.textContent="فشل الحفظ."; return; }
-
-    await sb.from("purchase_links").delete().eq("purchase_id", p.id);
-
-    const linkInputs = [...eLinks.querySelectorAll("input[data-link]")];
-    const urls = linkInputs.map(i=>i.value.trim()).filter(Boolean).slice(0,5);
-    if(urls.length){
-      await sb.from("purchase_links").insert(urls.map(url => ({ purchase_id: p.id, url })));
-    }
-
-    const currentId = p.id;
-    await loadPurchases(activeOrder.id);
-    idx = Math.max(0, purchases.findIndex(x=>x.id === currentId));
-    if(idx < 0) idx = 0;
-    render();
-  };
-
-  deleteBtn.onclick = async () => {
-    const p = purchases[idx];
-    if(!confirm("متأكدة بدك تحذفي هذا المشترى؟")) return;
-
-    const { data: imgs } = await sb
-      .from("purchase_images")
-      .select("storage_path")
-      .eq("purchase_id", p.id);
-
-    const { error } = await sb.from("purchases").delete().eq("id", p.id);
-    if(error){ console.error(error); alert("فشل الحذف."); return; }
-
-    if(imgs?.length){
-      await sb.storage.from(BUCKET).remove(imgs.map(x=>x.storage_path));
-    }
-
-    await loadPurchases(activeOrder.id);
-    await loadOrders();
-  };
-
-  // Load if already logged in
-  sb.auth.getSession().then(({data})=>{
-    if(data.session) loadOrders();
-  });
+init();
 </script>
 </body>
 </html>
