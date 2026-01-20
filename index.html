@@ -97,8 +97,20 @@
       <div id="empty" class="muted">اختاري طلبية</div>
 
       <div id="main" style="display:none">
-        <b id="orderTitle"></b>
 
+        <!-- Order title + edit -->
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <b id="orderTitle"></b>
+          <button class="btn" id="editOrderBtn" title="تعديل اسم الطلبية">✏️</button>
+        </div>
+
+        <!-- Edit order name row -->
+        <div class="row" id="editOrderRow" style="display:none;margin-top:6px">
+          <input id="editOrderInput" placeholder="اسم الطلبية الجديد">
+          <button class="btn primary" id="saveOrderBtn">حفظ</button>
+          <button class="btn" id="cancelOrderBtn">إلغاء</button>
+        </div>
+        
         <hr>
 
         <b>إضافة مشترى</b>
@@ -201,6 +213,44 @@ const dropZone = document.getElementById("dropZone");
 const pickImagesBtn = document.getElementById("pickImagesBtn");
 const preview = document.getElementById("preview");
 const imgCount = document.getElementById("imgCount");
+const editOrderBtn = document.getElementById("editOrderBtn");
+const editOrderRow = document.getElementById("editOrderRow");
+const editOrderInput = document.getElementById("editOrderInput");
+const saveOrderBtn = document.getElementById("saveOrderBtn");
+const cancelOrderBtn = document.getElementById("cancelOrderBtn");
+editOrderBtn.onclick = () => {
+  if(!activeOrder) return;
+  editOrderInput.value = activeOrder.order_name;
+  editOrderRow.style.display = "";
+};
+
+cancelOrderBtn.onclick = () => {
+  editOrderRow.style.display = "none";
+};
+
+saveOrderBtn.onclick = async () => {
+  const newName = editOrderInput.value.trim();
+  if(!newName){
+    alert("اسم الطلبية مطلوب");
+    return;
+  }
+
+  const { error } = await sb
+    .from("orders")
+    .update({ order_name: newName })
+    .eq("id", activeOrder.id);
+
+  if(error){
+    console.error(error);
+    alert("فشل تعديل اسم الطلبية");
+    return;
+  }
+
+  activeOrder.order_name = newName;
+  orderTitle.textContent = newName;
+  editOrderRow.style.display = "none";
+  loadOrders();
+};
 
 let selectedImages = []; // File[]
 const MAX_IMAGES = 10;
