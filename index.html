@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>إدارة الطلبيات</title>
+
   <style>
     body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa;color:#111}
     .wrap{max-width:1100px;margin:auto;padding:16px}
@@ -13,497 +14,216 @@
     .btn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
     .btn.primary{background:#111;color:#fff;border-color:#111}
     .btn.danger{border-color:#f2c2c2;color:#b00020}
-    input{padding:10px;border:1px solid #e7e7e7;border-radius:10px;width:220px;max-width:100%}
+    input{padding:10px;border:1px solid #e7e7e7;border-radius:10px}
     table{width:100%;border-collapse:collapse}
     th,td{border-bottom:1px solid #eee;padding:10px;text-align:right;vertical-align:top}
-    th{color:#666;font-weight:600;font-size:13px}
-    .muted{color:#666;font-size:13px}
+    th{color:#666;font-size:13px}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .orderItem{border:1px solid #e7e7e7;border-radius:12px;padding:10px;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
+    .muted{color:#666;font-size:13px}
+    .orderItem{border:1px solid #e7e7e7;border-radius:12px;padding:10px;cursor:pointer;display:flex;justify-content:space-between}
     .orderItem.active{border-color:#111}
-    a{color:#0b57d0;text-decoration:none}
-    a:hover{text-decoration:underline}
-    .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px}
-    .thumbs{display:flex;gap:6px;flex-wrap:wrap}
-    .thumbs img{width:44px;height:44px;object-fit:cover;border-radius:10px;border:1px solid #eee}
+    .thumbs img{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid #eee}
   </style>
 </head>
 <body>
+
 <div class="wrap">
-
-  <!-- AUTH CARD -->
-  <div class="card" id="authCard" style="margin-bottom:12px">
-    <div class="row" style="justify-content:space-between">
-      <b>تسجيل الدخول</b>
-      <button class="btn" id="logoutBtn" style="display:none">تسجيل خروج</button>
+  <div class="row" style="justify-content:space-between;margin-bottom:12px">
+    <div>
+      <b style="font-size:20px">إدارة الطلبيات</b>
+      <div class="muted">إضافة / حذف / تعديل</div>
     </div>
-
-    <div class="row" id="loginRow" style="margin-top:10px">
-      <input id="username" placeholder="اسم المستخدم" />
-      <input id="password" type="password" placeholder="كلمة المرور" />
-      <button class="btn primary" id="loginBtn">دخول</button>
+    <div class="row">
+      <a class="btn" href="./view.html">صفحة العرض</a>
+      <button class="btn" id="logoutBtn">تسجيل خروج</button>
     </div>
-
-    <div class="muted" id="authMsg" style="margin-top:8px"></div>
   </div>
 
-  <!-- APP -->
-  <div id="app">
-    <div class="row" style="justify-content:space-between">
-      <div>
-        <b style="font-size:20px">إدارة الطلبيات</b>
-        <div class="muted">هذه الصفحة للإضافة والحذف. صفحة العرض موجودة تحت.</div>
+  <div class="grid">
+    <aside class="card">
+      <div class="row" style="justify-content:space-between">
+        <b>الطلبيات</b>
+        <button class="btn primary" id="newOrderBtn">+ طلبية اليوم</button>
       </div>
-      <div class="row">
-        <a class="btn" href="./view.html">صفحة عرض الطلبية</a>
-        <button class="btn primary" id="newOrderBtn">+ طلبية جديدة (اليوم)</button>
+      <div id="ordersList" style="margin-top:10px"></div>
+    </aside>
+
+    <main class="card">
+      <div id="empty" class="muted">اختاري طلبية</div>
+
+      <div id="main" style="display:none">
+        <b id="orderTitle"></b>
+
+        <hr>
+
+        <b>إضافة مشترى</b>
+        <div class="row">
+          <input id="customer" placeholder="اسم الزبون">
+          <input id="price" type="number" placeholder="السعر">
+          <input id="qty" type="number" value="1" placeholder="العدد">
+        </div>
+
+        <div class="row" id="links" style="margin-top:8px"></div>
+
+        <div class="row" style="margin-top:8px">
+          <input id="images" type="file" multiple accept="image/*">
+          <button class="btn primary" id="addBtn">إضافة</button>
+        </div>
+
+        <hr>
+
+        <table>
+          <thead>
+            <tr>
+              <th>الزبون</th><th>السعر</th><th>العدد</th><th>روابط</th><th>صور</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
       </div>
-    </div>
-
-    <div class="grid" style="margin-top:12px">
-      <aside class="card">
-        <div class="row" style="justify-content:space-between">
-          <b>الطلبيات</b>
-          <button class="btn danger" id="deleteOrderBtn" disabled>حذف الطلبية</button>
-        </div>
-        <div class="muted" id="ordersMsg" style="margin:8px 0"></div>
-        <div id="ordersList"></div>
-      </aside>
-
-      <main class="card">
-        <div id="mainEmpty" class="muted">اختاري طلبية…</div>
-
-        <div id="main" style="display:none">
-          <div class="row" style="justify-content:space-between">
-            <div>
-              <b id="activeOrderTitle"></b>
-              <div class="muted" id="activeOrderMeta"></div>
-            </div>
-          </div>
-
-          <hr style="border:none;border-top:1px solid #eee;margin:12px 0">
-
-          <b>إضافة مشترى</b>
-          <div class="muted">حتى 5 روابط (رابط السلة/العنصر) + 10 صور</div>
-
-          <div class="row" style="margin-top:10px">
-            <input id="customerName" placeholder="اسم الزبون" />
-            <input id="price" type="number" step="0.01" min="0" placeholder="السعر" />
-            <input id="qty" type="number" step="1" min="1" value="1" placeholder="العدد" />
-          </div>
-
-          <div class="row" style="margin-top:10px" id="links"></div>
-
-          <div class="row" style="margin-top:10px">
-            <input id="images" type="file" accept="image/*" multiple />
-            <button class="btn primary" id="addPurchaseBtn">إضافة</button>
-            <span class="muted" id="formMsg"></span>
-          </div>
-
-          <hr style="border:none;border-top:1px solid #eee;margin:12px 0">
-
-          <b>المشتريات</b>
-          <div style="overflow:auto;margin-top:8px">
-            <table>
-              <thead>
-                <tr>
-                  <th>اسم الزبون</th>
-                  <th>السعر</th>
-                  <th>العدد</th>
-                  <th>روابط السلة/العنصر</th>
-                  <th>صور</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="purchasesBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </main>
-    </div>
+    </main>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  // ================== SUPABASE CONFIG ==================
-  const SUPABASE_URL = "https://maucjvxhrnkdeybltjco.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_URL = "YOUR_SUPABASE_URL";
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const BUCKET = "purchase-images";
 
-  const BUCKET = "purchase-images";
-
-  // ================== AUTH (username -> fake email) ==================
-  const authMsg = document.getElementById("authMsg");
-  const loginRow = document.getElementById("loginRow");
-  const logoutBtn = document.getElementById("logoutBtn");
-  const loginBtn = document.getElementById("loginBtn");
-  const usernameEl = document.getElementById("username");
-  const passwordEl = document.getElementById("password");
-  const app = document.getElementById("app");
-
-  const EMAIL_DOMAIN = "she-store.com";
-
-  function usernameToEmail(username){
-    const u = username.trim().toLowerCase();
-    const safe = u.replace(/[^a-z0-9._-]/g, "");
-    return `${safe}@${EMAIL_DOMAIN}`;
-  }
-
-  async function refreshAuthUI() {
+/* ===== Auth guard ===== */
+async function requireAuth(){
   const { data } = await sb.auth.getSession();
-  const session = data.session;
-
-  if (session) {
-    // أخفي كارد تسجيل الدخول بالكامل
-    authCard.style.display = "none";
-
-    // أظهر التطبيق
-    app.style.display = "";
-
-    // (اختياري) إذا الصفحة فيها loadOrders حمّلي البيانات
-    if (typeof loadOrders === "function") loadOrders();
-
-  } else {
-    // أظهر كارد تسجيل الدخول
-    authCard.style.display = "";
-
-    authMsg.textContent = "الرجاء تسجيل الدخول للمتابعة.";
-    loginRow.style.display = "";
-    logoutBtn.style.display = "none";
-
-    // أخفي التطبيق
-    app.style.display = "none";
+  if(!data.session){
+    window.location.href = "./login.html?next=index.html";
   }
-  }
+}
+requireAuth();
 
-  loginBtn.onclick = async () => {
-    authMsg.textContent = "جاري تسجيل الدخول...";
-    const username = usernameEl.value;
-    const password = passwordEl.value;
+/* ===== Logout ===== */
+document.getElementById("logoutBtn").onclick = async ()=>{
+  await sb.auth.signOut();
+  window.location.href = "./login.html";
+};
 
-    if(!username.trim() || !password){
-      authMsg.textContent = "اكتبي اسم المستخدم وكلمة المرور.";
-      return;
-    }
+/* ===== App logic ===== */
+const ordersList = document.getElementById("ordersList");
+const newOrderBtn = document.getElementById("newOrderBtn");
+const main = document.getElementById("main");
+const empty = document.getElementById("empty");
+const orderTitle = document.getElementById("orderTitle");
+const tbody = document.getElementById("tbody");
 
-    const email = usernameToEmail(username);
-    const { error } = await sb.auth.signInWithPassword({ email, password });
+const customer = document.getElementById("customer");
+const price = document.getElementById("price");
+const qty = document.getElementById("qty");
+const images = document.getElementById("images");
+const linksWrap = document.getElementById("links");
+const addBtn = document.getElementById("addBtn");
 
-    if (error) {
-      console.error(error);
-      authMsg.textContent = "فشل الدخول. تأكدي من اسم المستخدم وكلمة المرور.";
-      return;
-    }
+let activeOrder = null;
 
-    await refreshAuthUI();
-    loadOrders();
-  };
+for(let i=1;i<=5;i++){
+  const input = document.createElement("input");
+  input.placeholder = `رابط ${i}`;
+  linksWrap.appendChild(input);
+}
 
-  logoutBtn.onclick = async () => {
-    await sb.auth.signOut();
-    await refreshAuthUI();
-  };
+function todayName(){
+  const d=new Date();
+  return `طلبية ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+}
 
-  sb.auth.onAuthStateChange(() => refreshAuthUI());
-  refreshAuthUI();
-
-  // ================== UI REFS ==================
-  const ordersList = document.getElementById("ordersList");
-  const ordersMsg = document.getElementById("ordersMsg");
-  const newOrderBtn = document.getElementById("newOrderBtn");
-  const deleteOrderBtn = document.getElementById("deleteOrderBtn");
-
-  const mainEmpty = document.getElementById("mainEmpty");
-  const main = document.getElementById("main");
-  const activeOrderTitle = document.getElementById("activeOrderTitle");
-  const activeOrderMeta = document.getElementById("activeOrderMeta");
-
-  const customerName = document.getElementById("customerName");
-  const price = document.getElementById("price");
-  const qty = document.getElementById("qty");
-  const images = document.getElementById("images");
-  const linksWrap = document.getElementById("links");
-  const addPurchaseBtn = document.getElementById("addPurchaseBtn");
-  const formMsg = document.getElementById("formMsg");
-  const purchasesBody = document.getElementById("purchasesBody");
-  const authCard = document.getElementById("authCard");
-
-  let activeOrderId = null;
-
-  function todayLabel(d=new Date()){
-    return `طلبية ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
-  }
-  function todayDateISO(d=new Date()){
-    const yyyy=d.getFullYear();
-    const mm=String(d.getMonth()+1).padStart(2,"0");
-    const dd=String(d.getDate()).padStart(2,"0");
-    return `${yyyy}-${mm}-${dd}`;
-  }
-
-  function renderLinkInputs(){
-    linksWrap.innerHTML = "";
-    for(let i=1;i<=5;i++){
-      const input = document.createElement("input");
-      input.placeholder = `رابط السلة/العنصر ${i} (اختياري)`;
-      input.dataset.link = i;
-      linksWrap.appendChild(input);
-    }
-  }
-
-  function escapeHtml(s=""){
-    return String(s).replace(/[&<>"']/g, m => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-    }[m]));
-  }
-  function escapeAttr(s=""){ return escapeHtml(s); }
-
-  async function loadOrders(){
-    ordersMsg.textContent = "جاري التحميل...";
-
-    const { data, error } = await sb
-      .from("orders")
-      .select("id, order_name, created_at, purchases:purchases(count)")
-      .order("created_at", { ascending: false });
-
-    if(error){
-      ordersMsg.textContent = "صار خطأ بتحميل الطلبيات.";
-      console.error(error);
-      return;
-    }
-
-    ordersMsg.textContent = data.length ? "" : "ما في طلبيات.";
-    ordersList.innerHTML = "";
-
-    data.forEach(o=>{
-      const div = document.createElement("div");
-      div.className = "orderItem" + (o.id === activeOrderId ? " active" : "");
-      const count = o.purchases?.[0]?.count ?? 0;
-
-      div.innerHTML = `
-        <div>
-          <b>${escapeHtml(o.order_name)}</b>
-          <div class="muted">عدد المشتريات: ${count}</div>
-        </div>
-        <span class="pill">${count}</span>
-      `;
-
-      div.onclick = () => { activeOrderId = o.id; showOrder(o); };
-      ordersList.appendChild(div);
-    });
-
-    deleteOrderBtn.disabled = !activeOrderId;
-
-    if(!activeOrderId && data[0]){
-      activeOrderId = data[0].id;
-      showOrder(data[0]);
-      await loadOrders();
-    }
-  }
-
-  function showOrder(order){
-    mainEmpty.style.display = "none";
-    main.style.display = "";
-    activeOrderTitle.textContent = order.order_name;
-    activeOrderMeta.textContent = new Date(order.created_at).toLocaleString("ar");
-    deleteOrderBtn.disabled = false;
-    loadPurchases();
-    loadOrders();
-  }
-
-  async function loadPurchases(){
-    if(!activeOrderId) return;
-    purchasesBody.innerHTML = `<tr><td colspan="6" class="muted">جاري التحميل...</td></tr>`;
-
-    const { data, error } = await sb
-      .from("purchases")
-      .select(`id, customer_name, price, qty, created_at,
-               purchase_links(url),
-               purchase_images(storage_path)`)
-      .eq("order_id", activeOrderId)
-      .order("created_at", { ascending: false });
-
-    if(error){
-      purchasesBody.innerHTML = `<tr><td colspan="6" class="muted">صار خطأ.</td></tr>`;
-      console.error(error);
-      return;
-    }
-
-    if(!data.length){
-      purchasesBody.innerHTML = `<tr><td colspan="6" class="muted">ما في مشتريات.</td></tr>`;
-      return;
-    }
-
-    purchasesBody.innerHTML = "";
-
-    data.forEach(p=>{
-      const links = (p.purchase_links || []).slice(0,5);
-      const imgs = (p.purchase_images || []).slice(0,10);
-
-      const linksHtml = links.length
-        ? links.map((l,i)=>`<div><a href="${escapeAttr(l.url)}" target="_blank" rel="noopener">رابط ${i+1}</a></div>`).join("")
-        : `<span class="muted">—</span>`;
-
-      const thumbs = imgs.length
-        ? `<div class="thumbs">${imgs.map(x=>{
-            const url = sb.storage.from(BUCKET).getPublicUrl(x.storage_path).data.publicUrl;
-            return `<img src="${escapeAttr(url)}" alt="صورة">`;
-          }).join("")}</div>`
-        : `<span class="muted">—</span>`;
-
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${escapeHtml(p.customer_name || "")}</td>
-        <td>${Number(p.price).toLocaleString("ar",{maximumFractionDigits:2})}</td>
-        <td>${p.qty}</td>
-        <td>${linksHtml}</td>
-        <td>${thumbs}</td>
-        <td><button class="btn danger" data-del="${p.id}">حذف</button></td>
-      `;
-      purchasesBody.appendChild(tr);
-    });
-
-    purchasesBody.querySelectorAll("button[data-del]").forEach(btn=>{
-      btn.onclick = async () => {
-        const pid = btn.getAttribute("data-del");
-        if(!confirm("متأكدة بدك تحذفي هذا المشترى؟")) return;
-
-        const { data: imgs } = await sb
-          .from("purchase_images")
-          .select("storage_path")
-          .eq("purchase_id", pid);
-
-        const { error } = await sb.from("purchases").delete().eq("id", pid);
-        if(error){ console.error(error); alert("فشل الحذف."); return; }
-
-        if(imgs?.length){
-          await sb.storage.from(BUCKET).remove(imgs.map(x=>x.storage_path));
-        }
-
-        await loadPurchases();
-        await loadOrders();
-      };
-    });
-  }
-
-  newOrderBtn.onclick = async () => {
-    const { data, error } = await sb
-      .from("orders")
-      .insert({ order_name: todayLabel(), order_date: todayDateISO() })
-      .select("id, order_name, created_at")
-      .single();
-
-    if(error){
-      alert("ما قدرنا نعمل طلبية جديدة.");
-      console.error(error);
-      return;
-    }
-
-    activeOrderId = data.id;
-    showOrder(data);
-    await loadOrders();
-  };
-
-  deleteOrderBtn.onclick = async () => {
-    if(!activeOrderId) return;
-    if(!confirm("متأكدة بدك تحذفي الطلبية كاملة بكل مشترياتها؟")) return;
-
-    const { data: imgs } = await sb
-      .from("purchase_images")
-      .select("storage_path, purchases!inner(order_id)")
-      .eq("purchases.order_id", activeOrderId);
-
-    const { error } = await sb.from("orders").delete().eq("id", activeOrderId);
-    if(error){ console.error(error); alert("فشل حذف الطلبية."); return; }
-
-    if(imgs?.length){
-      await sb.storage.from(BUCKET).remove(imgs.map(x=>x.storage_path));
-    }
-
-    activeOrderId = null;
-    main.style.display = "none";
-    mainEmpty.style.display = "";
-    deleteOrderBtn.disabled = true;
-
-    await loadOrders();
-  };
-
-  addPurchaseBtn.onclick = async () => {
-    formMsg.textContent = "";
-    if(!activeOrderId){ formMsg.textContent = "اختاري طلبية."; return; }
-
-    const cname = customerName.value.trim();
-    const pr = Number(price.value);
-    const q = Number(qty.value);
-
-    if(!cname){ formMsg.textContent = "اسم الزبون مطلوب."; return; }
-    if(!Number.isFinite(pr) || pr < 0){ formMsg.textContent = "السعر غير صحيح."; return; }
-    if(!Number.isFinite(q) || q < 1){ formMsg.textContent = "العدد غير صحيح."; return; }
-
-    const { data: purchase, error: pErr } = await sb
-      .from("purchases")
-      .insert({ order_id: activeOrderId, customer_name: cname, price: pr, qty: q })
-      .select("id")
-      .single();
-
-    if(pErr){
-      formMsg.textContent = "فشل إضافة المشترى.";
-      console.error(pErr);
-      return;
-    }
-
-    // Links
-    const linkInputs = [...linksWrap.querySelectorAll("input[data-link]")];
-    const urls = linkInputs.map(i=>i.value.trim()).filter(Boolean).slice(0,5);
-    if(urls.length){
-      const { error } = await sb.from("purchase_links").insert(urls.map(url => ({ purchase_id: purchase.id, url })));
-      if(error) console.error(error);
-    }
-
-    // Images (show errors clearly)
-    const files = [...(images.files || [])].slice(0,10);
-    for (const f of files) {
-      if (!f.type.startsWith("image/")) continue;
-
-      const safeName = `${Date.now()}-${f.name}`.replace(/\s+/g, "_");
-      const path = `${activeOrderId}/${purchase.id}/${safeName}`;
-
-      const { error: upErr } = await sb.storage.from(BUCKET).upload(path, f);
-
-      if (upErr) {
-        console.error("فشل رفع الصورة:", upErr);
-        formMsg.textContent = `فشل رفع صورة: ${upErr.message || "خطأ"}`;
-        continue;
-      }
-
-      const { error: imgErr } = await sb.from("purchase_images").insert({
-        purchase_id: purchase.id,
-        storage_path: path
-      });
-
-      if (imgErr) {
-        console.error("فشل حفظ مسار الصورة:", imgErr);
-        formMsg.textContent = `تم رفع الصورة لكن فشل حفظها في قاعدة البيانات.`;
-      }
-    }
-
-    // reset
-    customerName.value=""; price.value=""; qty.value=1;
-    linkInputs.forEach(i=>i.value=""); images.value="";
-
-    await loadPurchases();
-    await loadOrders();
-  };
-
-  renderLinkInputs();
-
-  // If already logged in, load orders
-  sb.auth.getSession().then(({data})=>{
-    if(data.session) loadOrders();
+async function loadOrders(){
+  const { data } = await sb.from("orders").select("*").order("created_at",{ascending:false});
+  ordersList.innerHTML="";
+  data.forEach(o=>{
+    const div=document.createElement("div");
+    div.className="orderItem"+(activeOrder?.id===o.id?" active":"");
+    div.textContent=o.order_name;
+    div.onclick=()=>selectOrder(o);
+    ordersList.appendChild(div);
   });
+}
+
+async function selectOrder(o){
+  activeOrder=o;
+  empty.style.display="none";
+  main.style.display="";
+  orderTitle.textContent=o.order_name;
+  loadPurchases();
+  loadOrders();
+}
+
+async function loadPurchases(){
+  const { data } = await sb
+    .from("purchases")
+    .select("*,purchase_links(url),purchase_images(storage_path)")
+    .eq("order_id",activeOrder.id)
+    .order("created_at",{ascending:false});
+
+  tbody.innerHTML="";
+  data.forEach(p=>{
+    const tr=document.createElement("tr");
+    const imgs=(p.purchase_images||[]).map(i=>{
+      const url=sb.storage.from(BUCKET).getPublicUrl(i.storage_path).data.publicUrl;
+      return `<img src="${url}">`;
+    }).join("");
+    tr.innerHTML=`
+      <td>${p.customer_name}</td>
+      <td>${p.price}</td>
+      <td>${p.qty}</td>
+      <td>${(p.purchase_links||[]).map(l=>`<a href="${l.url}" target="_blank">رابط</a>`).join("<br>")}</td>
+      <td class="thumbs">${imgs}</td>
+      <td><button class="btn danger">حذف</button></td>
+    `;
+    tr.querySelector("button").onclick=()=>deletePurchase(p.id);
+    tbody.appendChild(tr);
+  });
+}
+
+async function deletePurchase(id){
+  if(!confirm("حذف؟"))return;
+  await sb.from("purchases").delete().eq("id",id);
+  loadPurchases();
+}
+
+newOrderBtn.onclick=async()=>{
+  const { data } = await sb.from("orders")
+    .insert({order_name:todayName()})
+    .select().single();
+  selectOrder(data);
+};
+
+addBtn.onclick=async()=>{
+  if(!activeOrder)return;
+  const { data:p } = await sb.from("purchases")
+    .insert({
+      order_id:activeOrder.id,
+      customer_name:customer.value,
+      price:Number(price.value),
+      qty:Number(qty.value)
+    }).select().single();
+
+  const urls=[...linksWrap.querySelectorAll("input")].map(i=>i.value).filter(Boolean);
+  if(urls.length){
+    await sb.from("purchase_links").insert(urls.map(u=>({purchase_id:p.id,url:u})));
+  }
+
+  for(const f of images.files){
+    const path=`${activeOrder.id}/${p.id}/${Date.now()}-${f.name}`;
+    await sb.storage.from(BUCKET).upload(path,f);
+    await sb.from("purchase_images").insert({purchase_id:p.id,storage_path:path});
+  }
+
+  customer.value=""; price.value=""; qty.value=1; images.value="";
+  linksWrap.querySelectorAll("input").forEach(i=>i.value="");
+
+  loadPurchases();
+};
+
+loadOrders();
 </script>
 </body>
 </html>
-
-
-
