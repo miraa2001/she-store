@@ -24,7 +24,7 @@
     .orderItem.active{border-color:#111}
     .thumbs img{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid #eee}
 
-    /* Dropzone */
+    /* Main add purchase dropzone */
     .dropZone{
       border:2px dashed #d8d8d8;
       border-radius:14px;
@@ -73,8 +73,26 @@
       border-radius:12px;
       padding:10px;
     }
-    .inlineEditBox .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-    .inlineEditBox input{ padding:10px; border:1px solid #e7e7e7; border-radius:10px; }
+
+    /* Inline image editor (inside edit form) */
+    .editImgsRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+    .editThumb{
+      width:78px;height:78px;border-radius:12px;border:1px solid #eee;overflow:hidden;position:relative;background:#fafafa
+    }
+    .editThumb img{width:100%;height:100%;object-fit:cover;display:block}
+    .editThumb button{
+      position:absolute;top:6px;left:6px;border:none;background:rgba(0,0,0,.55);color:#fff;
+      width:26px;height:26px;border-radius:10px;cursor:pointer
+    }
+    .editThumb.removing{opacity:.35;filter:grayscale(1)}
+    .miniDropZone{
+      border:2px dashed #d8d8d8;border-radius:12px;padding:10px;background:#fff;outline:none;flex:1;min-width:240px
+    }
+    .miniDropZone.dragover{border-color:#111;background:#f4f4f4}
+    .miniPreview{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .miniPreview .thumb{width:70px;height:70px;border-radius:12px;border:1px solid #eee;overflow:hidden;position:relative;background:#fafafa}
+    .miniPreview .thumb img{width:100%;height:100%;object-fit:cover}
+    .miniPreview .thumb button{position:absolute;top:6px;left:6px;border:none;background:rgba(0,0,0,.55);color:#fff;width:26px;height:26px;border-radius:10px;cursor:pointer}
   </style>
 </head>
 <body>
@@ -138,8 +156,7 @@
             <b>صور المشترى</b>
             <div class="muted" style="margin-top:6px">
               اسحبي وافلتي الصور هون، أو اضغطي لاختيار ملفات، أو الصقي (Ctrl+V)
-              <br>
-              (حد أقصى: 10 صور)
+              <br>(حد أقصى: 10 صور)
             </div>
 
             <div class="row" style="margin-top:10px">
@@ -148,7 +165,6 @@
             </div>
 
             <div id="preview" class="preview" style="margin-top:10px"></div>
-
             <input id="images" type="file" multiple accept="image/*" style="display:none">
           </div>
 
@@ -187,6 +203,11 @@ function escapeHtml(s=""){
 }
 function escapeAttr(s=""){ return escapeHtml(s); }
 
+function todayName(){
+  const d=new Date();
+  return `طلبية ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+}
+
 /* ===== Auth guard ===== */
 async function requireAuth(){
   const { data } = await sb.auth.getSession();
@@ -211,7 +232,7 @@ document.getElementById("logoutBtn").onclick = async ()=>{
   window.location.href = "./login.html";
 };
 
-/* ===== App logic ===== */
+/* ===== DOM ===== */
 const ordersList = document.getElementById("ordersList");
 const newOrderBtn = document.getElementById("newOrderBtn");
 const main = document.getElementById("main");
@@ -237,6 +258,7 @@ const editOrderRow = document.getElementById("editOrderRow");
 const editOrderInput = document.getElementById("editOrderInput");
 const saveOrderBtn = document.getElementById("saveOrderBtn");
 const cancelOrderBtn = document.getElementById("cancelOrderBtn");
+const orderNameInput = document.getElementById("orderNameInput");
 
 let activeOrder = null;
 
@@ -263,20 +285,15 @@ saveOrderBtn.onclick = async () => {
   loadOrders();
 };
 
-/* ===== Links inputs for NEW purchase ===== */
+/* ===== New purchase links inputs ===== */
 for(let i=1;i<=5;i++){
   const input = document.createElement("input");
   input.placeholder = `رابط ${i}`;
   linksWrap.appendChild(input);
 }
 
-function todayName(){
-  const d=new Date();
-  return `طلبية ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
-}
-
 /* ===== Drag/Drop/Paste images (NEW purchase) ===== */
-let selectedImages = []; // File[]
+let selectedImages = [];
 const MAX_IMAGES = 10;
 
 function updatePreview(){
@@ -357,7 +374,6 @@ async function selectOrder(o){
   await loadOrders();
 }
 
-const orderNameInput = document.getElementById("orderNameInput");
 orderNameInput.value = todayName();
 
 newOrderBtn.onclick = async () => {
@@ -380,7 +396,6 @@ deleteOrderBtn.onclick = async () => {
   if(!activeOrder) return;
   if(!confirm("متأكدة بدك تحذفي الطلبية كاملة بكل مشترياتها؟")) return;
 
-  // remove storage files for this order
   const { data: imgs } = await sb
     .from("purchase_images")
     .select("storage_path, purchases!inner(order_id)")
@@ -400,7 +415,87 @@ deleteOrderBtn.onclick = async () => {
   loadOrders();
 };
 
-/* ===== Purchases table + INLINE EDIT ===== */
+/* =========================================================
+   INLINE EDIT (WITH IMAGES)
+   ========================================================= */
+
+const editImageState = new Map(); 
+// purchaseId -> { newFiles: File[], deleteImgIds:Set<number|string>, deletePaths:Set<string>, existingCount:number }
+
+let activeEditPasteTarget = null; // purchaseId for paste
+
+function getOrCreateEditState(purchaseId, existingCount){
+  if(!editImageState.has(purchaseId)){
+    editImageState.set(purchaseId, {
+      newFiles: [],
+      deleteImgIds: new Set(),
+      deletePaths: new Set(),
+      existingCount: existingCount || 0
+    });
+  } else {
+    // keep existing state but update existingCount (fresh render)
+    editImageState.get(purchaseId).existingCount = existingCount || 0;
+  }
+  return editImageState.get(purchaseId);
+}
+
+function updateEditCounts(purchaseId){
+  const row = tbody.querySelector(`tr[data-edit-row="${purchaseId}"]`);
+  if(!row) return;
+  const state = editImageState.get(purchaseId);
+  if(!state) return;
+
+  const badge = row.querySelector(`[data-edit-imgcount="${purchaseId}"]`);
+  if(!badge) return;
+
+  const remainingExisting = state.existingCount - state.deleteImgIds.size;
+  const total = remainingExisting + state.newFiles.length;
+  badge.textContent = `${total}/10`;
+}
+
+function renderNewPreview(purchaseId){
+  const row = tbody.querySelector(`tr[data-edit-row="${purchaseId}"]`);
+  if(!row) return;
+  const state = editImageState.get(purchaseId);
+  if(!state) return;
+
+  const previewEl = row.querySelector(`[data-new-preview="${purchaseId}"]`);
+  if(!previewEl) return;
+
+  previewEl.innerHTML = "";
+  state.newFiles.forEach((file, i)=>{
+    const url = URL.createObjectURL(file);
+    const div = document.createElement("div");
+    div.className = "thumb";
+    div.innerHTML = `<button type="button" title="حذف">×</button><img alt="صورة">`;
+    div.querySelector("img").src = url;
+    div.querySelector("button").onclick = () => {
+      state.newFiles.splice(i, 1);
+      renderNewPreview(purchaseId);
+      updateEditCounts(purchaseId);
+    };
+    previewEl.appendChild(div);
+  });
+}
+
+function addEditFiles(purchaseId, files){
+  const row = tbody.querySelector(`tr[data-edit-row="${purchaseId}"]`);
+  if(!row) return;
+
+  const state = editImageState.get(purchaseId);
+  if(!state) return;
+
+  const arr = [...files].filter(f => f && f.type && f.type.startsWith("image/"));
+
+  const remainingExisting = state.existingCount - state.deleteImgIds.size;
+  const allowed = Math.max(0, 10 - remainingExisting - state.newFiles.length);
+
+  arr.slice(0, allowed).forEach(f => state.newFiles.push(f));
+
+  renderNewPreview(purchaseId);
+  updateEditCounts(purchaseId);
+}
+
 function closeAllEditRows(){
   tbody.querySelectorAll('tr[data-edit-row]').forEach(r => r.style.display = "none");
 }
@@ -408,15 +503,22 @@ function closeAllEditRows(){
 function toggleEditRow(purchaseId){
   const row = tbody.querySelector(`tr[data-edit-row="${purchaseId}"]`);
   if(!row) return;
+
   tbody.querySelectorAll('tr[data-edit-row]').forEach(r=>{
     if(r !== row) r.style.display = "none";
   });
-  row.style.display = (row.style.display === "none") ? "" : "none";
+
+  const willOpen = row.style.display === "none";
+  row.style.display = willOpen ? "" : "none";
+
+  // paste target becomes this row when opened
+  activeEditPasteTarget = willOpen ? purchaseId : null;
 }
 
 function closeEditRow(purchaseId){
   const row = tbody.querySelector(`tr[data-edit-row="${purchaseId}"]`);
   if(row) row.style.display = "none";
+  if(activeEditPasteTarget === purchaseId) activeEditPasteTarget = null;
 }
 
 async function saveInlineEdit(purchaseId){
@@ -440,6 +542,7 @@ async function saveInlineEdit(purchaseId){
     if(v) links.push(v);
   }
 
+  // Update purchase fields
   const { error: upErr } = await sb
     .from("purchases")
     .update({ customer_name: name, price: priceVal, qty: qtyVal })
@@ -451,6 +554,7 @@ async function saveInlineEdit(purchaseId){
     return;
   }
 
+  // Replace links
   await sb.from("purchase_links").delete().eq("purchase_id", purchaseId);
   if(links.length){
     const { error: linkErr } = await sb
@@ -459,17 +563,52 @@ async function saveInlineEdit(purchaseId){
     if(linkErr) console.error(linkErr);
   }
 
+  // Images actions
+  const state = editImageState.get(purchaseId);
+  if(state){
+    // Delete existing images that are marked
+    if(state.deletePaths.size){
+      const paths = [...state.deletePaths];
+      const ids = [...state.deleteImgIds];
+
+      const { error: rmErr } = await sb.storage.from(BUCKET).remove(paths);
+      if(rmErr) console.error(rmErr);
+
+      const { error: delErr } = await sb.from("purchase_images").delete().in("id", ids);
+      if(delErr) console.error(delErr);
+    }
+
+    // Upload new images
+    for(const f of state.newFiles){
+      const safeName = `${Date.now()}-${f.name}`.replace(/\s+/g, "_");
+      const path = `${activeOrder.id}/${purchaseId}/${safeName}`;
+
+      const { error: upImgErr } = await sb.storage.from(BUCKET).upload(path, f);
+      if(upImgErr){ console.error(upImgErr); continue; }
+
+      const { error: metaErr } = await sb.from("purchase_images").insert({
+        purchase_id: purchaseId,
+        storage_path: path
+      });
+      if(metaErr) console.error(metaErr);
+    }
+
+    // Clear state after save
+    editImageState.delete(purchaseId);
+  }
+
   msgEl.textContent = "تم ✅";
   await loadPurchases();
   closeAllEditRows();
 }
 
+/* ===== Purchases table + inline edit UI ===== */
 async function loadPurchases(){
   if(!activeOrder) return;
 
   const { data } = await sb
     .from("purchases")
-    .select("*,purchase_links(url),purchase_images(storage_path)")
+    .select("*,purchase_links(url),purchase_images(id,storage_path)")
     .eq("order_id",activeOrder.id)
     .order("created_at",{ascending:false});
 
@@ -504,10 +643,24 @@ async function loadPurchases(){
     const links = (p.purchase_links || []).slice(0,5).map(x=>x.url || "");
     while(links.length < 5) links.push("");
 
+    // Existing images thumbs (with remove toggle)
+    const existingThumbs = (p.purchase_images || []).map(img=>{
+      const url = sb.storage.from(BUCKET).getPublicUrl(img.storage_path).data.publicUrl;
+      return `
+        <div class="editThumb" data-existing-thumb="${p.id}" data-imgid="${escapeAttr(img.id)}" data-path="${escapeAttr(img.storage_path)}">
+          <button type="button" title="حذف/تراجع" data-toggle-del="${p.id}">🗑</button>
+          <img src="${escapeAttr(url)}" alt="صورة">
+        </div>
+      `;
+    }).join("");
+
     editTr.innerHTML = `
       <td colspan="6">
         <div class="inlineEditBox">
-          <b>تعديل المشترى</b>
+          <div class="row" style="justify-content:space-between">
+            <b>تعديل المشترى</b>
+            <span class="pill" data-edit-imgcount="${p.id}">0/10</span>
+          </div>
 
           <div class="row" style="margin-top:10px">
             <input data-f="name" placeholder="اسم الزبون" value="${escapeAttr(p.customer_name || "")}">
@@ -523,6 +676,26 @@ async function loadPurchases(){
             <input data-l="5" placeholder="رابط السلة/العنصر 5" value="${escapeAttr(links[4])}">
           </div>
 
+          <div class="editImgsRow">
+            <div style="flex:1;min-width:260px">
+              <div class="muted">الصور الحالية (اضغطي 🗑 للتحديد/التراجع)</div>
+              <div class="editImgsRow" style="margin-top:8px">
+                ${existingThumbs || `<div class="muted">لا يوجد صور</div>`}
+              </div>
+            </div>
+
+            <div class="miniDropZone" data-mini-drop="${p.id}" tabindex="0" title="اسحبي/الصقي الصور هنا">
+              <b>إضافة صور</b>
+              <div class="muted" style="margin-top:6px">سحب/إفلات أو لصق (Ctrl+V) أو اختيار ملفات</div>
+              <div class="row" style="margin-top:8px">
+                <button class="btn" type="button" data-mini-pick="${p.id}">اختيار صور</button>
+                <span class="pill" data-mini-note="${p.id}">حد أقصى 10</span>
+              </div>
+              <input type="file" accept="image/*" multiple style="display:none" data-mini-file="${p.id}">
+              <div class="miniPreview" data-new-preview="${p.id}"></div>
+            </div>
+          </div>
+
           <div class="row" style="margin-top:10px;justify-content:space-between">
             <div class="row">
               <button class="btn primary" data-save="${p.id}" type="button">حفظ</button>
@@ -536,23 +709,129 @@ async function loadPurchases(){
 
     tbody.appendChild(tr);
     tbody.appendChild(editTr);
+
+    // Init image state for this purchase
+    getOrCreateEditState(p.id, (p.purchase_images || []).length);
   });
 
-  // Handlers
+  // Handlers: delete purchase
   tbody.querySelectorAll("button[data-del]").forEach(btn=>{
     btn.onclick = () => deletePurchase(btn.dataset.del);
   });
+
+  // Handlers: open edit row
   tbody.querySelectorAll("button[data-edit]").forEach(btn=>{
-    btn.onclick = () => toggleEditRow(btn.dataset.edit);
+    btn.onclick = () => {
+      const id = btn.dataset.edit;
+      toggleEditRow(id);
+      updateEditCounts(id);
+      renderNewPreview(id);
+    };
   });
+
+  // Handlers: cancel edit
   tbody.querySelectorAll("button[data-cancel]").forEach(btn=>{
     btn.onclick = () => closeEditRow(btn.dataset.cancel);
   });
+
+  // Handlers: save edit
   tbody.querySelectorAll("button[data-save]").forEach(btn=>{
     btn.onclick = () => saveInlineEdit(btn.dataset.save);
   });
+
+  // Existing images delete toggle
+  tbody.querySelectorAll("[data-existing-thumb]").forEach(thumb=>{
+    const purchaseId = thumb.dataset.existingThumb;
+    const imgId = thumb.dataset.imgid;
+    const path = thumb.dataset.path;
+    const btn = thumb.querySelector("button[data-toggle-del]");
+    if(!btn) return;
+
+    btn.onclick = () => {
+      const state = editImageState.get(purchaseId);
+      if(!state) return;
+
+      const already = state.deleteImgIds.has(imgId);
+      if(already){
+        state.deleteImgIds.delete(imgId);
+        state.deletePaths.delete(path);
+        thumb.classList.remove("removing");
+      } else {
+        state.deleteImgIds.add(imgId);
+        state.deletePaths.add(path);
+        thumb.classList.add("removing");
+      }
+
+      updateEditCounts(purchaseId);
+    };
+  });
+
+  // Mini pick + file change
+  tbody.querySelectorAll("[data-mini-pick]").forEach(btn=>{
+    const purchaseId = btn.dataset.miniPick;
+    btn.onclick = () => {
+      const fileInput = tbody.querySelector(`[data-mini-file="${purchaseId}"]`);
+      if(fileInput) fileInput.click();
+    };
+  });
+
+  tbody.querySelectorAll("[data-mini-file]").forEach(inp=>{
+    const purchaseId = inp.dataset.miniFile;
+    inp.onchange = () => {
+      addEditFiles(purchaseId, inp.files);
+      inp.value = "";
+    };
+  });
+
+  // Mini dropzone drag/drop
+  tbody.querySelectorAll("[data-mini-drop]").forEach(zone=>{
+    const purchaseId = zone.dataset.miniDrop;
+
+    ["dragenter","dragover"].forEach(evt=>{
+      zone.addEventListener(evt, (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        zone.classList.add("dragover");
+      });
+    });
+    ["dragleave","drop"].forEach(evt=>{
+      zone.addEventListener(evt, (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        zone.classList.remove("dragover");
+      });
+    });
+
+    zone.addEventListener("drop", (e)=>{
+      addEditFiles(purchaseId, e.dataTransfer.files);
+    });
+
+    zone.addEventListener("focus", ()=>{ activeEditPasteTarget = purchaseId; });
+    zone.addEventListener("click", ()=>{ activeEditPasteTarget = purchaseId; });
+  });
+
+  // Set initial counts
+  (data||[]).forEach(p => updateEditCounts(p.id));
 }
 
+/* ===== Paste into active edit mini dropzone ===== */
+document.addEventListener("paste", (e)=>{
+  if(!activeEditPasteTarget) return;
+  const row = tbody.querySelector(`tr[data-edit-row="${activeEditPasteTarget}"]`);
+  if(!row || row.style.display === "none") return;
+
+  const items = e.clipboardData?.items || [];
+  const pasted = [];
+  for(const it of items){
+    if(it.type && it.type.startsWith("image/")){
+      const f = it.getAsFile();
+      if(f) pasted.push(f);
+    }
+  }
+  if(pasted.length){
+    addEditFiles(activeEditPasteTarget, pasted);
+  }
+});
+
+/* ===== Delete purchase ===== */
 async function deletePurchase(id){
   if(!confirm("حذف؟")) return;
   await sb.from("purchases").delete().eq("id",id);
@@ -609,6 +888,7 @@ addBtn.onclick = async () => {
   loadPurchases();
 };
 
+/* ===== Init ===== */
 loadOrders();
 </script>
 </body>
