@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>تسجيل الدخول</title>
+  <style>
+    body{font-family:system-ui,Tahoma,Arial;margin:0;background:#0f0f0f;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+    .card{width:min(420px, 95vw);background:#151515;border:1px solid #2a2a2a;border-radius:18px;padding:18px}
+    .title{font-size:20px;font-weight:700;margin-bottom:6px}
+    .muted{color:#bbb;font-size:13px;margin-bottom:14px;line-height:1.6}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    input{width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0f0f0f;color:#fff;outline:none}
+    input:focus{border-color:#777}
+    .btn{width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#fff;color:#111;cursor:pointer;font-weight:700}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .msg{margin-top:10px;font-size:13px;color:#ffd1d1}
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="title">تسجيل الدخول</div>
+    <div class="muted">اكتبي اسم المستخدم وكلمة المرور. (اسم المستخدم = مثل: <b>rahaf</b> أو <b>reem</b>)</div>
+
+    <input id="username" placeholder="اسم المستخدم" autocomplete="username" />
+    <div style="height:10px"></div>
+    <input id="password" type="password" placeholder="كلمة المرور" autocomplete="current-password" />
+    <div style="height:12px"></div>
+
+    <button class="btn" id="loginBtn">دخول</button>
+    <div class="msg" id="msg"></div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = "YOUR_SUPABASE_URL";
+  const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const EMAIL_DOMAIN = "she-store.com"; // حسب إيميلاتك
+
+  const usernameEl = document.getElementById("username");
+  const passwordEl = document.getElementById("password");
+  const loginBtn = document.getElementById("loginBtn");
+  const msg = document.getElementById("msg");
+
+  function usernameToEmail(username){
+    const u = username.trim().toLowerCase();
+    if(u.includes("@")) return u; // إذا كتب الإيميل كامل
+    const safe = u.replace(/[^a-z0-9._-]/g, "");
+    return `${safe}@${EMAIL_DOMAIN}`;
+  }
+
+  function getRedirect(){
+    const url = new URL(window.location.href);
+    return url.searchParams.get("next") || "./index.html";
+  }
+
+  async function alreadyLoggedIn(){
+    const { data } = await sb.auth.getSession();
+    if(data.session){
+      window.location.href = getRedirect();
+    }
+  }
+
+  loginBtn.onclick = async () => {
+    msg.textContent = "";
+    loginBtn.disabled = true;
+    loginBtn.textContent = "جاري الدخول...";
+
+    const username = usernameEl.value;
+    const password = passwordEl.value;
+
+    if(!username.trim() || !password){
+      msg.textContent = "اكتبي اسم المستخدم وكلمة المرور.";
+      loginBtn.disabled = false;
+      loginBtn.textContent = "دخول";
+      return;
+    }
+
+    const email = usernameToEmail(username);
+
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+
+    if(error){
+      console.error(error);
+      msg.textContent = "فشل الدخول. تأكدي من البيانات.";
+      loginBtn.disabled = false;
+      loginBtn.textContent = "دخول";
+      return;
+    }
+
+    window.location.href = getRedirect();
+  };
+
+  // Enter key support
+  document.addEventListener("keydown", (e)=>{
+    if(e.key === "Enter") loginBtn.click();
+  });
+
+  alreadyLoggedIn();
+</script>
+</body>
+</html>
