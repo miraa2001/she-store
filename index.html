@@ -43,7 +43,10 @@
     <aside class="card">
       <div class="row" style="justify-content:space-between">
         <b>الطلبيات</b>
-        <button class="btn primary" id="newOrderBtn">+ طلبية اليوم</button>
+        <div class="row">
+          <input id="orderNameInput" placeholder="اسم الطلبية" />
+          <button class="btn primary" id="newOrderBtn">+ إنشاء طلبية</button>
+        </div>
       </div>
       <div id="ordersList" style="margin-top:10px"></div>
     </aside>
@@ -189,12 +192,32 @@ async function deletePurchase(id){
   loadPurchases();
 }
 
-newOrderBtn.onclick=async()=>{
-  const { data } = await sb.from("orders")
-    .insert({order_name:todayName()})
-    .select().single();
+const orderNameInput = document.getElementById("orderNameInput");
+orderNameInput.value = todayName();
+newOrderBtn.onclick = async () => {
+  const name = orderNameInput.value.trim();
+
+  if (!name) {
+    alert("اكتبي اسم الطلبية");
+    return;
+  }
+
+  const { data, error } = await sb
+    .from("orders")
+    .insert({ order_name: name })
+    .select()
+    .single();
+
+  if (error) {
+    console.error(error);
+    alert("فشل إنشاء الطلبية");
+    return;
+  }
+
+  orderNameInput.value = "";
   selectOrder(data);
 };
+
 
 addBtn.onclick=async()=>{
   if(!activeOrder)return;
@@ -227,4 +250,5 @@ loadOrders();
 </script>
 </body>
 </html>
+
 
