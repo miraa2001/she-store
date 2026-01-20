@@ -23,6 +23,47 @@
     .orderItem{border:1px solid #e7e7e7;border-radius:12px;padding:10px;cursor:pointer;display:flex;justify-content:space-between}
     .orderItem.active{border-color:#111}
     .thumbs img{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid #eee}
+    .dropZone{
+      border:2px dashed #d8d8d8;
+      border-radius:14px;
+      padding:12px;
+      background:#fff;
+      outline:none;
+    }
+    .dropZone.dragover{
+      border-color:#111;
+      background:#f4f4f4;
+    }
+    .preview{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .preview .thumb{
+      width:70px;height:70px;
+      border-radius:12px;
+      border:1px solid #eee;
+      overflow:hidden;
+      position:relative;
+      background:#fafafa;
+    }
+    .preview .thumb img{
+      width:100%;height:100%;
+      object-fit:cover;
+      display:block;
+    }
+    .preview .thumb button{
+      position:absolute;
+      top:6px;left:6px; /* RTL */
+      border:none;
+      background:rgba(0,0,0,.55);
+      color:#fff;
+      width:26px;height:26px;
+      border-radius:10px;
+      cursor:pointer;
+    }
+    .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px}
+
   </style>
 </head>
 <body>
@@ -69,10 +110,31 @@
 
         <div class="row" id="links" style="margin-top:8px"></div>
 
-        <div class="row" style="margin-top:8px">
-          <input id="images" type="file" multiple accept="image/*">
-          <button class="btn primary" id="addBtn">إضافة</button>
+        <div style="margin-top:8px">
+          <div id="dropZone" class="dropZone" tabindex="0">
+            <b>صور المشترى</b>
+            <div class="muted" style="margin-top:6px">
+              اسحبي وافلتي الصور هون، أو اضغطي لاختيار ملفات، أو الصقي (Ctrl+V)
+              <br>
+              (حد أقصى: 10 صور)
+            </div>
+        
+            <div class="row" style="margin-top:10px">
+              <button class="btn" id="pickImagesBtn" type="button">اختيار صور</button>
+              <span class="pill" id="imgCount">0/10</span>
+            </div>
+        
+            <div id="preview" class="preview" style="margin-top:10px"></div>
+        
+            <!-- hidden file input -->
+            <input id="images" type="file" multiple accept="image/*" style="display:none">
+          </div>
+        
+          <div class="row" style="margin-top:10px">
+            <button class="btn primary" id="addBtn">إضافة</button>
+          </div>
         </div>
+
 
         <hr>
 
@@ -135,6 +197,86 @@ const images = document.getElementById("images");
 const linksWrap = document.getElementById("links");
 const addBtn = document.getElementById("addBtn");
 const deleteOrderBtn = document.getElementById("deleteOrderBtn");
+const dropZone = document.getElementById("dropZone");
+const pickImagesBtn = document.getElementById("pickImagesBtn");
+const preview = document.getElementById("preview");
+const imgCount = document.getElementById("imgCount");
+
+let selectedImages = []; // File[]
+const MAX_IMAGES = 10;
+
+function updatePreview(){
+  imgCount.textContent = `${selectedImages.length}/${MAX_IMAGES}`;
+  preview.innerHTML = "";
+
+  selectedImages.forEach((file, i) => {
+    const url = URL.createObjectURL(file);
+    const div = document.createElement("div");
+    div.className = "thumb";
+    div.innerHTML = `<button type="button" title="حذف">×</button><img alt="صورة">`;
+    div.querySelector("img").src = url;
+    div.querySelector("button").onclick = () => {
+      selectedImages.splice(i, 1);
+      updatePreview();
+    };
+    preview.appendChild(div);
+  });
+}
+
+function addFiles(files){
+  const arr = [...files].filter(f => f && f.type && f.type.startsWith("image/"));
+  for(const f of arr){
+    if(selectedImages.length >= MAX_IMAGES) break;
+    selectedImages.push(f);
+  }
+  updatePreview();
+}
+
+// Pick images button
+pickImagesBtn.onclick = () => images.click();
+
+// File picker selection
+images.addEventListener("change", () => {
+  addFiles(images.files);
+  images.value = ""; // reset so same file can be picked again
+});
+
+// Drag & drop
+["dragenter","dragover"].forEach(evt=>{
+  dropZone.addEventListener(evt, (e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.add("dragover");
+  });
+});
+["dragleave","drop"].forEach(evt=>{
+  dropZone.addEventListener(evt, (e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.remove("dragover");
+  });
+});
+dropZone.addEventListener("drop", (e)=>{
+  addFiles(e.dataTransfer.files);
+});
+
+// Paste (Ctrl+V)
+document.addEventListener("paste", (e)=>{
+  // Only accept paste when user is on this page and zone is visible
+  if(!dropZone) return;
+
+  const items = e.clipboardData?.items || [];
+  const pasted = [];
+  for(const it of items){
+    if(it.type && it.type.startsWith("image/")){
+      const f = it.getAsFile();
+      if(f) pasted.push(f);
+    }
+  }
+  if(pasted.length){
+    addFiles(pasted);
+  }
+});
 
 let activeOrder = null;
 
@@ -270,15 +412,25 @@ addBtn.onclick=async()=>{
     await sb.from("purchase_links").insert(urls.map(u=>({purchase_id:p.id,url:u})));
   }
 
-  for(const f of images.files){
-    const path=`${activeOrder.id}/${p.id}/${Date.now()}-${f.name}`;
-    await sb.storage.from(BUCKET).upload(path,f);
-    await sb.from("purchase_images").insert({purchase_id:p.id,storage_path:path});
+  for(const f of selectedImages){
+    const safeName = `${Date.now()}-${f.name}`.replace(/\s+/g, "_");
+    const path = `${activeOrder.id}/${p.id}/${safeName}`;
+  
+    const { error: upErr } = await sb.storage.from(BUCKET).upload(path, f);
+    if(upErr){ console.error(upErr); alert("فشل رفع صورة."); continue; }
+  
+    const { error: dbErr } = await sb.from("purchase_images").insert({
+      purchase_id: p.id,
+      storage_path: path
+    });
+    if(dbErr){ console.error(dbErr); alert("فشل حفظ مسار الصورة."); }
   }
+
 
   customer.value=""; price.value=""; qty.value=1; images.value="";
   linksWrap.querySelectorAll("input").forEach(i=>i.value="");
-
+  selectedImages = [];
+  updatePreview();
   loadPurchases();
 };
 
@@ -286,6 +438,7 @@ loadOrders();
 </script>
 </body>
 </html>
+
 
 
 
