@@ -45,6 +45,7 @@
         <b>الطلبيات</b>
         <div class="row">
           <input id="orderNameInput" placeholder="اسم الطلبية" />
+          <button class="btn danger" id="deleteOrderBtn" disabled>حذف الطلبية</button>
           <button class="btn primary" id="newOrderBtn">+ إنشاء طلبية</button>
         </div>
       </div>
@@ -124,6 +125,7 @@ const qty = document.getElementById("qty");
 const images = document.getElementById("images");
 const linksWrap = document.getElementById("links");
 const addBtn = document.getElementById("addBtn");
+const deleteOrderBtn = document.getElementById("deleteOrderBtn");
 
 let activeOrder = null;
 
@@ -152,12 +154,37 @@ async function loadOrders(){
 
 async function selectOrder(o){
   activeOrder=o;
+  deleteOrderBtn.disabled = false;
   empty.style.display="none";
   main.style.display="";
   orderTitle.textContent=o.order_name;
   loadPurchases();
   loadOrders();
 }
+
+deleteOrderBtn.onclick = async () => {
+  if(!activeOrder) return;
+  if(!confirm("متأكدة بدك تحذفي الطلبية كاملة بكل مشترياتها؟")) return;
+
+  // remove storage files for this order
+  const { data: imgs } = await sb
+    .from("purchase_images")
+    .select("storage_path, purchases!inner(order_id)")
+    .eq("purchases.order_id", activeOrder.id);
+
+  const { error } = await sb.from("orders").delete().eq("id", activeOrder.id);
+  if(error){ console.error(error); alert("فشل حذف الطلبية."); return; }
+
+  if(imgs?.length){
+    await sb.storage.from(BUCKET).remove(imgs.map(x=>x.storage_path));
+  }
+
+  activeOrder = null;
+  deleteOrderBtn.disabled = true;
+  main.style.display="none";
+  empty.style.display="";
+  loadOrders();
+};
 
 async function loadPurchases(){
   const { data } = await sb
@@ -250,5 +277,6 @@ loadOrders();
 </script>
 </body>
 </html>
+
 
 
