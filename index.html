@@ -405,13 +405,102 @@ async function loadPurchases(){
       <td>${p.customer_name}</td>
       <td>${p.price}</td>
       <td>${p.qty}</td>
-      <td>${(p.purchase_links||[]).map(l=>`<a href="${l.url}" target="_blank">رابط</a>`).join("<br>")}</td>
+      <td>${(p.purchase_links||[]).map((l,i)=>`<a href="${l.url}" target="_blank" rel="noopener">رابط ${i+1}</a>`).join("<br>") || "—"}</td>
       <td class="thumbs">${imgs}</td>
-      <td><button class="btn danger">حذف</button></td>
+      <td>
+        <button class="btn" data-edit="${p.id}" title="تعديل">✏️</button>
+        <button class="btn danger" data-del="${p.id}" title="حذف">🗑</button>
+      </td>
     `;
-    tr.querySelector("button").onclick=()=>deletePurchase(p.id);
     tbody.appendChild(tr);
   });
+  // Delete handlers
+  tbody.querySelectorAll("button[data-del]").forEach(btn=>{
+    btn.onclick = () => deletePurchase(btn.dataset.del);
+  });
+  
+  // Edit handlers
+  tbody.querySelectorAll("button[data-edit]").forEach(btn=>{
+    btn.onclick = () => openEditPurchase(btn.dataset.edit);
+  });
+}
+async function openEditPurchase(purchaseId){
+  // Get purchase + existing links
+  const { data: p, error } = await sb
+    .from("purchases")
+    .select("id, customer_name, price, qty, purchase_links(url)")
+    .eq("id", purchaseId)
+    .single();
+
+  if(error){
+    console.error(error);
+    alert("فشل تحميل بيانات المشترى");
+    return;
+  }
+
+  const name = prompt("اسم الزبون", p.customer_name || "");
+  if(name === null) return;
+
+  const pr = prompt("السعر", p.price ?? "");
+  if(pr === null) return;
+
+  const q = prompt("العدد", p.qty ?? 1);
+  if(q === null) return;
+
+  const priceNum = Number(pr);
+  const qtyNum = Number(q);
+
+  if(!name.trim()){
+    alert("اسم الزبون مطلوب");
+    return;
+  }
+  if(!Number.isFinite(priceNum) || priceNum < 0){
+    alert("السعر غير صحيح");
+    return;
+  }
+  if(!Number.isFinite(qtyNum) || qtyNum < 1){
+    alert("العدد غير صحيح");
+    return;
+  }
+
+  // Collect up to 5 links (replace all)
+  const existing = (p.purchase_links || []).slice(0,5).map(x=>x.url || "");
+  const newLinks = [];
+  for(let i=0;i<5;i++){
+    const val = prompt(`رابط السلة/العنصر ${i+1}`, existing[i] || "");
+    if(val === null) return; // cancel whole edit
+    const trimmed = val.trim();
+    if(trimmed) newLinks.push(trimmed);
+  }
+
+  // Update purchase fields
+  const { error: upErr } = await sb
+    .from("purchases")
+    .update({
+      customer_name: name.trim(),
+      price: priceNum,
+      qty: qtyNum
+    })
+    .eq("id", purchaseId);
+
+  if(upErr){
+    console.error(upErr);
+    alert("فشل حفظ التعديل");
+    return;
+  }
+
+  // Replace links
+  await sb.from("purchase_links").delete().eq("purchase_id", purchaseId);
+  if(newLinks.length){
+    const { error: linkErr } = await sb
+      .from("purchase_links")
+      .insert(newLinks.map(url => ({ purchase_id: purchaseId, url })));
+
+    if(linkErr) console.error(linkErr);
+  }
+
+  // Refresh table
+  loadPurchases();
 }
 
 async function deletePurchase(id){
@@ -488,6 +577,7 @@ loadOrders();
 </script>
 </body>
 </html>
+
 
 
 
