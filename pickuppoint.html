@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>نقطة الاستلام - La Aura</title>
+
+  <style>
+    body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa;color:#111}
+    .wrap{max-width:1100px;margin:auto;padding:16px}
+    .grid{display:grid;grid-template-columns:320px 1fr;gap:12px}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+    .card{background:#fff;border:1px solid #e7e7e7;border-radius:14px;padding:12px}
+    .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .btn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
+    .btn.primary{background:#111;color:#fff;border-color:#111}
+    .muted{color:#666;font-size:13px}
+    input{padding:10px;border:1px solid #e7e7e7;border-radius:10px;font-family:inherit}
+    .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px;color:#444}
+
+    .orderItem{border:1px solid #e7e7e7;border-radius:12px;padding:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+    .orderItem.active{border-color:#111}
+    .orderItem small{color:#666}
+
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px solid #eee;padding:10px;text-align:right;vertical-align:top}
+    th{color:#666;font-size:13px}
+    .chk{width:18px;height:18px}
+    .highlight{background:#fff8d6}
+    .searchBox{width:100%;max-width:420px}
+    .searchResults{margin-top:8px;border:1px solid #eee;border-radius:12px;overflow:hidden}
+    .searchResults button{
+      width:100%;text-align:right;background:#fff;border:none;padding:10px;cursor:pointer;border-bottom:1px solid #eee
+    }
+    .searchResults button:last-child{border-bottom:none}
+    .searchResults button:hover{background:#fafafa}
+  </style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="row" style="margin-bottom:12px">
+    <div>
+      <b style="font-size:20px">نقطة الاستلام - La Aura</b>
+      <div class="muted">طلبات “من نقطة الاستلام” بعد تفعيل: تم وضع الطلب في نقطة الاستلام</div>
+    </div>
+    <div class="row">
+      <a class="btn" href="./view.html">عرض الطلبيات</a>
+      <button class="btn" id="logoutBtn">تسجيل خروج</button>
+    </div>
+  </div>
+
+  <div class="row" style="margin-bottom:12px">
+    <input id="searchInput" class="searchBox" placeholder="بحث باسم الزبون...">
+    <span class="pill" id="searchCount" style="display:none"></span>
+  </div>
+  <div id="searchResults" class="searchResults" style="display:none"></div>
+
+  <div class="grid">
+    <aside class="card">
+      <div class="row" style="justify-content:space-between">
+        <b>الطلبيات الجاهزة عند نقطة الاستلام</b>
+        <span class="pill" id="ordersCount">0</span>
+      </div>
+      <div id="ordersList" style="margin-top:10px"></div>
+      <div id="ordersEmpty" class="muted" style="margin-top:10px;display:none">لا يوجد طلبيات</div>
+    </aside>
+
+    <main class="card">
+      <div id="empty" class="muted">اختاري طلبية من القائمة</div>
+
+      <div id="main" style="display:none">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div>
+            <b id="orderTitle"></b>
+            <div class="muted" id="orderSubtitle"></div>
+          </div>
+          <span class="pill" id="purchaseCount">0</span>
+        </div>
+
+        <div style="margin-top:10px" class="muted">
+          سيتم عرض فقط المشتريات التي مكان الاستلام فيها = <b>من نقطة الاستلام</b>
+        </div>
+
+        <hr>
+
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>الزبون</th>
+              <th>السعر</th>
+              <th>تم الاستلام</th>
+              <th id="pickedAtHeader" style="display:none">تاريخ الاستلام</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://maucjvxhrnkdeybltjco.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+const PICKUP_VALUE = "من نقطة الاستلام";
+
+async function requireAuth(){
+  const { data } = await sb.auth.getSession();
+  if(!data.session) window.location.href="./login.html?next=pickuppoint.html";
+}
+requireAuth();
+
+document.getElementById("logoutBtn").onclick=async()=>{
+  await sb.auth.signOut();
+  window.location.href="./login.html";
+};
+
+const ordersListEl = document.getElementById("ordersList");
+const ordersEmptyEl = document.getElementById("ordersEmpty");
+const ordersCountEl = document.getElementById("ordersCount");
+
+const emptyEl = document.getElementById("empty");
+const mainEl = document.getElementById("main");
+const orderTitleEl = document.getElementById("orderTitle");
+const orderSubtitleEl = document.getElementById("orderSubtitle");
+const purchaseCountEl = document.getElementById("purchaseCount");
+const tbody = document.getElementById("tbody");
+
+const searchInput = document.getElementById("searchInput");
+const searchResultsEl = document.getElementById("searchResults");
+const searchCount = document.getElementById("searchCount");
+const pickedAtHeader = document.getElementById("pickedAtHeader");
+
+let userEmail = "";
+let isRahaf = false;
+
+let orders = [];
+let activeOrder = null;
+let orderIndexMap = new Map(); // orderId -> number (1..n)
+let purchasesByOrder = new Map(); // orderId -> purchases
+let highlightPurchaseId = null;
+
+function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+
+async function loadUser(){
+  const { data } = await sb.auth.getUser();
+  userEmail = (data?.user?.email || "").toLowerCase();
+  isRahaf = userEmail === "rahaf@she-store.com";
+  pickedAtHeader.style.display = isRahaf ? "" : "none";
+}
+
+function showMain(on){
+  mainEl.style.display = on ? "" : "none";
+  emptyEl.style.display = on ? "none" : "";
+}
+
+async function loadPickupOrders(){
+  // Orders that were marked as placed at pickup
+  const { data, error } = await sb
+    .from("orders")
+    .select("*")
+    .eq("placed_at_pickup", true)
+    .order("created_at",{ascending:false});
+
+  if(error){ console.error(error); return; }
+
+  orders = data || [];
+  ordersCountEl.textContent = orders.length;
+
+  ordersListEl.innerHTML = "";
+  ordersEmptyEl.style.display = orders.length ? "none" : "";
+
+  // enumerate order 1, 2, 3...
+  orderIndexMap.clear();
+  orders.forEach((o, i)=> orderIndexMap.set(o.id, i+1));
+
+  orders.forEach(o=>{
+    const div = document.createElement("div");
+    const n = orderIndexMap.get(o.id);
+    div.className = "orderItem" + (activeOrder?.id === o.id ? " active" : "");
+    div.innerHTML = `
+      <div>
+        <b>طلبية ${n}</b>
+        <div><small>${escapeHtml(o.order_name || "")}</small></div>
+      </div>
+      <span class="pill">فتح</span>
+    `;
+    div.onclick = ()=>selectOrder(o);
+    ordersListEl.appendChild(div);
+  });
+}
+
+async function loadPurchasesForOrder(orderId){
+  // only purchases for pickup point "من نقطة الاستلام"
+  const { data, error } = await sb
+    .from("purchases")
+    .select("id, order_id, customer_name, price, picked_up, picked_up_at, created_at, pickup_point")
+    .eq("order_id", orderId)
+    .eq("pickup_point", PICKUP_VALUE)
+    .order("created_at",{ascending:true});
+
+  if(error){ console.error(error); return []; }
+
+  return data || [];
+}
+
+async function selectOrder(o){
+  activeOrder = o;
+  await loadPickupOrders(); // refresh highlight
+
+  const list = await loadPurchasesForOrder(o.id);
+  purchasesByOrder.set(o.id, list);
+
+  const n = orderIndexMap.get(o.id);
+  orderTitleEl.textContent = `طلبية ${n}`;
+  orderSubtitleEl.textContent = o.order_name || "";
+  purchaseCountEl.textContent = `عدد المشتريات: ${list.length}`;
+
+  renderTable(list);
+  showMain(true);
+}
+
+function fmtDate(iso){
+  try{
+    if(!iso) return "—";
+    const d = new Date(iso);
+    return d.toLocaleString("ar", { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" });
+  } catch { return "—"; }
+}
+
+function renderTable(list){
+  tbody.innerHTML = "";
+
+  if(!list.length){
+    tbody.innerHTML = `<tr><td colspan="${isRahaf?5:4}" class="muted">لا يوجد مشتريات للاستلام في هذه الطلبية</td></tr>`;
+    return;
+  }
+
+  list.forEach((p, i)=>{
+    const tr = document.createElement("tr");
+    if(highlightPurchaseId && highlightPurchaseId === p.id) tr.classList.add("highlight");
+
+    const checked = p.picked_up ? "checked" : "";
+    const pickedAt = fmtDate(p.picked_up_at);
+
+    tr.innerHTML = `
+      <td>${i+1}</td>
+      <td>${escapeHtml(p.customer_name || "")}</td>
+      <td>${escapeHtml(p.price ?? "")}</td>
+      <td>
+        <input class="chk" type="checkbox" data-id="${p.id}" ${checked}>
+      </td>
+      ${isRahaf ? `<td>${escapeHtml(pickedAt)}</td>` : ``}
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // checkbox handlers
+  tbody.querySelectorAll('input[type="checkbox"][data-id]').forEach(chk=>{
+    chk.onchange = async ()=>{
+      const id = chk.dataset.id;
+      const val = chk.checked;
+      const pickedAt = val ? new Date().toISOString() : null;
+
+      // optimistic update UI
+      const list = purchasesByOrder.get(activeOrder.id) || [];
+      const item = list.find(x=>String(x.id)===String(id));
+      if(item){
+        item.picked_up = val;
+        item.picked_up_at = pickedAt;
+      }
+
+      const { error } = await sb
+        .from("purchases")
+        .update({ picked_up: val, picked_up_at: pickedAt })
+        .eq("id", id);
+
+      if(error){
+        console.error(error);
+        alert("فشل تحديث الاستلام");
+        // revert checkbox
+        chk.checked = !val;
+        if(item){
+          item.picked_up = !val;
+          item.picked_up_at = item.picked_up ? item.picked_up_at : null;
+        }
+        return;
+      }
+
+      // re-render for Rahaf timestamp column to update immediately
+      if(isRahaf){
+        renderTable(purchasesByOrder.get(activeOrder.id) || []);
+      }
+    };
+  });
+}
+
+/* =========================
+   Search (by customer name)
+   ========================= */
+let searchTimer = null;
+
+searchInput.addEventListener("input", ()=>{
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(runSearch, 250);
+});
+
+async function runSearch(){
+  const q = (searchInput.value || "").trim();
+  if(q.length < 2){
+    searchResultsEl.style.display = "none";
+    searchCount.style.display = "none";
+    searchResultsEl.innerHTML = "";
+    return;
+  }
+
+  // Find pickup purchases across placed_at_pickup orders
+  // We'll:
+  // 1) get all placed_at_pickup orders ids
+  // 2) query purchases with ilike on customer_name + pickup_point
+  const orderIds = orders.map(o=>o.id);
+  if(!orderIds.length){
+    searchResultsEl.style.display = "none";
+    searchCount.style.display = "none";
+    return;
+  }
+
+  const { data, error } = await sb
+    .from("purchases")
+    .select("id, order_id, customer_name, price")
+    .in("order_id", orderIds)
+    .eq("pickup_point", PICKUP_VALUE)
+    .ilike("customer_name", `%${q}%`)
+    .order("created_at",{ascending:false})
+    .limit(50);
+
+  if(error){ console.error(error); return; }
+
+  const results = data || [];
+  searchCount.textContent = `${results.length} نتيجة`;
+  searchCount.style.display = "";
+  searchResultsEl.style.display = "";
+  searchResultsEl.innerHTML = "";
+
+  results.forEach(r=>{
+    const ord = orders.find(o=>o.id === r.order_id);
+    const n = orderIndexMap.get(r.order_id) || "?";
+    const btn = document.createElement("button");
+    btn.innerHTML = `
+      <b>${escapeHtml(r.customer_name || "")}</b>
+      <div class="muted">طلبية ${n} — ${escapeHtml(ord?.order_name || "")} — السعر: ${escapeHtml(r.price ?? "")}</div>
+    `;
+    btn.onclick = async ()=>{
+      highlightPurchaseId = r.id;
+      searchResultsEl.style.display = "none";
+      // open the order and highlight
+      if(ord) await selectOrder(ord);
+      // clear highlight after a bit
+      setTimeout(()=>{ highlightPurchaseId = null; }, 2500);
+    };
+    searchResultsEl.appendChild(btn);
+  });
+}
+
+/* ===== Init ===== */
+(async function init(){
+  await loadUser();
+  await loadPickupOrders();
+
+  // If user is La Aura, auto-open first order (optional)
+  // You can remove this if you prefer manual only.
+  if(orders.length) selectOrder(orders[0]);
+})();
+</script>
+</body>
+</html>
