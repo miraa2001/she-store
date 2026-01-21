@@ -23,14 +23,13 @@
     #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;padding:16px}
     #lightbox img{max-width:92vw;max-height:92vh;border-radius:16px}
     a{color:#111}
-    #content {
-      font-size: 20px;
-      line-height: 1.8;
-    }
-    
-    #content b {
-      font-size: 21px;
-    }
+
+    /* bigger font only for purchase display */
+    #content { font-size: 18px; line-height: 1.7; }
+    #content b { font-size: 19px; }
+
+    .toggleRow{display:flex;gap:10px;align-items:center;margin-top:8px}
+    .toggleRow input{width:18px;height:18px}
   </style>
 </head>
 <body>
@@ -38,7 +37,10 @@
 <div class="wrap">
   <div class="row" style="margin-bottom:12px">
     <a class="btn" href="./index.html">رجوع</a>
-    <button class="btn" id="logoutBtn">تسجيل خروج</button>
+    <div class="row">
+      <a class="btn" href="./pickuppoint.html">نقطة الاستلام (La Aura)</a>
+      <button class="btn" id="logoutBtn">تسجيل خروج</button>
+    </div>
   </div>
 
   <div class="grid">
@@ -56,7 +58,19 @@
 
       <div id="viewer" style="display:none">
         <div class="row" style="justify-content:space-between;align-items:center">
-          <b id="title"></b>
+          <div>
+            <b id="title"></b>
+
+            <!-- NEW: order-level toggle -->
+            <div id="placedToggleWrap" class="toggleRow" style="display:none">
+              <label class="toggleRow" style="cursor:pointer">
+                <input type="checkbox" id="placedAtPickupToggle">
+                <span>تم وضع الطلب في نقطة الاستلام</span>
+              </label>
+              <span id="placedToggleMsg" class="muted"></span>
+            </div>
+          </div>
+
           <span class="pill" id="purchaseCount">0</span>
         </div>
 
@@ -105,6 +119,10 @@ const prev = document.getElementById("prev");
 const next = document.getElementById("next");
 const purchaseCount = document.getElementById("purchaseCount");
 
+const placedToggleWrap = document.getElementById("placedToggleWrap");
+const placedAtPickupToggle = document.getElementById("placedAtPickupToggle");
+const placedToggleMsg = document.getElementById("placedToggleMsg");
+
 const lb = document.getElementById("lightbox");
 const lbImg = lb.querySelector("img");
 
@@ -112,6 +130,7 @@ let orders = [];
 let activeOrder = null;
 let purchases = [];
 let idx = 0;
+let userEmail = "";
 
 function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 function escapeAttr(s=""){ return escapeHtml(s); }
@@ -120,6 +139,12 @@ function showViewer(on){
   viewer.style.display = on ? "" : "none";
   viewerEmpty.style.display = on ? "none" : "";
 }
+
+async function loadUser(){
+  const { data } = await sb.auth.getUser();
+  userEmail = data?.user?.email || "";
+}
+loadUser();
 
 async function loadOrders(){
   const { data, error } = await sb
@@ -144,6 +169,43 @@ async function loadOrders(){
   });
 }
 
+async function setPlacedToggleUI(order){
+  // show only for Rahaf (UI-only requirement)
+  const isRahaf = (userEmail || "").toLowerCase() === "rahaf@she-store.com";
+  if(!isRahaf){
+    placedToggleWrap.style.display = "none";
+    return;
+  }
+  placedToggleWrap.style.display = "";
+  placedAtPickupToggle.checked = !!order.placed_at_pickup;
+  placedToggleMsg.textContent = "";
+
+  placedAtPickupToggle.onchange = async ()=>{
+    if(!activeOrder) return;
+    placedToggleMsg.textContent = "جاري الحفظ...";
+
+    const val = placedAtPickupToggle.checked;
+    const { error } = await sb
+      .from("orders")
+      .update({ placed_at_pickup: val })
+      .eq("id", activeOrder.id);
+
+    if(error){
+      console.error(error);
+      placedToggleMsg.textContent = "فشل الحفظ.";
+      // revert UI
+      placedAtPickupToggle.checked = !val;
+      return;
+    }
+    placedToggleMsg.textContent = "تم ✅";
+
+    // keep local copy updated
+    activeOrder.placed_at_pickup = val;
+    // refresh orders list (optional)
+    await loadOrders();
+  };
+}
+
 async function selectOrder(o){
   activeOrder = o;
   idx = 0;
@@ -161,6 +223,8 @@ async function selectOrder(o){
   purchases = data || [];
   title.textContent = o.order_name || "";
   purchaseCount.textContent = `عدد المشتريات: ${purchases.length}`;
+
+  await setPlacedToggleUI(o);
 
   showViewer(true);
   render();
@@ -185,7 +249,7 @@ function render(){
     .map((l,i)=>`<a href="${escapeAttr(l.url)}" target="_blank" rel="noopener">رابط ${i+1}</a>`)
     .join("<br>") || "—";
 
-  const pickup = p.pickup_point || "من نقطة الاستلام";
+  const pickup = p.pickup_point || "—";
   const note = (p.note || "").trim();
 
   content.innerHTML = `
@@ -219,6 +283,7 @@ next.onclick = ()=>{
 lb.onclick = ()=> lb.style.display="none";
 
 (async function init(){
+  await loadUser();
   await loadOrders();
   if(orders.length) selectOrder(orders[0]);
 })();
