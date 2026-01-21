@@ -171,7 +171,7 @@ async function loadOrders(){
 
 async function setPlacedToggleUI(order){
   // show only for Rahaf (UI-only requirement)
-  const isRahaf = (userEmail || "").toLowerCase() === "rahaf@she-store.com";
+  const isRahaf = (userEmail || "").toLowerCase() === "rahaf@she-store.com" || (userEmail || "").toLowerCase() === "reem@she-store.com";
   if(!isRahaf){
     placedToggleWrap.style.display = "none";
     return;
