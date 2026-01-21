@@ -14,7 +14,8 @@
     .btn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
     .btn.primary{background:#111;color:#fff;border-color:#111}
     .btn.danger{border-color:#f2c2c2;color:#b00020}
-    input{padding:10px;border:1px solid #e7e7e7;border-radius:10px}
+    input, select, textarea{padding:10px;border:1px solid #e7e7e7;border-radius:10px;font-family:inherit}
+    textarea{width:100%;min-height:84px;resize:vertical}
     table{width:100%;border-collapse:collapse}
     th,td{border-bottom:1px solid #eee;padding:10px;text-align:right;vertical-align:top}
     th{color:#666;font-size:13px}
@@ -24,7 +25,6 @@
     .orderItem.active{border-color:#111}
     .thumbs img{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid #eee}
 
-    /* Main add purchase dropzone */
     .dropZone{
       border:2px dashed #d8d8d8;
       border-radius:14px;
@@ -32,67 +32,37 @@
       background:#fff;
       outline:none;
     }
-    .dropZone.dragover{
-      border-color:#111;
-      background:#f4f4f4;
-    }
-    .preview{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-    }
+    .dropZone.dragover{border-color:#111;background:#f4f4f4}
+    .preview{display:flex;gap:8px;flex-wrap:wrap}
     .preview .thumb{
-      width:70px;height:70px;
-      border-radius:12px;
-      border:1px solid #eee;
-      overflow:hidden;
-      position:relative;
-      background:#fafafa;
+      width:70px;height:70px;border-radius:12px;border:1px solid #eee;overflow:hidden;position:relative;background:#fafafa;
     }
-    .preview .thumb img{
-      width:100%;height:100%;
-      object-fit:cover;
-      display:block;
-    }
+    .preview .thumb img{width:100%;height:100%;object-fit:cover;display:block}
     .preview .thumb button{
-      position:absolute;
-      top:6px;left:6px; /* RTL */
-      border:none;
-      background:rgba(0,0,0,.55);
-      color:#fff;
-      width:26px;height:26px;
-      border-radius:10px;
-      cursor:pointer;
+      position:absolute;top:6px;left:6px;border:none;background:rgba(0,0,0,.55);color:#fff;
+      width:26px;height:26px;border-radius:10px;cursor:pointer;
     }
     .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px}
 
-    /* Inline edit form */
     .inlineEditRow td{ background:#fcfcfc; }
-    .inlineEditBox{
-      border:1px solid #eee;
-      border-radius:12px;
-      padding:10px;
-    }
+    .inlineEditBox{border:1px solid #eee;border-radius:12px;padding:10px}
 
-    /* Inline image editor (inside edit form) */
     .editImgsRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
-    .editThumb{
-      width:78px;height:78px;border-radius:12px;border:1px solid #eee;overflow:hidden;position:relative;background:#fafafa
-    }
+    .editThumb{width:78px;height:78px;border-radius:12px;border:1px solid #eee;overflow:hidden;position:relative;background:#fafafa}
     .editThumb img{width:100%;height:100%;object-fit:cover;display:block}
     .editThumb button{
       position:absolute;top:6px;left:6px;border:none;background:rgba(0,0,0,.55);color:#fff;
       width:26px;height:26px;border-radius:10px;cursor:pointer
     }
     .editThumb.removing{opacity:.35;filter:grayscale(1)}
-    .miniDropZone{
-      border:2px dashed #d8d8d8;border-radius:12px;padding:10px;background:#fff;outline:none;flex:1;min-width:240px
-    }
+    .miniDropZone{border:2px dashed #d8d8d8;border-radius:12px;padding:10px;background:#fff;outline:none;flex:1;min-width:240px}
     .miniDropZone.dragover{border-color:#111;background:#f4f4f4}
     .miniPreview{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
     .miniPreview .thumb{width:70px;height:70px;border-radius:12px;border:1px solid #eee;overflow:hidden;position:relative;background:#fafafa}
     .miniPreview .thumb img{width:100%;height:100%;object-fit:cover}
-    .miniPreview .thumb button{position:absolute;top:6px;left:6px;border:none;background:rgba(0,0,0,.55);color:#fff;width:26px;height:26px;border-radius:10px;cursor:pointer}
+    .miniPreview .thumb button{
+      position:absolute;top:6px;left:6px;border:none;background:rgba(0,0,0,.55);color:#fff;width:26px;height:26px;border-radius:10px;cursor:pointer
+    }
   </style>
 </head>
 <body>
@@ -127,13 +97,11 @@
 
       <div id="main" style="display:none">
 
-        <!-- Order title + edit -->
         <div class="row" style="justify-content:space-between;align-items:center">
           <b id="orderTitle"></b>
           <button class="btn" id="editOrderBtn" title="تعديل اسم الطلبية">✏️</button>
         </div>
 
-        <!-- Edit order name row -->
         <div class="row" id="editOrderRow" style="display:none;margin-top:6px">
           <input id="editOrderInput" placeholder="اسم الطلبية الجديد">
           <button class="btn primary" id="saveOrderBtn">حفظ</button>
@@ -150,6 +118,16 @@
         </div>
 
         <div class="row" id="links" style="margin-top:8px"></div>
+
+        <!-- NEW: Pickup point BEFORE pictures -->
+        <div class="row" style="margin-top:10px">
+          <label class="muted" for="pickupPoint">مكان الاستلام</label>
+          <select id="pickupPoint">
+            <option value="من البيت">من البيت</option>
+            <option value="توصيل">توصيل</option>
+            <option value="من نقطة الاستلام" selected>من نقطة الاستلام</option>
+          </select>
+        </div>
 
         <div style="margin-top:8px">
           <div id="dropZone" class="dropZone" tabindex="0">
@@ -168,6 +146,12 @@
             <input id="images" type="file" multiple accept="image/*" style="display:none">
           </div>
 
+          <!-- NEW: Note AFTER pictures -->
+          <div style="margin-top:10px">
+            <div class="muted" style="margin-bottom:6px">ملاحظة</div>
+            <textarea id="note" placeholder="اكتبي أي ملاحظة..."></textarea>
+          </div>
+
           <div class="row" style="margin-top:10px">
             <button class="btn primary" id="addBtn">إضافة</button>
           </div>
@@ -178,7 +162,14 @@
         <table>
           <thead>
             <tr>
-              <th>الزبون</th><th>السعر</th><th>العدد</th><th>روابط</th><th>صور</th><th></th>
+              <th>الزبون</th>
+              <th>السعر</th>
+              <th>العدد</th>
+              <th>روابط</th>
+              <th>مكان الاستلام</th>
+              <th>صور</th>
+              <th>ملاحظة</th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
@@ -195,38 +186,24 @@ const SUPABASE_ANON_KEY = "sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const BUCKET = "purchase-images";
 
-/* ===== Helpers ===== */
-function escapeHtml(s=""){
-  return String(s).replace(/[&<>"']/g, m => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-  }[m]));
-}
+function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 function escapeAttr(s=""){ return escapeHtml(s); }
-
-function todayName(){
-  const d=new Date();
-  return `طلبية ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
-}
+function todayName(){ const d=new Date(); return `طلبية ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`; }
 
 /* ===== Auth guard ===== */
 async function requireAuth(){
   const { data } = await sb.auth.getSession();
-  if(!data.session){
-    window.location.href = "./login.html?next=index.html";
-  }
+  if(!data.session) window.location.href = "./login.html?next=index.html";
 }
 requireAuth();
 
 async function requireAdminPage(){
   const { data, error } = await sb.from("user_roles").select("role").single();
   if(error){ console.error(error); return; }
-  if(data.role !== "admin"){
-    window.location.href = "./view.html";
-  }
+  if(data.role !== "admin") window.location.href = "./view.html";
 }
 requireAdminPage();
 
-/* ===== Logout ===== */
 document.getElementById("logoutBtn").onclick = async ()=>{
   await sb.auth.signOut();
   window.location.href = "./login.html";
@@ -243,6 +220,8 @@ const tbody = document.getElementById("tbody");
 const customer = document.getElementById("customer");
 const price = document.getElementById("price");
 const qty = document.getElementById("qty");
+const pickupPoint = document.getElementById("pickupPoint");   // NEW
+const note = document.getElementById("note");                 // NEW
 const images = document.getElementById("images");
 const linksWrap = document.getElementById("links");
 const addBtn = document.getElementById("addBtn");
@@ -263,25 +242,16 @@ const orderNameInput = document.getElementById("orderNameInput");
 let activeOrder = null;
 
 /* ===== Order name edit ===== */
-editOrderBtn.onclick = () => {
-  if(!activeOrder) return;
-  editOrderInput.value = activeOrder.order_name;
-  editOrderRow.style.display = "";
-};
-cancelOrderBtn.onclick = () => { editOrderRow.style.display = "none"; };
+editOrderBtn.onclick = () => { if(!activeOrder) return; editOrderInput.value = activeOrder.order_name; editOrderRow.style.display=""; };
+cancelOrderBtn.onclick = () => { editOrderRow.style.display="none"; };
 saveOrderBtn.onclick = async () => {
   const newName = editOrderInput.value.trim();
   if(!newName){ alert("اسم الطلبية مطلوب"); return; }
-
-  const { error } = await sb.from("orders")
-    .update({ order_name: newName })
-    .eq("id", activeOrder.id);
-
+  const { error } = await sb.from("orders").update({ order_name: newName }).eq("id", activeOrder.id);
   if(error){ console.error(error); alert("فشل تعديل اسم الطلبية"); return; }
-
   activeOrder.order_name = newName;
   orderTitle.textContent = newName;
-  editOrderRow.style.display = "none";
+  editOrderRow.style.display="none";
   loadOrders();
 };
 
@@ -298,54 +268,40 @@ const MAX_IMAGES = 10;
 
 function updatePreview(){
   imgCount.textContent = `${selectedImages.length}/${MAX_IMAGES}`;
-  preview.innerHTML = "";
-  selectedImages.forEach((file, i) => {
+  preview.innerHTML="";
+  selectedImages.forEach((file,i)=>{
     const url = URL.createObjectURL(file);
     const div = document.createElement("div");
-    div.className = "thumb";
+    div.className="thumb";
     div.innerHTML = `<button type="button" title="حذف">×</button><img alt="صورة">`;
     div.querySelector("img").src = url;
-    div.querySelector("button").onclick = () => {
-      selectedImages.splice(i, 1);
-      updatePreview();
-    };
+    div.querySelector("button").onclick=()=>{ selectedImages.splice(i,1); updatePreview(); };
     preview.appendChild(div);
   });
 }
 function addFiles(files){
-  const arr = [...files].filter(f => f && f.type && f.type.startsWith("image/"));
-  for(const f of arr){
-    if(selectedImages.length >= MAX_IMAGES) break;
-    selectedImages.push(f);
-  }
+  const arr=[...files].filter(f=>f && f.type && f.type.startsWith("image/"));
+  for(const f of arr){ if(selectedImages.length>=MAX_IMAGES) break; selectedImages.push(f); }
   updatePreview();
 }
-pickImagesBtn.onclick = () => images.click();
-images.addEventListener("change", () => {
-  addFiles(images.files);
-  images.value = "";
-});
+pickImagesBtn.onclick=()=>images.click();
+images.addEventListener("change",()=>{ addFiles(images.files); images.value=""; });
+
 ["dragenter","dragover"].forEach(evt=>{
-  dropZone.addEventListener(evt, (e)=>{
-    e.preventDefault(); e.stopPropagation();
-    dropZone.classList.add("dragover");
-  });
+  dropZone.addEventListener(evt,(e)=>{ e.preventDefault(); e.stopPropagation(); dropZone.classList.add("dragover"); });
 });
 ["dragleave","drop"].forEach(evt=>{
-  dropZone.addEventListener(evt, (e)=>{
-    e.preventDefault(); e.stopPropagation();
-    dropZone.classList.remove("dragover");
-  });
+  dropZone.addEventListener(evt,(e)=>{ e.preventDefault(); e.stopPropagation(); dropZone.classList.remove("dragover"); });
 });
-dropZone.addEventListener("drop", (e)=> addFiles(e.dataTransfer.files));
-document.addEventListener("paste", (e)=>{
+dropZone.addEventListener("drop",(e)=> addFiles(e.dataTransfer.files));
+
+document.addEventListener("paste",(e)=>{
   if(!dropZone) return;
-  const items = e.clipboardData?.items || [];
-  const pasted = [];
+  const items=e.clipboardData?.items||[];
+  const pasted=[];
   for(const it of items){
     if(it.type && it.type.startsWith("image/")){
-      const f = it.getAsFile();
-      if(f) pasted.push(f);
+      const f=it.getAsFile(); if(f) pasted.push(f);
     }
   }
   if(pasted.length) addFiles(pasted);
@@ -366,7 +322,7 @@ async function loadOrders(){
 
 async function selectOrder(o){
   activeOrder=o;
-  deleteOrderBtn.disabled = false;
+  deleteOrderBtn.disabled=false;
   empty.style.display="none";
   main.style.display="";
   orderTitle.textContent=o.order_name;
@@ -376,23 +332,18 @@ async function selectOrder(o){
 
 orderNameInput.value = todayName();
 
-newOrderBtn.onclick = async () => {
+newOrderBtn.onclick = async ()=>{
   const name = orderNameInput.value.trim();
-  if (!name) { alert("اكتبي اسم الطلبية"); return; }
+  if(!name){ alert("اكتبي اسم الطلبية"); return; }
 
-  const { data, error } = await sb
-    .from("orders")
-    .insert({ order_name: name })
-    .select()
-    .single();
+  const { data, error } = await sb.from("orders").insert({ order_name:name }).select().single();
+  if(error){ console.error(error); alert("فشل إنشاء الطلبية"); return; }
 
-  if (error) { console.error(error); alert("فشل إنشاء الطلبية"); return; }
-
-  orderNameInput.value = "";
+  orderNameInput.value="";
   selectOrder(data);
 };
 
-deleteOrderBtn.onclick = async () => {
+deleteOrderBtn.onclick = async ()=>{
   if(!activeOrder) return;
   if(!confirm("متأكدة بدك تحذفي الطلبية كاملة بكل مشترياتها؟")) return;
 
@@ -404,37 +355,26 @@ deleteOrderBtn.onclick = async () => {
   const { error } = await sb.from("orders").delete().eq("id", activeOrder.id);
   if(error){ console.error(error); alert("فشل حذف الطلبية."); return; }
 
-  if(imgs?.length){
-    await sb.storage.from(BUCKET).remove(imgs.map(x=>x.storage_path));
-  }
+  if(imgs?.length) await sb.storage.from(BUCKET).remove(imgs.map(x=>x.storage_path));
 
-  activeOrder = null;
-  deleteOrderBtn.disabled = true;
+  activeOrder=null;
+  deleteOrderBtn.disabled=true;
   main.style.display="none";
   empty.style.display="";
   loadOrders();
 };
 
 /* =========================================================
-   INLINE EDIT (WITH IMAGES)
+   INLINE EDIT (WITH IMAGES + pickup_point + note)
    ========================================================= */
-
-const editImageState = new Map(); 
-// purchaseId -> { newFiles: File[], deleteImgIds:Set<number|string>, deletePaths:Set<string>, existingCount:number }
-
-let activeEditPasteTarget = null; // purchaseId for paste
+const editImageState = new Map();
+let activeEditPasteTarget = null;
 
 function getOrCreateEditState(purchaseId, existingCount){
   if(!editImageState.has(purchaseId)){
-    editImageState.set(purchaseId, {
-      newFiles: [],
-      deleteImgIds: new Set(),
-      deletePaths: new Set(),
-      existingCount: existingCount || 0
-    });
+    editImageState.set(purchaseId, { newFiles:[], deleteImgIds:new Set(), deletePaths:new Set(), existingCount:existingCount||0 });
   } else {
-    // keep existing state but update existingCount (fresh render)
-    editImageState.get(purchaseId).existingCount = existingCount || 0;
+    editImageState.get(purchaseId).existingCount = existingCount||0;
   }
   return editImageState.get(purchaseId);
 }
@@ -444,10 +384,8 @@ function updateEditCounts(purchaseId){
   if(!row) return;
   const state = editImageState.get(purchaseId);
   if(!state) return;
-
   const badge = row.querySelector(`[data-edit-imgcount="${purchaseId}"]`);
   if(!badge) return;
-
   const remainingExisting = state.existingCount - state.deleteImgIds.size;
   const total = remainingExisting + state.newFiles.length;
   badge.textContent = `${total}/10`;
@@ -462,18 +400,14 @@ function renderNewPreview(purchaseId){
   const previewEl = row.querySelector(`[data-new-preview="${purchaseId}"]`);
   if(!previewEl) return;
 
-  previewEl.innerHTML = "";
-  state.newFiles.forEach((file, i)=>{
-    const url = URL.createObjectURL(file);
-    const div = document.createElement("div");
-    div.className = "thumb";
-    div.innerHTML = `<button type="button" title="حذف">×</button><img alt="صورة">`;
-    div.querySelector("img").src = url;
-    div.querySelector("button").onclick = () => {
-      state.newFiles.splice(i, 1);
-      renderNewPreview(purchaseId);
-      updateEditCounts(purchaseId);
-    };
+  previewEl.innerHTML="";
+  state.newFiles.forEach((file,i)=>{
+    const url=URL.createObjectURL(file);
+    const div=document.createElement("div");
+    div.className="thumb";
+    div.innerHTML=`<button type="button" title="حذف">×</button><img alt="صورة">`;
+    div.querySelector("img").src=url;
+    div.querySelector("button").onclick=()=>{ state.newFiles.splice(i,1); renderNewPreview(purchaseId); updateEditCounts(purchaseId); };
     previewEl.appendChild(div);
   });
 }
@@ -481,44 +415,34 @@ function renderNewPreview(purchaseId){
 function addEditFiles(purchaseId, files){
   const row = tbody.querySelector(`tr[data-edit-row="${purchaseId}"]`);
   if(!row) return;
-
   const state = editImageState.get(purchaseId);
   if(!state) return;
 
-  const arr = [...files].filter(f => f && f.type && f.type.startsWith("image/"));
-
+  const arr=[...files].filter(f=>f && f.type && f.type.startsWith("image/"));
   const remainingExisting = state.existingCount - state.deleteImgIds.size;
   const allowed = Math.max(0, 10 - remainingExisting - state.newFiles.length);
-
-  arr.slice(0, allowed).forEach(f => state.newFiles.push(f));
+  arr.slice(0,allowed).forEach(f=>state.newFiles.push(f));
 
   renderNewPreview(purchaseId);
   updateEditCounts(purchaseId);
 }
 
-function closeAllEditRows(){
-  tbody.querySelectorAll('tr[data-edit-row]').forEach(r => r.style.display = "none");
-}
+function closeAllEditRows(){ tbody.querySelectorAll('tr[data-edit-row]').forEach(r=>r.style.display="none"); }
 
 function toggleEditRow(purchaseId){
   const row = tbody.querySelector(`tr[data-edit-row="${purchaseId}"]`);
   if(!row) return;
 
-  tbody.querySelectorAll('tr[data-edit-row]').forEach(r=>{
-    if(r !== row) r.style.display = "none";
-  });
-
+  tbody.querySelectorAll('tr[data-edit-row]').forEach(r=>{ if(r!==row) r.style.display="none"; });
   const willOpen = row.style.display === "none";
   row.style.display = willOpen ? "" : "none";
-
-  // paste target becomes this row when opened
   activeEditPasteTarget = willOpen ? purchaseId : null;
 }
 
 function closeEditRow(purchaseId){
   const row = tbody.querySelector(`tr[data-edit-row="${purchaseId}"]`);
-  if(row) row.style.display = "none";
-  if(activeEditPasteTarget === purchaseId) activeEditPasteTarget = null;
+  if(row) row.style.display="none";
+  if(activeEditPasteTarget===purchaseId) activeEditPasteTarget=null;
 }
 
 async function saveInlineEdit(purchaseId){
@@ -526,50 +450,49 @@ async function saveInlineEdit(purchaseId){
   if(!row) return;
 
   const msgEl = row.querySelector(`[data-msg="${purchaseId}"]`);
-  msgEl.textContent = "جاري الحفظ...";
+  msgEl.textContent="جاري الحفظ...";
 
   const name = row.querySelector(`[data-f="name"]`).value.trim();
   const priceVal = Number(row.querySelector(`[data-f="price"]`).value);
   const qtyVal = Number(row.querySelector(`[data-f="qty"]`).value);
+  const pickupVal = row.querySelector(`[data-f="pickup"]`).value;      // NEW
+  const noteVal = row.querySelector(`[data-f="note"]`).value.trim();   // NEW
 
-  if(!name){ msgEl.textContent = "اسم الزبون مطلوب."; return; }
-  if(!Number.isFinite(priceVal) || priceVal < 0){ msgEl.textContent = "السعر غير صحيح."; return; }
-  if(!Number.isFinite(qtyVal) || qtyVal < 1){ msgEl.textContent = "العدد غير صحيح."; return; }
+  if(!name){ msgEl.textContent="اسم الزبون مطلوب."; return; }
+  if(!Number.isFinite(priceVal) || priceVal<0){ msgEl.textContent="السعر غير صحيح."; return; }
+  if(!Number.isFinite(qtyVal) || qtyVal<1){ msgEl.textContent="العدد غير صحيح."; return; }
 
-  const links = [];
+  const links=[];
   for(let i=1;i<=5;i++){
     const v = row.querySelector(`[data-l="${i}"]`).value.trim();
     if(v) links.push(v);
   }
 
-  // Update purchase fields
   const { error: upErr } = await sb
     .from("purchases")
-    .update({ customer_name: name, price: priceVal, qty: qtyVal })
+    .update({
+      customer_name:name,
+      price:priceVal,
+      qty:qtyVal,
+      pickup_point: pickupVal, // NEW
+      note: noteVal            // NEW
+    })
     .eq("id", purchaseId);
 
-  if(upErr){
-    console.error(upErr);
-    msgEl.textContent = "فشل حفظ التعديل.";
-    return;
-  }
+  if(upErr){ console.error(upErr); msgEl.textContent="فشل حفظ التعديل."; return; }
 
-  // Replace links
   await sb.from("purchase_links").delete().eq("purchase_id", purchaseId);
   if(links.length){
-    const { error: linkErr } = await sb
-      .from("purchase_links")
-      .insert(links.map(url => ({ purchase_id: purchaseId, url })));
+    const { error: linkErr } = await sb.from("purchase_links")
+      .insert(links.map(url=>({purchase_id:purchaseId,url})));
     if(linkErr) console.error(linkErr);
   }
 
-  // Images actions
   const state = editImageState.get(purchaseId);
   if(state){
-    // Delete existing images that are marked
     if(state.deletePaths.size){
-      const paths = [...state.deletePaths];
-      const ids = [...state.deleteImgIds];
+      const paths=[...state.deletePaths];
+      const ids=[...state.deleteImgIds];
 
       const { error: rmErr } = await sb.storage.from(BUCKET).remove(paths);
       if(rmErr) console.error(rmErr);
@@ -578,26 +501,21 @@ async function saveInlineEdit(purchaseId){
       if(delErr) console.error(delErr);
     }
 
-    // Upload new images
     for(const f of state.newFiles){
-      const safeName = `${Date.now()}-${f.name}`.replace(/\s+/g, "_");
+      const safeName = `${Date.now()}-${f.name}`.replace(/\s+/g,"_");
       const path = `${activeOrder.id}/${purchaseId}/${safeName}`;
 
       const { error: upImgErr } = await sb.storage.from(BUCKET).upload(path, f);
       if(upImgErr){ console.error(upImgErr); continue; }
 
-      const { error: metaErr } = await sb.from("purchase_images").insert({
-        purchase_id: purchaseId,
-        storage_path: path
-      });
+      const { error: metaErr } = await sb.from("purchase_images").insert({ purchase_id: purchaseId, storage_path: path });
       if(metaErr) console.error(metaErr);
     }
 
-    // Clear state after save
     editImageState.delete(purchaseId);
   }
 
-  msgEl.textContent = "تم ✅";
+  msgEl.textContent="تم ✅";
   await loadPurchases();
   closeAllEditRows();
 }
@@ -609,8 +527,8 @@ async function loadPurchases(){
   const { data } = await sb
     .from("purchases")
     .select("*,purchase_links(url),purchase_images(id,storage_path)")
-    .eq("order_id",activeOrder.id)
-    .order("created_at",{ascending:false});
+    .eq("order_id", activeOrder.id)
+    .order("created_at", { ascending:false });
 
   tbody.innerHTML="";
 
@@ -620,32 +538,34 @@ async function loadPurchases(){
       return `<img src="${escapeAttr(url)}" alt="صورة">`;
     }).join("");
 
-    // Display row
+    const pickupTxt = p.pickup_point || "من نقطة الاستلام";
+    const noteTxt = p.note || "";
+
     const tr=document.createElement("tr");
     tr.innerHTML=`
       <td>${escapeHtml(p.customer_name || "")}</td>
       <td>${escapeHtml(p.price ?? "")}</td>
       <td>${escapeHtml(p.qty ?? "")}</td>
       <td>${(p.purchase_links||[]).map((l,i)=>`<a href="${escapeAttr(l.url)}" target="_blank" rel="noopener">رابط ${i+1}</a>`).join("<br>") || "—"}</td>
+      <td>${escapeHtml(pickupTxt)}</td>
       <td class="thumbs">${imgs}</td>
+      <td>${escapeHtml(noteTxt) || "—"}</td>
       <td>
         <button class="btn" data-edit="${p.id}" title="تعديل">✏️</button>
         <button class="btn danger" data-del="${p.id}" title="حذف">🗑</button>
       </td>
     `;
 
-    // Edit row under it (hidden)
     const editTr = document.createElement("tr");
-    editTr.className = "inlineEditRow";
+    editTr.className="inlineEditRow";
     editTr.dataset.editRow = p.id;
-    editTr.style.display = "none";
+    editTr.style.display="none";
 
-    const links = (p.purchase_links || []).slice(0,5).map(x=>x.url || "");
-    while(links.length < 5) links.push("");
+    const links=(p.purchase_links||[]).slice(0,5).map(x=>x.url||"");
+    while(links.length<5) links.push("");
 
-    // Existing images thumbs (with remove toggle)
-    const existingThumbs = (p.purchase_images || []).map(img=>{
-      const url = sb.storage.from(BUCKET).getPublicUrl(img.storage_path).data.publicUrl;
+    const existingThumbs=(p.purchase_images||[]).map(img=>{
+      const url=sb.storage.from(BUCKET).getPublicUrl(img.storage_path).data.publicUrl;
       return `
         <div class="editThumb" data-existing-thumb="${p.id}" data-imgid="${escapeAttr(img.id)}" data-path="${escapeAttr(img.storage_path)}">
           <button type="button" title="حذف/تراجع" data-toggle-del="${p.id}">🗑</button>
@@ -654,8 +574,11 @@ async function loadPurchases(){
       `;
     }).join("");
 
-    editTr.innerHTML = `
-      <td colspan="6">
+    // dropdown selected helper
+    const sel = (v, x) => (v===x ? "selected" : "");
+
+    editTr.innerHTML=`
+      <td colspan="8">
         <div class="inlineEditBox">
           <div class="row" style="justify-content:space-between">
             <b>تعديل المشترى</b>
@@ -676,6 +599,16 @@ async function loadPurchases(){
             <input data-l="5" placeholder="رابط السلة/العنصر 5" value="${escapeAttr(links[4])}">
           </div>
 
+          <!-- NEW: pickup dropdown (before images) -->
+          <div class="row" style="margin-top:10px">
+            <span class="muted">مكان الاستلام</span>
+            <select data-f="pickup">
+              <option value="من البيت" ${sel(pickupTxt,'من البيت')}>من البيت</option>
+              <option value="توصيل" ${sel(pickupTxt,'توصيل')}>توصيل</option>
+              <option value="من نقطة الاستلام" ${sel(pickupTxt,'من نقطة الاستلام')}>من نقطة الاستلام</option>
+            </select>
+          </div>
+
           <div class="editImgsRow">
             <div style="flex:1;min-width:260px">
               <div class="muted">الصور الحالية (اضغطي 🗑 للتحديد/التراجع)</div>
@@ -689,11 +622,17 @@ async function loadPurchases(){
               <div class="muted" style="margin-top:6px">سحب/إفلات أو لصق (Ctrl+V) أو اختيار ملفات</div>
               <div class="row" style="margin-top:8px">
                 <button class="btn" type="button" data-mini-pick="${p.id}">اختيار صور</button>
-                <span class="pill" data-mini-note="${p.id}">حد أقصى 10</span>
+                <span class="pill">حد أقصى 10</span>
               </div>
               <input type="file" accept="image/*" multiple style="display:none" data-mini-file="${p.id}">
               <div class="miniPreview" data-new-preview="${p.id}"></div>
             </div>
+          </div>
+
+          <!-- NEW: note after images -->
+          <div style="margin-top:10px">
+            <div class="muted" style="margin-bottom:6px">ملاحظة</div>
+            <textarea data-f="note" placeholder="اكتبي أي ملاحظة...">${escapeHtml(noteTxt)}</textarea>
           </div>
 
           <div class="row" style="margin-top:10px;justify-content:space-between">
@@ -710,128 +649,77 @@ async function loadPurchases(){
     tbody.appendChild(tr);
     tbody.appendChild(editTr);
 
-    // Init image state for this purchase
-    getOrCreateEditState(p.id, (p.purchase_images || []).length);
+    getOrCreateEditState(p.id, (p.purchase_images||[]).length);
   });
 
-  // Handlers: delete purchase
-  tbody.querySelectorAll("button[data-del]").forEach(btn=>{
-    btn.onclick = () => deletePurchase(btn.dataset.del);
-  });
-
-  // Handlers: open edit row
+  tbody.querySelectorAll("button[data-del]").forEach(btn=> btn.onclick=()=>deletePurchase(btn.dataset.del));
   tbody.querySelectorAll("button[data-edit]").forEach(btn=>{
-    btn.onclick = () => {
-      const id = btn.dataset.edit;
+    btn.onclick=()=>{
+      const id=btn.dataset.edit;
       toggleEditRow(id);
       updateEditCounts(id);
       renderNewPreview(id);
     };
   });
+  tbody.querySelectorAll("button[data-cancel]").forEach(btn=> btn.onclick=()=>closeEditRow(btn.dataset.cancel));
+  tbody.querySelectorAll("button[data-save]").forEach(btn=> btn.onclick=()=>saveInlineEdit(btn.dataset.save));
 
-  // Handlers: cancel edit
-  tbody.querySelectorAll("button[data-cancel]").forEach(btn=>{
-    btn.onclick = () => closeEditRow(btn.dataset.cancel);
-  });
-
-  // Handlers: save edit
-  tbody.querySelectorAll("button[data-save]").forEach(btn=>{
-    btn.onclick = () => saveInlineEdit(btn.dataset.save);
-  });
-
-  // Existing images delete toggle
   tbody.querySelectorAll("[data-existing-thumb]").forEach(thumb=>{
-    const purchaseId = thumb.dataset.existingThumb;
-    const imgId = thumb.dataset.imgid;
-    const path = thumb.dataset.path;
-    const btn = thumb.querySelector("button[data-toggle-del]");
+    const purchaseId=thumb.dataset.existingThumb;
+    const imgId=thumb.dataset.imgid;
+    const path=thumb.dataset.path;
+    const btn=thumb.querySelector("button[data-toggle-del]");
     if(!btn) return;
-
-    btn.onclick = () => {
-      const state = editImageState.get(purchaseId);
+    btn.onclick=()=>{
+      const state=editImageState.get(purchaseId);
       if(!state) return;
-
-      const already = state.deleteImgIds.has(imgId);
-      if(already){
-        state.deleteImgIds.delete(imgId);
-        state.deletePaths.delete(path);
-        thumb.classList.remove("removing");
-      } else {
-        state.deleteImgIds.add(imgId);
-        state.deletePaths.add(path);
-        thumb.classList.add("removing");
-      }
-
+      const already=state.deleteImgIds.has(imgId);
+      if(already){ state.deleteImgIds.delete(imgId); state.deletePaths.delete(path); thumb.classList.remove("removing"); }
+      else { state.deleteImgIds.add(imgId); state.deletePaths.add(path); thumb.classList.add("removing"); }
       updateEditCounts(purchaseId);
     };
   });
 
-  // Mini pick + file change
   tbody.querySelectorAll("[data-mini-pick]").forEach(btn=>{
-    const purchaseId = btn.dataset.miniPick;
-    btn.onclick = () => {
-      const fileInput = tbody.querySelector(`[data-mini-file="${purchaseId}"]`);
-      if(fileInput) fileInput.click();
-    };
+    const purchaseId=btn.dataset.miniPick;
+    btn.onclick=()=>{ const fileInput=tbody.querySelector(`[data-mini-file="${purchaseId}"]`); if(fileInput) fileInput.click(); };
   });
-
   tbody.querySelectorAll("[data-mini-file]").forEach(inp=>{
-    const purchaseId = inp.dataset.miniFile;
-    inp.onchange = () => {
-      addEditFiles(purchaseId, inp.files);
-      inp.value = "";
-    };
+    const purchaseId=inp.dataset.miniFile;
+    inp.onchange=()=>{ addEditFiles(purchaseId, inp.files); inp.value=""; };
   });
 
-  // Mini dropzone drag/drop
   tbody.querySelectorAll("[data-mini-drop]").forEach(zone=>{
-    const purchaseId = zone.dataset.miniDrop;
-
+    const purchaseId=zone.dataset.miniDrop;
     ["dragenter","dragover"].forEach(evt=>{
-      zone.addEventListener(evt, (e)=>{
-        e.preventDefault(); e.stopPropagation();
-        zone.classList.add("dragover");
-      });
+      zone.addEventListener(evt,(e)=>{ e.preventDefault(); e.stopPropagation(); zone.classList.add("dragover"); });
     });
     ["dragleave","drop"].forEach(evt=>{
-      zone.addEventListener(evt, (e)=>{
-        e.preventDefault(); e.stopPropagation();
-        zone.classList.remove("dragover");
-      });
+      zone.addEventListener(evt,(e)=>{ e.preventDefault(); e.stopPropagation(); zone.classList.remove("dragover"); });
     });
-
-    zone.addEventListener("drop", (e)=>{
-      addEditFiles(purchaseId, e.dataTransfer.files);
-    });
-
-    zone.addEventListener("focus", ()=>{ activeEditPasteTarget = purchaseId; });
-    zone.addEventListener("click", ()=>{ activeEditPasteTarget = purchaseId; });
+    zone.addEventListener("drop",(e)=> addEditFiles(purchaseId, e.dataTransfer.files));
+    zone.addEventListener("focus",()=>{ activeEditPasteTarget=purchaseId; });
+    zone.addEventListener("click",()=>{ activeEditPasteTarget=purchaseId; });
   });
 
-  // Set initial counts
-  (data||[]).forEach(p => updateEditCounts(p.id));
+  (data||[]).forEach(p=>updateEditCounts(p.id));
 }
 
-/* ===== Paste into active edit mini dropzone ===== */
-document.addEventListener("paste", (e)=>{
+document.addEventListener("paste",(e)=>{
   if(!activeEditPasteTarget) return;
   const row = tbody.querySelector(`tr[data-edit-row="${activeEditPasteTarget}"]`);
-  if(!row || row.style.display === "none") return;
+  if(!row || row.style.display==="none") return;
 
-  const items = e.clipboardData?.items || [];
-  const pasted = [];
+  const items=e.clipboardData?.items||[];
+  const pasted=[];
   for(const it of items){
     if(it.type && it.type.startsWith("image/")){
-      const f = it.getAsFile();
-      if(f) pasted.push(f);
+      const f=it.getAsFile(); if(f) pasted.push(f);
     }
   }
-  if(pasted.length){
-    addEditFiles(activeEditPasteTarget, pasted);
-  }
+  if(pasted.length) addEditFiles(activeEditPasteTarget, pasted);
 });
 
-/* ===== Delete purchase ===== */
 async function deletePurchase(id){
   if(!confirm("حذف؟")) return;
   await sb.from("purchases").delete().eq("id",id);
@@ -839,15 +727,17 @@ async function deletePurchase(id){
 }
 
 /* ===== Add new purchase ===== */
-addBtn.onclick = async () => {
+addBtn.onclick = async ()=>{
   if(!activeOrder) return;
 
-  const { data:p, error: pErr } = await sb.from("purchases")
+  const { data:p, error:pErr } = await sb.from("purchases")
     .insert({
       order_id: activeOrder.id,
       customer_name: customer.value,
       price: Number(price.value),
-      qty: Number(qty.value)
+      qty: Number(qty.value),
+      pickup_point: pickupPoint.value, // NEW
+      note: note.value.trim()           // NEW
     })
     .select()
     .single();
@@ -855,40 +745,29 @@ addBtn.onclick = async () => {
   if(pErr){ console.error(pErr); alert("فشل إضافة المشترى"); return; }
 
   const urls=[...linksWrap.querySelectorAll("input")].map(i=>i.value).filter(Boolean);
-  if(urls.length){
-    const { error: lErr } = await sb.from("purchase_links")
-      .insert(urls.map(u=>({purchase_id:p.id,url:u})));
-    if(lErr) console.error(lErr);
-  }
+  if(urls.length) await sb.from("purchase_links").insert(urls.map(u=>({purchase_id:p.id,url:u})));
 
   for(const f of selectedImages){
-    const safeName = `${Date.now()}-${f.name}`.replace(/\s+/g, "_");
+    const safeName = `${Date.now()}-${f.name}`.replace(/\s+/g,"_");
     const path = `${activeOrder.id}/${p.id}/${safeName}`;
 
     const { error: upErr } = await sb.storage.from(BUCKET).upload(path, f);
     if(upErr){ console.error(upErr); alert("فشل رفع صورة."); continue; }
 
-    const { error: dbErr } = await sb.from("purchase_images").insert({
-      purchase_id: p.id,
-      storage_path: path
-    });
-    if(dbErr){ console.error(dbErr); alert("فشل حفظ مسار الصورة."); }
+    await sb.from("purchase_images").insert({ purchase_id: p.id, storage_path: path });
   }
 
-  // reset form
-  customer.value="";
-  price.value="";
-  qty.value=1;
+  // reset
+  customer.value=""; price.value=""; qty.value=1;
+  pickupPoint.value="من نقطة الاستلام";
+  note.value="";
   images.value="";
   linksWrap.querySelectorAll("input").forEach(i=>i.value="");
-
-  selectedImages = [];
-  updatePreview();
+  selectedImages=[]; updatePreview();
 
   loadPurchases();
 };
 
-/* ===== Init ===== */
 loadOrders();
 </script>
 </body>
