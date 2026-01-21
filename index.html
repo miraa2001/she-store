@@ -113,8 +113,8 @@
         <b>إضافة مشترى</b>
         <div class="row">
           <input id="customer" placeholder="اسم الزبون">
-          <input id="price" type="number" placeholder="السعر">
           <input id="qty" type="number" value="1" placeholder="العدد">
+          <input id="price" type="number" placeholder="السعر">
         </div>
 
         <div class="row" id="links" style="margin-top:8px"></div>
@@ -163,8 +163,8 @@
           <thead>
             <tr>
               <th>الزبون</th>
-              <th>السعر</th>
               <th>العدد</th>
+              <th>السعر</th>
               <th>روابط</th>
               <th>مكان الاستلام</th>
               <th>صور</th>
@@ -544,8 +544,8 @@ async function loadPurchases(){
     const tr=document.createElement("tr");
     tr.innerHTML=`
       <td>${escapeHtml(p.customer_name || "")}</td>
-      <td>${escapeHtml(p.price ?? "")}</td>
       <td>${escapeHtml(p.qty ?? "")}</td>
+      <td>${escapeHtml(p.price ?? "")}</td>
       <td>${(p.purchase_links||[]).map((l,i)=>`<a href="${escapeAttr(l.url)}" target="_blank" rel="noopener">رابط ${i+1}</a>`).join("<br>") || "—"}</td>
       <td>${escapeHtml(pickupTxt)}</td>
       <td class="thumbs">${imgs}</td>
@@ -772,3 +772,4 @@ loadOrders();
 </script>
 </body>
 </html>
+
