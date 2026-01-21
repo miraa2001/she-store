@@ -28,15 +28,12 @@
 <body>
 
 <div class="wrap">
-
   <div class="row" style="margin-bottom:12px">
     <a class="btn" href="./index.html">رجوع</a>
     <button class="btn" id="logoutBtn">تسجيل خروج</button>
   </div>
 
   <div class="grid">
-
-    <!-- Orders list -->
     <aside class="card">
       <div class="row" style="justify-content:space-between">
         <b>الطلبيات</b>
@@ -46,7 +43,6 @@
       <div id="ordersEmpty" class="muted" style="margin-top:10px;display:none">لا يوجد طلبيات</div>
     </aside>
 
-    <!-- Order viewer -->
     <main class="card">
       <div id="viewerEmpty" class="muted">اختاري طلبية من القائمة</div>
 
@@ -65,7 +61,6 @@
         <div id="content"></div>
       </div>
     </main>
-
   </div>
 </div>
 
@@ -78,12 +73,9 @@ const SUPABASE_ANON_KEY="sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const BUCKET="purchase-images";
 
-/* ===== Auth guard ===== */
 async function requireAuth(){
   const { data } = await sb.auth.getSession();
-  if(!data.session){
-    window.location.href="./login.html?next=view.html";
-  }
+  if(!data.session) window.location.href="./login.html?next=view.html";
 }
 requireAuth();
 
@@ -92,7 +84,6 @@ document.getElementById("logoutBtn").onclick=async()=>{
   window.location.href="./login.html";
 };
 
-/* ===== DOM ===== */
 const ordersListEl = document.getElementById("ordersList");
 const ordersEmptyEl = document.getElementById("ordersEmpty");
 const ordersCountEl = document.getElementById("ordersCount");
@@ -109,18 +100,12 @@ const purchaseCount = document.getElementById("purchaseCount");
 const lb = document.getElementById("lightbox");
 const lbImg = lb.querySelector("img");
 
-/* ===== State ===== */
 let orders = [];
 let activeOrder = null;
 let purchases = [];
 let idx = 0;
 
-/* ===== Helpers ===== */
-function escapeHtml(s=""){
-  return String(s).replace(/[&<>"']/g, m => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-  }[m]));
-}
+function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 function escapeAttr(s=""){ return escapeHtml(s); }
 
 function showViewer(on){
@@ -128,7 +113,6 @@ function showViewer(on){
   viewerEmpty.style.display = on ? "none" : "";
 }
 
-/* ===== Load orders list ===== */
 async function loadOrders(){
   const { data, error } = await sb
     .from("orders")
@@ -146,24 +130,18 @@ async function loadOrders(){
   orders.forEach(o=>{
     const div = document.createElement("div");
     div.className = "orderItem" + (activeOrder?.id === o.id ? " active" : "");
-    div.innerHTML = `
-      <span>${escapeHtml(o.order_name || "")}</span>
-      <span class="pill">عرض</span>
-    `;
+    div.innerHTML = `<span>${escapeHtml(o.order_name || "")}</span><span class="pill">عرض</span>`;
     div.onclick = () => selectOrder(o);
     ordersListEl.appendChild(div);
   });
 }
 
-/* ===== Select order ===== */
 async function selectOrder(o){
   activeOrder = o;
   idx = 0;
 
-  // highlight list
   await loadOrders();
 
-  // load purchases for this order
   const { data, error } = await sb
     .from("purchases")
     .select("*,purchase_links(url),purchase_images(storage_path)")
@@ -180,7 +158,6 @@ async function selectOrder(o){
   render();
 }
 
-/* ===== Render current purchase ===== */
 function render(){
   if(!purchases.length){
     counter.textContent = "0/0";
@@ -200,24 +177,27 @@ function render(){
     .map((l,i)=>`<a href="${escapeAttr(l.url)}" target="_blank" rel="noopener">رابط ${i+1}</a>`)
     .join("<br>") || "—";
 
+  const pickup = p.pickup_point || "من نقطة الاستلام";
+  const note = (p.note || "").trim();
+
   content.innerHTML = `
     <div><b>الزبون:</b> ${escapeHtml(p.customer_name || "")}</div>
     <div><b>السعر:</b> ${escapeHtml(p.price ?? "")}</div>
     <div><b>العدد:</b> ${escapeHtml(p.qty ?? "")}</div>
     <div style="margin-top:8px"><b>روابط:</b><br>${links}</div>
+
+    <div style="margin-top:10px"><b>مكان الاستلام:</b> ${escapeHtml(pickup)}</div>
+
     <div class="thumbs">${imgs || ""}</div>
+
+    <div style="margin-top:10px"><b>ملاحظة:</b> ${note ? escapeHtml(note) : "—"}</div>
   `;
 
-  // Lightbox
   content.querySelectorAll("img").forEach(img=>{
-    img.onclick = () => {
-      lb.style.display = "flex";
-      lbImg.src = img.src;
-    };
+    img.onclick = () => { lb.style.display = "flex"; lbImg.src = img.src; };
   });
 }
 
-/* ===== Nav ===== */
 prev.onclick = ()=>{
   if(!purchases.length) return;
   idx = (idx - 1 + purchases.length) % purchases.length;
@@ -230,16 +210,10 @@ next.onclick = ()=>{
 };
 lb.onclick = ()=> lb.style.display="none";
 
-/* ===== Init ===== */
-async function init(){
+(async function init(){
   await loadOrders();
-
-  // auto-select newest order if you want (optional)
-  if(orders.length){
-    selectOrder(orders[0]);
-  }
-}
-init();
+  if(orders.length) selectOrder(orders[0]);
+})();
 </script>
 </body>
 </html>
