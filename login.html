@@ -81,15 +81,22 @@
 
     const email = usernameToEmail(username);
 
-    const { error } = await sb.auth.signInWithPassword({ email, password });
+   console.log("Trying login:", email, "Project:", SUPABASE_URL);
 
-    if(error){
-      console.error(error);
-      msg.textContent = "فشل الدخول. تأكدي من البيانات.";
-      loginBtn.disabled = false;
-      loginBtn.textContent = "دخول";
-      return;
-    }
+const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+if(error){
+  console.error("LOGIN ERROR:", error);
+
+  // show real error (Arabic-friendly)
+  msg.textContent = `فشل الدخول: ${error.message}`;
+  loginBtn.disabled = false;
+  loginBtn.textContent = "دخول";
+  return;
+}
+
+console.log("LOGIN OK:", data);
+
 
     window.location.href = getRedirect();
   };
