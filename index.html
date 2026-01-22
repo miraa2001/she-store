@@ -269,7 +269,7 @@ async function requireAuth(){
   if(!data.session) window.location.href = "./login.html?next=index.html";
 }
 requireAuth();
-
+renderNavbar();
 async function requireAdminPage(){
   const { data, error } = await sb.from("user_roles").select("role").single();
   if(error){ console.error(error); return; }
@@ -853,4 +853,5 @@ loadOrders();
 </script>
 </body>
 </html>
+
 
