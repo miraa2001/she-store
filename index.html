@@ -98,7 +98,10 @@
       <div id="main" style="display:none">
 
         <div class="row" style="justify-content:space-between;align-items:center">
-          <b id="orderTitle"></b>
+          <div class="row" style="align-items:center">
+            <b id="orderTitle"></b>
+            <span class="pill" id="orderStats" style="margin-right:8px"></span>
+          </div>
           <button class="btn" id="editOrderBtn" title="تعديل اسم الطلبية">✏️</button>
         </div>
 
@@ -119,7 +122,7 @@
 
         <div class="row" id="links" style="margin-top:8px"></div>
 
-        <!-- NEW: Pickup point BEFORE pictures -->
+        <!-- Pickup point BEFORE pictures -->
         <div class="row" style="margin-top:10px">
           <label class="muted" for="pickupPoint">مكان الاستلام</label>
           <select id="pickupPoint">
@@ -146,7 +149,7 @@
             <input id="images" type="file" multiple accept="image/*" style="display:none">
           </div>
 
-          <!-- NEW: Note AFTER pictures -->
+          <!-- Note AFTER pictures -->
           <div style="margin-top:10px">
             <div class="muted" style="margin-bottom:6px">ملاحظة</div>
             <textarea id="note" placeholder="اكتبي أي ملاحظة..."></textarea>
@@ -215,13 +218,14 @@ const newOrderBtn = document.getElementById("newOrderBtn");
 const main = document.getElementById("main");
 const empty = document.getElementById("empty");
 const orderTitle = document.getElementById("orderTitle");
+const orderStats = document.getElementById("orderStats");
 const tbody = document.getElementById("tbody");
 
 const customer = document.getElementById("customer");
 const price = document.getElementById("price");
 const qty = document.getElementById("qty");
-const pickupPoint = document.getElementById("pickupPoint");   // NEW
-const note = document.getElementById("note");                 // NEW
+const pickupPoint = document.getElementById("pickupPoint");
+const note = document.getElementById("note");
 const images = document.getElementById("images");
 const linksWrap = document.getElementById("links");
 const addBtn = document.getElementById("addBtn");
@@ -453,10 +457,10 @@ async function saveInlineEdit(purchaseId){
   msgEl.textContent="جاري الحفظ...";
 
   const name = row.querySelector(`[data-f="name"]`).value.trim();
-  const priceVal = Number(row.querySelector(`[data-f="price"]`).value);
   const qtyVal = Number(row.querySelector(`[data-f="qty"]`).value);
-  const pickupVal = row.querySelector(`[data-f="pickup"]`).value;      // NEW
-  const noteVal = row.querySelector(`[data-f="note"]`).value.trim();   // NEW
+  const priceVal = Number(row.querySelector(`[data-f="price"]`).value);
+  const pickupVal = row.querySelector(`[data-f="pickup"]`).value;
+  const noteVal = row.querySelector(`[data-f="note"]`).value.trim();
 
   if(!name){ msgEl.textContent="اسم الزبون مطلوب."; return; }
   if(!Number.isFinite(priceVal) || priceVal<0){ msgEl.textContent="السعر غير صحيح."; return; }
@@ -474,8 +478,8 @@ async function saveInlineEdit(purchaseId){
       customer_name:name,
       price:priceVal,
       qty:qtyVal,
-      pickup_point: pickupVal, // NEW
-      note: noteVal            // NEW
+      pickup_point: pickupVal,
+      note: noteVal
     })
     .eq("id", purchaseId);
 
@@ -530,9 +534,15 @@ async function loadPurchases(){
     .eq("order_id", activeOrder.id)
     .order("created_at", { ascending:false });
 
+  const list = data || [];
+
+  // Order stats: purchases count + total items
+  const totalItems = list.reduce((sum, p) => sum + Number(p.qty || 0), 0);
+  orderStats.textContent = `عدد المشتريات: ${list.length} — مجموع القطع: ${totalItems}`;
+
   tbody.innerHTML="";
 
-  (data||[]).forEach(p=>{
+  list.forEach(p=>{
     const imgs=(p.purchase_images||[]).map(i=>{
       const url=sb.storage.from(BUCKET).getPublicUrl(i.storage_path).data.publicUrl;
       return `<img src="${escapeAttr(url)}" alt="صورة">`;
@@ -574,7 +584,6 @@ async function loadPurchases(){
       `;
     }).join("");
 
-    // dropdown selected helper
     const sel = (v, x) => (v===x ? "selected" : "");
 
     editTr.innerHTML=`
@@ -585,10 +594,11 @@ async function loadPurchases(){
             <span class="pill" data-edit-imgcount="${p.id}">0/10</span>
           </div>
 
+          <!-- IMPORTANT: qty BEFORE price -->
           <div class="row" style="margin-top:10px">
             <input data-f="name" placeholder="اسم الزبون" value="${escapeAttr(p.customer_name || "")}">
-            <input data-f="price" type="number" step="0.01" min="0" placeholder="السعر" value="${escapeAttr(p.price ?? "")}">
             <input data-f="qty" type="number" step="1" min="1" placeholder="العدد" value="${escapeAttr(p.qty ?? 1)}">
+            <input data-f="price" type="number" step="0.01" min="0" placeholder="السعر" value="${escapeAttr(p.price ?? "")}">
           </div>
 
           <div class="row" style="margin-top:10px">
@@ -599,7 +609,6 @@ async function loadPurchases(){
             <input data-l="5" placeholder="رابط السلة/العنصر 5" value="${escapeAttr(links[4])}">
           </div>
 
-          <!-- NEW: pickup dropdown (before images) -->
           <div class="row" style="margin-top:10px">
             <span class="muted">مكان الاستلام</span>
             <select data-f="pickup">
@@ -629,7 +638,6 @@ async function loadPurchases(){
             </div>
           </div>
 
-          <!-- NEW: note after images -->
           <div style="margin-top:10px">
             <div class="muted" style="margin-bottom:6px">ملاحظة</div>
             <textarea data-f="note" placeholder="اكتبي أي ملاحظة...">${escapeHtml(noteTxt)}</textarea>
@@ -702,7 +710,7 @@ async function loadPurchases(){
     zone.addEventListener("click",()=>{ activeEditPasteTarget=purchaseId; });
   });
 
-  (data||[]).forEach(p=>updateEditCounts(p.id));
+  list.forEach(p=>updateEditCounts(p.id));
 }
 
 document.addEventListener("paste",(e)=>{
@@ -736,8 +744,8 @@ addBtn.onclick = async ()=>{
       customer_name: customer.value,
       price: Number(price.value),
       qty: Number(qty.value),
-      pickup_point: pickupPoint.value, // NEW
-      note: note.value.trim()           // NEW
+      pickup_point: pickupPoint.value,
+      note: note.value.trim()
     })
     .select()
     .single();
@@ -758,18 +766,20 @@ addBtn.onclick = async ()=>{
   }
 
   // reset
-  customer.value=""; price.value=""; qty.value=1;
+  customer.value="";
+  price.value="";
+  qty.value=1;
   pickupPoint.value="من نقطة الاستلام";
   note.value="";
   images.value="";
   linksWrap.querySelectorAll("input").forEach(i=>i.value="");
-  selectedImages=[]; updatePreview();
+  selectedImages=[];
+  updatePreview();
 
-  loadPurchases();
+  await loadPurchases();
 };
 
 loadOrders();
 </script>
 </body>
 </html>
-
