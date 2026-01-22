@@ -270,12 +270,18 @@ async function requireAuth(){
 }
 requireAuth();
 renderNavbar();
-async function requireAdminPage(){
-  const { data, error } = await sb.from("user_roles").select("role").single();
-  if(error){ console.error(error); return; }
-  if(data.role !== "admin") window.location.href = "./view.html";
+async function requireIndexAccess(){
+  const { data } = await sb.auth.getUser();
+  const email = (data?.user?.email || "").toLowerCase();
+
+  // Only Rahaf can access index.html
+  if(email !== "rahaf@she-store.com"){
+    window.location.href = "./view.html";
+    return;
+  }
 }
-requireAdminPage();
+requireIndexAccess();
+
 
 document.getElementById("logoutBtn").onclick = async ()=>{
   await sb.auth.signOut();
@@ -853,5 +859,6 @@ loadOrders();
 </script>
 </body>
 </html>
+
 
 
