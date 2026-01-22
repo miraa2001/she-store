@@ -108,6 +108,16 @@ async function requireAuth(){
   }
   return true;
 }
+async function requireViewAccess(){
+  const { data } = await sb.auth.getUser();
+  const email = (data?.user?.email || "").toLowerCase();
+
+  if(email !== "rahaf@she-store.com" && email !== "reem@she-store.com"){
+    // La Aura goes to pickup page only
+    window.location.href = "./pickuppoint.html";
+  }
+}
+requireViewAccess();
 
 async function getMyRole(){
   // assumes RLS returns only the current user's role row
