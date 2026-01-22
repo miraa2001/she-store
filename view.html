@@ -35,13 +35,14 @@
 <body>
 
 <div class="wrap">
-  <div class="row" style="margin-bottom:12px">
-    <a class="btn" href="./index.html" id="backBtn">رجوع</a>
-    <div class="row">
-      <a class="btn" href="./pickuppoint.html" id="pickupBtn" style="display:none">نقطة الاستلام (La Aura)</a>
-      <button class="btn" id="logoutBtn">تسجيل خروج</button>
-    </div>
+  <div id="navWrap" class="row" style="justify-content:space-between;margin-bottom:12px;display:none">
+  <div>
+    <b style="font-size:20px">عرض الطلبيات</b>
+    <div class="muted">استعراض المشتريات</div>
   </div>
+  <div class="row" id="navBtns"></div>
+</div>
+
 
   <div class="grid">
     <aside class="card">
@@ -109,16 +110,79 @@ async function requireAuth(){
 }
 
 async function getMyRole(){
-  const { data: u } = await sb.auth.getUser();
-  const email = (u?.user?.email || "").toLowerCase();
+  // assumes RLS returns only the current user's role row
+  // if your table has multiple rows per user, you can add eq('user_id', user.id)
+  const { data: userRes } = await sb.auth.getUser();
+  const user = userRes?.user;
 
-  const { data: r, error } = await sb.from("user_roles").select("role").single();
+  const email = (user?.email || "").toLowerCase();
+
+  const { data, error } = await sb
+    .from("user_roles")
+    .select("role")
+    .single();
+
+  // fallback: role from email if role row missing
   if(error){
-    console.error("ROLE READ ERROR:", error);
-    return { email, role: "viewer" }; // safe default
+    console.warn("user_roles lookup failed, fallback to email:", error);
+    if(email === "rahaf@she-store.com") return { role: "rahaf", email };
+    if(email === "reem@she-store.com") return { role: "reem", email };
+    if(email === "laaura@she-store.com") return { role: "laaura", email };
+    return { role: "unknown", email };
   }
-  return { email, role: r?.role || "viewer" };
+
+  const role = (data?.role || "").toLowerCase();
+  return { role, email };
 }
+
+async function renderNavbar(){
+  const navWrap = document.getElementById("navWrap");
+  const navBtns = document.getElementById("navBtns");
+  if(!navWrap || !navBtns) return;
+
+  const { role, email } = await getMyRole();
+
+  // La Aura: NO NAV BAR
+  if(email === "laaura@she-store.com" || role === "laaura"){
+    navWrap.style.display = "none";
+    return;
+  }
+
+  navWrap.style.display = "flex";
+  navBtns.innerHTML = "";
+
+  function addLink(text, href){
+    const a = document.createElement("a");
+    a.className = "btn";
+    a.href = href;
+    a.textContent = text;
+    navBtns.appendChild(a);
+  }
+
+  function addBtn(text, onClick){
+    const b = document.createElement("button");
+    b.className = "btn";
+    b.type = "button";
+    b.textContent = text;
+    b.onclick = onClick;
+    navBtns.appendChild(b);
+  }
+
+  // Shared for Rahaf/Reem
+  addLink("عرض الطلبيات", "./view.html");
+  addLink("La Aura", "./pickuppoint.html");
+
+  // Rahaf only: Add orders (index)
+  if(email === "rahaf@she-store.com" || role === "admin" || role === "rahaf"){
+    addLink("إضافة طلبية", "./index.html");
+  }
+
+  addBtn("تسجيل خروج", async ()=>{
+    await sb.auth.signOut();
+    window.location.href = "./login.html";
+  });
+}
+
 
 let myEmail = "";
 let myRole = "viewer";
@@ -323,6 +387,7 @@ lb.onclick = ()=> lb.style.display="none";
 
 (async function init(){
   await guardViewPage(); // ensures myRole is set before UI decisions
+  renderNavbar();
   await loadOrders();
   if(orders.length) selectOrder(orders[0]);
 })();
