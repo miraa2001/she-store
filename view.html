@@ -36,9 +36,9 @@
 
 <div class="wrap">
   <div class="row" style="margin-bottom:12px">
-    <a class="btn" href="./index.html">رجوع</a>
+    <a class="btn" href="./index.html" id="backBtn">رجوع</a>
     <div class="row">
-      <a class="btn" href="./pickuppoint.html">نقطة الاستلام (La Aura)</a>
+      <a class="btn" href="./pickuppoint.html" id="pickupBtn" style="display:none">نقطة الاستلام (La Aura)</a>
       <button class="btn" id="logoutBtn">تسجيل خروج</button>
     </div>
   </div>
@@ -61,7 +61,7 @@
           <div>
             <b id="title"></b>
 
-            <!-- NEW: order-level toggle -->
+            <!-- Order-level toggle (admin only) -->
             <div id="placedToggleWrap" class="toggleRow" style="display:none">
               <label class="toggleRow" style="cursor:pointer">
                 <input type="checkbox" id="placedAtPickupToggle">
@@ -95,11 +95,56 @@ const SUPABASE_ANON_KEY="sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const BUCKET="purchase-images";
 
+/* ========= Auth + Role Gate =========
+   view.html allowed: admin + viewer
+   pickup must be redirected to pickuppoint.html
+*/
 async function requireAuth(){
   const { data } = await sb.auth.getSession();
-  if(!data.session) window.location.href="./login.html?next=view.html";
+  if(!data.session){
+    window.location.href="./login.html?next=view.html";
+    return false;
+  }
+  return true;
 }
-requireAuth();
+
+async function getMyRole(){
+  const { data: u } = await sb.auth.getUser();
+  const email = (u?.user?.email || "").toLowerCase();
+
+  const { data: r, error } = await sb.from("user_roles").select("role").single();
+  if(error){
+    console.error("ROLE READ ERROR:", error);
+    return { email, role: "viewer" }; // safe default
+  }
+  return { email, role: r?.role || "viewer" };
+}
+
+let myEmail = "";
+let myRole = "viewer";
+
+async function guardViewPage(){
+  const ok = await requireAuth();
+  if(!ok) return;
+
+  const me = await getMyRole();
+  myEmail = me.email;
+  myRole = me.role;
+
+  // pickup users must NOT see view.html
+  if(myRole === "pickup"){
+    window.location.replace("./pickuppoint.html");
+    return;
+  }
+
+  // Hide admin-only things unless admin
+  document.getElementById("pickupBtn").style.display = (myRole === "admin") ? "" : "none";
+
+  // Index "رجوع" should not be shown unless admin (since you want index only for Rahaf)
+  document.getElementById("backBtn").style.display = (myRole === "admin") ? "" : "none";
+}
+guardViewPage();
+/* =================================== */
 
 document.getElementById("logoutBtn").onclick=async()=>{
   await sb.auth.signOut();
@@ -130,7 +175,6 @@ let orders = [];
 let activeOrder = null;
 let purchases = [];
 let idx = 0;
-let userEmail = "";
 
 function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 function escapeAttr(s=""){ return escapeHtml(s); }
@@ -139,12 +183,6 @@ function showViewer(on){
   viewer.style.display = on ? "" : "none";
   viewerEmpty.style.display = on ? "none" : "";
 }
-
-async function loadUser(){
-  const { data } = await sb.auth.getUser();
-  userEmail = data?.user?.email || "";
-}
-loadUser();
 
 async function loadOrders(){
   const { data, error } = await sb
@@ -170,12 +208,12 @@ async function loadOrders(){
 }
 
 async function setPlacedToggleUI(order){
-  // show only for Rahaf (UI-only requirement)
-  const isRahaf = (userEmail || "").toLowerCase() === "rahaf@she-store.com" || (userEmail || "").toLowerCase() === "reem@she-store.com";
-  if(!isRahaf){
+  // Admin only (Rahaf)
+  if(myRole !== "admin"){
     placedToggleWrap.style.display = "none";
     return;
   }
+
   placedToggleWrap.style.display = "";
   placedAtPickupToggle.checked = !!order.placed_at_pickup;
   placedToggleMsg.textContent = "";
@@ -185,23 +223,27 @@ async function setPlacedToggleUI(order){
     placedToggleMsg.textContent = "جاري الحفظ...";
 
     const val = placedAtPickupToggle.checked;
+    // IMPORTANT: set placed_at_pickup_at when enabling
+    const payload = val
+      ? { placed_at_pickup: true, placed_at_pickup_at: new Date().toISOString() }
+      : { placed_at_pickup: false, placed_at_pickup_at: null };
+
     const { error } = await sb
       .from("orders")
-      .update({ placed_at_pickup: val })
+      .update(payload)
       .eq("id", activeOrder.id);
 
     if(error){
       console.error(error);
       placedToggleMsg.textContent = "فشل الحفظ.";
-      // revert UI
       placedAtPickupToggle.checked = !val;
       return;
     }
-    placedToggleMsg.textContent = "تم ✅";
 
-    // keep local copy updated
-    activeOrder.placed_at_pickup = val;
-    // refresh orders list (optional)
+    placedToggleMsg.textContent = "تم ✅";
+    activeOrder.placed_at_pickup = payload.placed_at_pickup;
+    activeOrder.placed_at_pickup_at = payload.placed_at_pickup_at;
+
     await loadOrders();
   };
 }
@@ -257,11 +299,8 @@ function render(){
     <div><b>السعر:</b> ${escapeHtml(p.price ?? "")}</div>
     <div><b>العدد:</b> ${escapeHtml(p.qty ?? "")}</div>
     <div style="margin-top:8px"><b>روابط:</b><br>${links}</div>
-
     <div style="margin-top:10px"><b>مكان الاستلام:</b> ${escapeHtml(pickup)}</div>
-
     <div class="thumbs">${imgs || ""}</div>
-
     <div style="margin-top:10px"><b>ملاحظة:</b> ${note ? escapeHtml(note) : "—"}</div>
   `;
 
@@ -283,7 +322,7 @@ next.onclick = ()=>{
 lb.onclick = ()=> lb.style.display="none";
 
 (async function init(){
-  await loadUser();
+  await guardViewPage(); // ensures myRole is set before UI decisions
   await loadOrders();
   if(orders.length) selectOrder(orders[0]);
 })();
