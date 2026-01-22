@@ -44,7 +44,6 @@
       <b style="font-size:20px">نقطة الاستلام - La Aura</b>
     </div>
     <div class="row">
-      <!-- لا يوجد زر للـ view.html -->
       <button class="btn" id="logoutBtn">تسجيل خروج</button>
     </div>
   </div>
@@ -103,11 +102,46 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 const PICKUP_VALUE = "من نقطة الاستلام";
 
+/* ========= Auth + Role Gate =========
+   Allowed here: admin + pickup
+   viewer gets redirected to view.html
+*/
 async function requireAuth(){
   const { data } = await sb.auth.getSession();
-  if(!data.session) window.location.href="./login.html?next=pickuppoint.html";
+  if(!data.session){
+    window.location.href="./login.html?next=pickuppoint.html";
+    return false;
+  }
+  return true;
 }
-requireAuth();
+
+async function getMyRole(){
+  const { data: u } = await sb.auth.getUser();
+  const email = (u?.user?.email || "").toLowerCase();
+  const { data: r, error } = await sb.from("user_roles").select("role").single();
+  if(error){
+    console.error("ROLE READ ERROR:", error);
+    return { email, role: "viewer" }; // safe default
+  }
+  return { email, role: r?.role || "viewer" };
+}
+
+async function guardPickupPage(){
+  const ok = await requireAuth();
+  if(!ok) return;
+
+  const { role } = await getMyRole();
+
+  // viewer (Reem) should NOT see pickup page
+  if(role === "viewer"){
+    window.location.replace("./view.html");
+    return;
+  }
+
+  // admin + pickup are allowed
+}
+guardPickupPage();
+/* =================================== */
 
 document.getElementById("logoutBtn").onclick=async()=>{
   await sb.auth.signOut();
@@ -134,7 +168,7 @@ let isRahaf = false;
 
 let orders = [];
 let activeOrder = null;
-let purchasesByOrder = new Map(); // orderId -> purchases
+let purchasesByOrder = new Map();
 let highlightPurchaseId = null;
 
 function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
@@ -158,7 +192,6 @@ function formatDMY(iso){
 }
 
 async function loadPickupOrders(){
-  // Orders that were marked as placed at pickup
   const { data, error } = await sb
     .from("orders")
     .select("id, placed_at_pickup_at, placed_at_pickup, created_at")
@@ -187,7 +220,6 @@ async function loadPickupOrders(){
 }
 
 async function loadPurchasesForOrder(orderId){
-  // only purchases for pickup point "من نقطة الاستلام"
   const { data, error } = await sb
     .from("purchases")
     .select("id, order_id, customer_name, price, picked_up, picked_up_at, created_at, pickup_point")
@@ -196,13 +228,12 @@ async function loadPurchasesForOrder(orderId){
     .order("created_at",{ascending:true});
 
   if(error){ console.error(error); return []; }
-
   return data || [];
 }
 
 async function selectOrder(o){
   activeOrder = o;
-  await loadPickupOrders(); // refresh highlight
+  await loadPickupOrders();
 
   const list = await loadPurchasesForOrder(o.id);
   purchasesByOrder.set(o.id, list);
@@ -241,22 +272,18 @@ function renderTable(list){
       <td>${i+1}</td>
       <td>${escapeHtml(p.customer_name || "")}</td>
       <td>${escapeHtml(p.price ?? "")}</td>
-      <td>
-        <input class="chk" type="checkbox" data-id="${p.id}" ${checked}>
-      </td>
+      <td><input class="chk" type="checkbox" data-id="${p.id}" ${checked}></td>
       ${isRahaf ? `<td>${escapeHtml(pickedAt)}</td>` : ``}
     `;
     tbody.appendChild(tr);
   });
 
-  // checkbox handlers
   tbody.querySelectorAll('input[type="checkbox"][data-id]').forEach(chk=>{
     chk.onchange = async ()=>{
       const id = chk.dataset.id;
       const val = chk.checked;
       const pickedAt = val ? new Date().toISOString() : null;
 
-      // optimistic update UI
       const list = purchasesByOrder.get(activeOrder.id) || [];
       const item = list.find(x=>String(x.id)===String(id));
       if(item){
@@ -272,7 +299,6 @@ function renderTable(list){
       if(error){
         console.error(error);
         alert(error.message || "فشل تحديث الاستلام");
-        // revert checkbox
         chk.checked = !val;
         if(item){
           item.picked_up = !val;
@@ -281,7 +307,6 @@ function renderTable(list){
         return;
       }
 
-      // re-render for Rahaf timestamp column to update immediately
       if(isRahaf){
         renderTable(purchasesByOrder.get(activeOrder.id) || []);
       }
@@ -289,9 +314,7 @@ function renderTable(list){
   });
 }
 
-/* =========================
-   Search (by customer name)
-   ========================= */
+/* ===== Search ===== */
 let searchTimer = null;
 
 searchInput.addEventListener("input", ()=>{
