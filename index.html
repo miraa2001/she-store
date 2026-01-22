@@ -68,16 +68,13 @@
 <body>
 
 <div class="wrap">
-  <div class="row" style="justify-content:space-between;margin-bottom:12px">
-    <div>
-      <b style="font-size:20px">إدارة الطلبيات</b>
-      <div class="muted">إضافة / حذف / تعديل</div>
-    </div>
-    <div class="row">
-      <a class="btn" href="./view.html">صفحة العرض</a>
-      <button class="btn" id="logoutBtn">تسجيل خروج</button>
-    </div>
+  <div id="navWrap" class="row" style="justify-content:space-between;margin-bottom:12px;display:none">
+  <div>
+    <b style="font-size:20px">إدارة الطلبيات</b>
+    <div class="muted">إضافة / حذف / تعديل</div>
   </div>
+  <div class="row" id="navBtns"></div>
+</div>
 
   <div class="grid">
     <aside class="card">
@@ -188,6 +185,79 @@ const SUPABASE_URL = "https://maucjvxhrnkdeybltjco.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const BUCKET = "purchase-images";
+async function getMyRole(){
+  // assumes RLS returns only the current user's role row
+  // if your table has multiple rows per user, you can add eq('user_id', user.id)
+  const { data: userRes } = await sb.auth.getUser();
+  const user = userRes?.user;
+
+  const email = (user?.email || "").toLowerCase();
+
+  const { data, error } = await sb
+    .from("user_roles")
+    .select("role")
+    .single();
+
+  // fallback: role from email if role row missing
+  if(error){
+    console.warn("user_roles lookup failed, fallback to email:", error);
+    if(email === "rahaf@she-store.com") return { role: "rahaf", email };
+    if(email === "reem@she-store.com") return { role: "reem", email };
+    if(email === "laaura@she-store.com") return { role: "laaura", email };
+    return { role: "unknown", email };
+  }
+
+  const role = (data?.role || "").toLowerCase();
+  return { role, email };
+}
+
+async function renderNavbar(){
+  const navWrap = document.getElementById("navWrap");
+  const navBtns = document.getElementById("navBtns");
+  if(!navWrap || !navBtns) return;
+
+  const { role, email } = await getMyRole();
+
+  // La Aura: NO NAV BAR
+  if(email === "laaura@she-store.com" || role === "laaura"){
+    navWrap.style.display = "none";
+    return;
+  }
+
+  navWrap.style.display = "flex";
+  navBtns.innerHTML = "";
+
+  function addLink(text, href){
+    const a = document.createElement("a");
+    a.className = "btn";
+    a.href = href;
+    a.textContent = text;
+    navBtns.appendChild(a);
+  }
+
+  function addBtn(text, onClick){
+    const b = document.createElement("button");
+    b.className = "btn";
+    b.type = "button";
+    b.textContent = text;
+    b.onclick = onClick;
+    navBtns.appendChild(b);
+  }
+
+  // Shared for Rahaf/Reem
+  addLink("عرض الطلبيات", "./view.html");
+  addLink("La Aura", "./pickuppoint.html");
+
+  // Rahaf only: Add orders (index)
+  if(email === "rahaf@she-store.com" || role === "admin" || role === "rahaf"){
+    addLink("إضافة طلبية", "./index.html");
+  }
+
+  addBtn("تسجيل خروج", async ()=>{
+    await sb.auth.signOut();
+    window.location.href = "./login.html";
+  });
+}
 
 function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 function escapeAttr(s=""){ return escapeHtml(s); }
@@ -783,3 +853,4 @@ loadOrders();
 </script>
 </body>
 </html>
+
