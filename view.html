@@ -35,14 +35,14 @@
 <body>
 
 <div class="wrap">
+  <!-- NAV (Rahaf/Reem only). La Aura: hidden automatically -->
   <div id="navWrap" class="row" style="justify-content:space-between;margin-bottom:12px;display:none">
-  <div>
-    <b style="font-size:20px">عرض الطلبيات</b>
-    <div class="muted">استعراض المشتريات</div>
+    <div>
+      <b style="font-size:20px">عرض الطلبيات</b>
+      <div class="muted">استعراض المشتريات</div>
+    </div>
+    <div class="row" id="navBtns"></div>
   </div>
-  <div class="row" id="navBtns"></div>
-</div>
-
 
   <div class="grid">
     <aside class="card">
@@ -62,7 +62,7 @@
           <div>
             <b id="title"></b>
 
-            <!-- Order-level toggle (admin only) -->
+            <!-- Order-level toggle (Rahaf only) -->
             <div id="placedToggleWrap" class="toggleRow" style="display:none">
               <label class="toggleRow" style="cursor:pointer">
                 <input type="checkbox" id="placedAtPickupToggle">
@@ -96,10 +96,7 @@ const SUPABASE_ANON_KEY="sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const BUCKET="purchase-images";
 
-/* ========= Auth + Role Gate =========
-   view.html allowed: admin + viewer
-   pickup must be redirected to pickuppoint.html
-*/
+/* ========= Auth + Access ========= */
 async function requireAuth(){
   const { data } = await sb.auth.getSession();
   if(!data.session){
@@ -108,43 +105,40 @@ async function requireAuth(){
   }
   return true;
 }
+
 async function requireViewAccess(){
   const { data } = await sb.auth.getUser();
   const email = (data?.user?.email || "").toLowerCase();
 
+  // Only Rahaf + Reem can view this page
   if(email !== "rahaf@she-store.com" && email !== "reem@she-store.com"){
-    // La Aura goes to pickup page only
     window.location.href = "./pickuppoint.html";
+    return false;
   }
+  return true;
 }
-requireViewAccess();
 
 async function getMyRole(){
-  // assumes RLS returns only the current user's role row
-  // if your table has multiple rows per user, you can add eq('user_id', user.id)
   const { data: userRes } = await sb.auth.getUser();
-  const user = userRes?.user;
-
-  const email = (user?.email || "").toLowerCase();
+  const email = (userRes?.user?.email || "").toLowerCase();
 
   const { data, error } = await sb
     .from("user_roles")
     .select("role")
     .single();
 
-  // fallback: role from email if role row missing
   if(error){
-    console.warn("user_roles lookup failed, fallback to email:", error);
-    if(email === "rahaf@she-store.com") return { role: "rahaf", email };
-    if(email === "reem@she-store.com") return { role: "reem", email };
+    // fallback by email
+    if(email === "rahaf@she-store.com") return { role: "admin", email };
+    if(email === "reem@she-store.com") return { role: "viewer", email };
     if(email === "laaura@she-store.com") return { role: "laaura", email };
     return { role: "unknown", email };
   }
 
-  const role = (data?.role || "").toLowerCase();
-  return { role, email };
+  return { role: (data?.role || "").toLowerCase(), email };
 }
 
+/* ========= Navbar ========= */
 async function renderNavbar(){
   const navWrap = document.getElementById("navWrap");
   const navBtns = document.getElementById("navBtns");
@@ -152,7 +146,7 @@ async function renderNavbar(){
 
   const { role, email } = await getMyRole();
 
-  // La Aura: NO NAV BAR
+  // La Aura: no navbar (but she shouldn't reach here anyway)
   if(email === "laaura@she-store.com" || role === "laaura"){
     navWrap.style.display = "none";
     return;
@@ -178,12 +172,12 @@ async function renderNavbar(){
     navBtns.appendChild(b);
   }
 
-  // Shared for Rahaf/Reem
+  // Reem + Rahaf
   addLink("عرض الطلبيات", "./view.html");
   addLink("La Aura", "./pickuppoint.html");
 
-  // Rahaf only: Add orders (index)
-  if(email === "rahaf@she-store.com" || role === "admin" || role === "rahaf"){
+  // Rahaf only (index)
+  if(email === "rahaf@she-store.com" || role === "admin"){
     addLink("إضافة طلبية", "./index.html");
   }
 
@@ -193,38 +187,7 @@ async function renderNavbar(){
   });
 }
 
-
-let myEmail = "";
-let myRole = "viewer";
-
-async function guardViewPage(){
-  const ok = await requireAuth();
-  if(!ok) return;
-
-  const me = await getMyRole();
-  myEmail = me.email;
-  myRole = me.role;
-
-  // pickup users must NOT see view.html
-  if(myRole === "pickup"){
-    window.location.replace("./pickuppoint.html");
-    return;
-  }
-
-  // Hide admin-only things unless admin
-  document.getElementById("pickupBtn").style.display = (myRole === "admin") ? "" : "none";
-
-  // Index "رجوع" should not be shown unless admin (since you want index only for Rahaf)
-  document.getElementById("backBtn").style.display = (myRole === "admin") ? "" : "none";
-}
-guardViewPage();
-/* =================================== */
-
-document.getElementById("logoutBtn").onclick=async()=>{
-  await sb.auth.signOut();
-  window.location.href="./login.html";
-};
-
+/* ========= Page Logic ========= */
 const ordersListEl = document.getElementById("ordersList");
 const ordersEmptyEl = document.getElementById("ordersEmpty");
 const ordersCountEl = document.getElementById("ordersCount");
@@ -249,6 +212,9 @@ let orders = [];
 let activeOrder = null;
 let purchases = [];
 let idx = 0;
+
+let myRole = "viewer";
+let myEmail = "";
 
 function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 function escapeAttr(s=""){ return escapeHtml(s); }
@@ -282,8 +248,8 @@ async function loadOrders(){
 }
 
 async function setPlacedToggleUI(order){
-  // Admin only (Rahaf)
-  if(myRole !== "admin"){
+  // Rahaf only
+  if(myEmail !== "rahaf@she-store.com" && myRole !== "admin"){
     placedToggleWrap.style.display = "none";
     return;
   }
@@ -297,7 +263,7 @@ async function setPlacedToggleUI(order){
     placedToggleMsg.textContent = "جاري الحفظ...";
 
     const val = placedAtPickupToggle.checked;
-    // IMPORTANT: set placed_at_pickup_at when enabling
+
     const payload = val
       ? { placed_at_pickup: true, placed_at_pickup_at: new Date().toISOString() }
       : { placed_at_pickup: false, placed_at_pickup_at: null };
@@ -396,8 +362,17 @@ next.onclick = ()=>{
 lb.onclick = ()=> lb.style.display="none";
 
 (async function init(){
-  await guardViewPage(); // ensures myRole is set before UI decisions
-  renderNavbar();
+  const ok = await requireAuth();
+  if(!ok) return;
+
+  const ok2 = await requireViewAccess();
+  if(!ok2) return;
+
+  const me = await getMyRole();
+  myRole = me.role;
+  myEmail = me.email;
+
+  await renderNavbar();
   await loadOrders();
   if(orders.length) selectOrder(orders[0]);
 })();
