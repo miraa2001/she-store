@@ -20,9 +20,9 @@
     .thumbs img{width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid #eee;cursor:pointer}
     .nav{display:flex;justify-content:space-between;align-items:center;margin:12px 0;gap:10px}
     .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px;color:#444}
-    #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;padding:16px}
+    #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
     #lightbox img{max-width:92vw;max-height:92vh;border-radius:16px}
-    a{color:#111}
+    a{color:#111;text-decoration:none}
 
     /* bigger font only for purchase display */
     #content { font-size: 18px; line-height: 1.7; }
@@ -30,18 +30,95 @@
 
     .toggleRow{display:flex;gap:10px;align-items:center;margin-top:8px}
     .toggleRow input{width:18px;height:18px}
+
+    /* ===== Sidebar ===== */
+    #menuBtn{
+      position:fixed;
+      top:14px;
+      right:14px;
+      z-index:120;
+      width:44px;height:44px;
+      border-radius:14px;
+      border:1px solid #e7e7e7;
+      background:#fff;
+      cursor:pointer;
+      display:none; /* shown only for Rahaf/Reem */
+      align-items:center;
+      justify-content:center;
+      font-size:20px;
+      box-shadow:0 6px 18px rgba(0,0,0,.08);
+    }
+
+    #overlay{
+      position:fixed; inset:0;
+      background:rgba(0,0,0,.35);
+      z-index:110;
+      display:none;
+    }
+
+    #sidebar{
+      position:fixed;
+      top:0; right:0;
+      height:100vh;
+      width:min(310px, 86vw);
+      background:#fff;
+      border-left:1px solid #eee;
+      z-index:115;
+      transform:translateX(100%);
+      transition:transform .18s ease;
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    #sidebar.open{ transform:translateX(0); }
+
+    .sideTop{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .sideTitle{font-weight:800;font-size:16px}
+    .sideClose{
+      width:40px;height:40px;border-radius:14px;border:1px solid #eee;background:#fff;cursor:pointer;
+      font-size:18px;
+    }
+    .sideUser{font-size:12px;color:#666;margin-top:-6px}
+    .sideLinks{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+    .sideLink{
+      border:1px solid #e7e7e7;
+      background:#fff;
+      padding:12px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      text-align:right;
+      font-weight:700;
+    }
+    .sideLink:hover{background:#fafafa}
+    .sideLink.danger{border-color:#f2c2c2;color:#b00020}
+
+    /* Give space top on mobile so menu button doesn't overlap content */
+    @media(max-width:900px){
+      .wrap{padding-top:72px;}
+    }
   </style>
 </head>
 <body>
 
-<div class="wrap">
-  <!-- NAV (Rahaf/Reem only). La Aura: hidden automatically -->
-  <div id="navWrap" class="row" style="justify-content:space-between;margin-bottom:12px;display:none">
+<button id="menuBtn" title="القائمة">☰</button>
+<div id="overlay"></div>
+
+<aside id="sidebar" aria-hidden="true">
+  <div class="sideTop">
     <div>
-      <b style="font-size:20px">عرض الطلبيات</b>
-      <div class="muted">استعراض المشتريات</div>
+      <div class="sideTitle">القائمة</div>
+      <div class="sideUser" id="sideUser"></div>
     </div>
-    <div class="row" id="navBtns"></div>
+    <button class="sideClose" id="closeSide" title="إغلاق">✕</button>
+  </div>
+  <div class="sideLinks" id="sideLinks"></div>
+</aside>
+
+<div class="wrap">
+  <div style="margin-bottom:12px">
+    <b style="font-size:20px">عرض الطلبيات</b>
+    <div class="muted">استعراض المشتريات</div>
   </div>
 
   <div class="grid">
@@ -138,50 +215,69 @@ async function getMyRole(){
   return { role: (data?.role || "").toLowerCase(), email };
 }
 
-/* ========= Navbar ========= */
-async function renderNavbar(){
-  const navWrap = document.getElementById("navWrap");
-  const navBtns = document.getElementById("navBtns");
-  if(!navWrap || !navBtns) return;
+/* ========= Sidebar ========= */
+const menuBtn = document.getElementById("menuBtn");
+const overlay = document.getElementById("overlay");
+const sidebar = document.getElementById("sidebar");
+const closeSide = document.getElementById("closeSide");
+const sideLinks = document.getElementById("sideLinks");
+const sideUser = document.getElementById("sideUser");
 
+function openSide(){
+  sidebar.classList.add("open");
+  overlay.style.display = "block";
+  sidebar.setAttribute("aria-hidden","false");
+}
+function closeSideFn(){
+  sidebar.classList.remove("open");
+  overlay.style.display = "none";
+  sidebar.setAttribute("aria-hidden","true");
+}
+overlay.onclick = closeSideFn;
+closeSide.onclick = closeSideFn;
+menuBtn.onclick = openSide;
+
+async function renderSidebar(){
   const { role, email } = await getMyRole();
 
-  // La Aura: no navbar (but she shouldn't reach here anyway)
+  // La Aura: no sidebar (also redirected)
   if(email === "laaura@she-store.com" || role === "laaura"){
-    navWrap.style.display = "none";
+    menuBtn.style.display = "none";
     return;
   }
 
-  navWrap.style.display = "flex";
-  navBtns.innerHTML = "";
+  // show hamburger
+  menuBtn.style.display = "flex";
+  sideUser.textContent = email;
+
+  sideLinks.innerHTML = "";
 
   function addLink(text, href){
     const a = document.createElement("a");
-    a.className = "btn";
+    a.className = "sideLink";
     a.href = href;
     a.textContent = text;
-    navBtns.appendChild(a);
+    sideLinks.appendChild(a);
   }
-
-  function addBtn(text, onClick){
+  function addBtn(text, cls, onClick){
     const b = document.createElement("button");
-    b.className = "btn";
     b.type = "button";
+    b.className = "sideLink " + (cls || "");
     b.textContent = text;
     b.onclick = onClick;
-    navBtns.appendChild(b);
+    sideLinks.appendChild(b);
   }
 
   // Reem + Rahaf
   addLink("عرض الطلبيات", "./view.html");
   addLink("La Aura", "./pickuppoint.html");
 
-  // Rahaf only (index)
+  // Rahaf only
   if(email === "rahaf@she-store.com" || role === "admin"){
     addLink("إضافة طلبية", "./index.html");
   }
 
-  addBtn("تسجيل خروج", async ()=>{
+  addBtn("تسجيل خروج", "danger", async ()=>{
     await sb.auth.signOut();
     window.location.href = "./login.html";
   });
@@ -372,7 +468,7 @@ lb.onclick = ()=> lb.style.display="none";
   myRole = me.role;
   myEmail = me.email;
 
-  await renderNavbar();
+  await renderSidebar();
   await loadOrders();
   if(orders.length) selectOrder(orders[0]);
 })();
