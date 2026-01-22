@@ -42,10 +42,9 @@
   <div class="row" style="margin-bottom:12px">
     <div>
       <b style="font-size:20px">نقطة الاستلام - La Aura</b>
-      <div class="muted">طلبات “من نقطة الاستلام” بعد تفعيل: تم وضع الطلب في نقطة الاستلام</div>
     </div>
     <div class="row">
-      <a class="btn" href="./view.html">عرض الطلبيات</a>
+      <!-- لا يوجد زر للـ view.html -->
       <button class="btn" id="logoutBtn">تسجيل خروج</button>
     </div>
   </div>
@@ -59,7 +58,7 @@
   <div class="grid">
     <aside class="card">
       <div class="row" style="justify-content:space-between">
-        <b>الطلبيات الجاهزة عند نقطة الاستلام</b>
+        <b>الطلبيات</b>
         <span class="pill" id="ordersCount">0</span>
       </div>
       <div id="ordersList" style="margin-top:10px"></div>
@@ -73,13 +72,8 @@
         <div class="row" style="justify-content:space-between;align-items:center">
           <div>
             <b id="orderTitle"></b>
-            <div class="muted" id="orderSubtitle"></div>
           </div>
           <span class="pill" id="purchaseCount">0</span>
-        </div>
-
-        <div style="margin-top:10px" class="muted">
-          سيتم عرض فقط المشتريات التي مكان الاستلام فيها = <b>من نقطة الاستلام</b>
         </div>
 
         <hr>
@@ -127,7 +121,6 @@ const ordersCountEl = document.getElementById("ordersCount");
 const emptyEl = document.getElementById("empty");
 const mainEl = document.getElementById("main");
 const orderTitleEl = document.getElementById("orderTitle");
-const orderSubtitleEl = document.getElementById("orderSubtitle");
 const purchaseCountEl = document.getElementById("purchaseCount");
 const tbody = document.getElementById("tbody");
 
@@ -141,7 +134,6 @@ let isRahaf = false;
 
 let orders = [];
 let activeOrder = null;
-let orderIndexMap = new Map(); // orderId -> number (1..n)
 let purchasesByOrder = new Map(); // orderId -> purchases
 let highlightPurchaseId = null;
 
@@ -159,13 +151,19 @@ function showMain(on){
   emptyEl.style.display = on ? "none" : "";
 }
 
+function formatDMY(iso){
+  if(!iso) return "";
+  const d = new Date(iso);
+  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+}
+
 async function loadPickupOrders(){
   // Orders that were marked as placed at pickup
   const { data, error } = await sb
     .from("orders")
-    .select("*")
+    .select("id, placed_at_pickup_at, placed_at_pickup, created_at")
     .eq("placed_at_pickup", true)
-    .order("created_at",{ascending:false});
+    .order("placed_at_pickup_at",{ascending:false});
 
   if(error){ console.error(error); return; }
 
@@ -175,19 +173,12 @@ async function loadPickupOrders(){
   ordersListEl.innerHTML = "";
   ordersEmptyEl.style.display = orders.length ? "none" : "";
 
-  // enumerate order 1, 2, 3...
-  orderIndexMap.clear();
-  orders.forEach((o, i)=> orderIndexMap.set(o.id, i+1));
-
   orders.forEach(o=>{
     const div = document.createElement("div");
-    const n = orderIndexMap.get(o.id);
+    const label = `طلبية ${formatDMY(o.placed_at_pickup_at)}`;
     div.className = "orderItem" + (activeOrder?.id === o.id ? " active" : "");
     div.innerHTML = `
-      <div>
-        <b>طلبية ${n}</b>
-        <div><small>${escapeHtml(o.order_name || "")}</small></div>
-      </div>
+      <div><b>${escapeHtml(label)}</b></div>
       <span class="pill">فتح</span>
     `;
     div.onclick = ()=>selectOrder(o);
@@ -216,9 +207,7 @@ async function selectOrder(o){
   const list = await loadPurchasesForOrder(o.id);
   purchasesByOrder.set(o.id, list);
 
-  const n = orderIndexMap.get(o.id);
-  orderTitleEl.textContent = `طلبية ${n}`;
-  orderSubtitleEl.textContent = o.order_name || "";
+  orderTitleEl.textContent = `طلبية ${formatDMY(o.placed_at_pickup_at)}`;
   purchaseCountEl.textContent = `عدد المشتريات: ${list.length}`;
 
   renderTable(list);
@@ -237,7 +226,7 @@ function renderTable(list){
   tbody.innerHTML = "";
 
   if(!list.length){
-    tbody.innerHTML = `<tr><td colspan="${isRahaf?5:4}" class="muted">لا يوجد مشتريات للاستلام في هذه الطلبية</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${isRahaf?5:4}" class="muted">لا يوجد مشتريات</td></tr>`;
     return;
   }
 
@@ -282,7 +271,7 @@ function renderTable(list){
 
       if(error){
         console.error(error);
-        alert("فشل تحديث الاستلام");
+        alert(error.message || "فشل تحديث الاستلام");
         // revert checkbox
         chk.checked = !val;
         if(item){
@@ -319,10 +308,6 @@ async function runSearch(){
     return;
   }
 
-  // Find pickup purchases across placed_at_pickup orders
-  // We'll:
-  // 1) get all placed_at_pickup orders ids
-  // 2) query purchases with ilike on customer_name + pickup_point
   const orderIds = orders.map(o=>o.id);
   if(!orderIds.length){
     searchResultsEl.style.display = "none";
@@ -332,7 +317,7 @@ async function runSearch(){
 
   const { data, error } = await sb
     .from("purchases")
-    .select("id, order_id, customer_name, price")
+    .select("id, order_id, customer_name, price, created_at")
     .in("order_id", orderIds)
     .eq("pickup_point", PICKUP_VALUE)
     .ilike("customer_name", `%${q}%`)
@@ -349,18 +334,17 @@ async function runSearch(){
 
   results.forEach(r=>{
     const ord = orders.find(o=>o.id === r.order_id);
-    const n = orderIndexMap.get(r.order_id) || "?";
+    const label = ord ? `طلبية ${formatDMY(ord.placed_at_pickup_at)}` : "طلبية";
+
     const btn = document.createElement("button");
     btn.innerHTML = `
       <b>${escapeHtml(r.customer_name || "")}</b>
-      <div class="muted">طلبية ${n} — ${escapeHtml(ord?.order_name || "")} — السعر: ${escapeHtml(r.price ?? "")}</div>
+      <div class="muted">${escapeHtml(label)} — السعر: ${escapeHtml(r.price ?? "")}</div>
     `;
     btn.onclick = async ()=>{
       highlightPurchaseId = r.id;
       searchResultsEl.style.display = "none";
-      // open the order and highlight
       if(ord) await selectOrder(ord);
-      // clear highlight after a bit
       setTimeout(()=>{ highlightPurchaseId = null; }, 2500);
     };
     searchResultsEl.appendChild(btn);
@@ -371,9 +355,6 @@ async function runSearch(){
 (async function init(){
   await loadUser();
   await loadPickupOrders();
-
-  // If user is La Aura, auto-open first order (optional)
-  // You can remove this if you prefer manual only.
   if(orders.length) selectOrder(orders[0]);
 })();
 </script>
