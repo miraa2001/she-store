@@ -286,10 +286,10 @@ function formatDMY(iso){
 async function loadPickupOrders(){
   const { data, error } = await sb
     .from("orders")
-    .select("id, placed_at_pickup_at, placed_at_pickup, created_at")
-    .eq("placed_at_pickup", true)
+    .select("id, order_name, created_at, purchases!inner(pickup_point)")
     .eq("arrived", true)
-    .order("placed_at_pickup_at",{ascending:false});
+    .eq("purchases.pickup_point", PICKUP_VALUE)
+    .order("created_at",{ascending:false});
 
   if(error){ console.error(error); return; }
 
@@ -301,7 +301,7 @@ async function loadPickupOrders(){
 
   orders.forEach(o=>{
     const div = document.createElement("div");
-    const label = `طلبية ${formatDMY(o.placed_at_pickup_at)}`;
+    const label = o.order_name || "طلبية";
     div.className = "orderItem" + (activeOrder?.id === o.id ? " active" : "");
     div.innerHTML = `
       <div><b>${escapeHtml(label)}</b></div>
