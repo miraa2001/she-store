@@ -10,31 +10,6 @@
     .wrap{max-width:1100px;margin:auto;padding:16px}
 
     /* ===== Image Lightbox ===== */
-const lightbox = document.getElementById("lightbox");
-const lightboxImg = document.getElementById("lightboxImg");
-
-function openLightbox(src){
-  if(!src) return;
-  lightboxImg.src = src;
-  lightbox.style.display = "flex";
-  lightbox.setAttribute("aria-hidden","false");
-}
-function closeLightbox(){
-  lightbox.style.display = "none";
-  lightboxImg.src = "";
-  lightbox.setAttribute("aria-hidden","true");
-}
-lightbox.addEventListener("click", closeLightbox);
-document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") closeLightbox(); });
-
-// event delegation: any thumbnail in list/edit
-document.addEventListener("click", (e)=>{
-  const img = e.target?.closest?.("img");
-  if(!img) return;
-  if(img.closest(".thumbs") || img.closest(".editThumb") || img.closest(".thumb")){
-    openLightbox(img.src);
-  }
-});
 
 /* ===== Sidebar ===== */
     .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
@@ -330,7 +305,6 @@ async function guardIndexAccess(){
   }
   myEmail = me.email;
 }
-}
 
 /* ===== Sidebar ===== */
 const sidebar = document.getElementById("sidebar");
@@ -415,6 +389,47 @@ const editOrderInput = document.getElementById("editOrderInput");
 const saveOrderBtn = document.getElementById("saveOrderBtn");
 const cancelOrderBtn = document.getElementById("cancelOrderBtn");
 const orderNameInput = document.getElementById("orderNameInput");
+
+
+/* ===== Lightbox (click image to enlarge) ===== */
+const lightbox = document.getElementById("lightbox");
+const lightboxImg = document.getElementById("lightboxImg");
+
+function openLightbox(src){
+  if(!src || !lightbox || !lightboxImg) return;
+  lightboxImg.src = src;
+  lightbox.style.display = "flex";
+  lightbox.setAttribute("aria-hidden","false");
+}
+function closeLightbox(){
+  if(!lightbox || !lightboxImg) return;
+  lightbox.style.display = "none";
+  lightboxImg.src = "";
+  lightbox.setAttribute("aria-hidden","true");
+}
+if(lightbox){
+  lightbox.addEventListener("click", closeLightbox);
+}
+document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") closeLightbox(); });
+
+// Event delegation: thumbnails in lists/edit/new preview
+document.addEventListener("click", (e)=>{
+  const img = e.target && e.target.closest ? e.target.closest("img") : null;
+  if(!img) return;
+
+  // only thumbnails (avoid random icons if any)
+  if(
+    img.closest(".thumbs") ||
+    img.closest(".editImgsRow") ||
+    img.closest(".editThumb") ||
+    img.closest(".preview") ||
+    img.closest(".miniPreview") ||
+    img.closest(".thumb")
+  ){
+    openLightbox(img.src);
+  }
+});
+
 
 let activeOrder = null;
 
