@@ -8,8 +8,46 @@
   <style>
     body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa;color:#111}
     .wrap{max-width:1100px;margin:auto;padding:16px}
+
+    /* ===== Sidebar ===== */
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+    .brand b{font-size:20px}
+    .muted{color:#666;font-size:13px}
+
+    .menuBtn{
+      border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer
+    }
+    .sidebarOverlay{
+      position:fixed;inset:0;background:rgba(0,0,0,.35);
+      display:none;z-index:50
+    }
+    .sidebar{
+      position:fixed;top:0;right:0;height:100vh;width:min(280px, 82vw);
+      background:#fff;border-left:1px solid #eee;z-index:60;
+      transform:translateX(100%);transition:transform .2s ease;
+      display:flex;flex-direction:column;
+      padding:14px;
+      box-sizing:border-box;
+    }
+    .sidebar.open{transform:translateX(0)}
+    .sidebarOverlay.open{display:block}
+    .sidebarHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+    .sidebarHeader b{font-size:16px}
+    .sidebar a,.sidebar button{
+      width:100%;
+      text-align:right;
+      border:1px solid #e7e7e7;background:#fff;
+      padding:10px 12px;border-radius:10px;cursor:pointer;
+      margin-top:8px;
+      font-family:inherit;
+    }
+    .sidebar a{color:#111;text-decoration:none;display:block}
+    .sidebar .danger{border-color:#f2c2c2;color:#b00020}
+
+    /* ===== Layout ===== */
     .grid{display:grid;grid-template-columns:320px 1fr;gap:12px}
     @media(max-width:900px){.grid{grid-template-columns:1fr}}
+
     .card{background:#fff;border:1px solid #e7e7e7;border-radius:14px;padding:12px}
     .btn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
     .btn.primary{background:#111;color:#fff;border-color:#111}
@@ -20,17 +58,13 @@
     th,td{border-bottom:1px solid #eee;padding:10px;text-align:right;vertical-align:top}
     th{color:#666;font-size:13px}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .muted{color:#666;font-size:13px}
     .orderItem{border:1px solid #e7e7e7;border-radius:12px;padding:10px;cursor:pointer;display:flex;justify-content:space-between}
     .orderItem.active{border-color:#111}
     .thumbs img{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid #eee}
+    .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px}
 
     .dropZone{
-      border:2px dashed #d8d8d8;
-      border-radius:14px;
-      padding:12px;
-      background:#fff;
-      outline:none;
+      border:2px dashed #d8d8d8;border-radius:14px;padding:12px;background:#fff;outline:none;
     }
     .dropZone.dragover{border-color:#111;background:#f4f4f4}
     .preview{display:flex;gap:8px;flex-wrap:wrap}
@@ -42,11 +76,9 @@
       position:absolute;top:6px;left:6px;border:none;background:rgba(0,0,0,.55);color:#fff;
       width:26px;height:26px;border-radius:10px;cursor:pointer;
     }
-    .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px}
 
     .inlineEditRow td{ background:#fcfcfc; }
     .inlineEditBox{border:1px solid #eee;border-radius:12px;padding:10px}
-
     .editImgsRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
     .editThumb{width:78px;height:78px;border-radius:12px;border:1px solid #eee;overflow:hidden;position:relative;background:#fafafa}
     .editThumb img{width:100%;height:100%;object-fit:cover;display:block}
@@ -63,51 +95,26 @@
     .miniPreview .thumb button{
       position:absolute;top:6px;left:6px;border:none;background:rgba(0,0,0,.55);color:#fff;width:26px;height:26px;border-radius:10px;cursor:pointer
     }
-
-    /* ===== Sidebar (same as view) ===== */
-    #topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
-    .iconBtn{border:1px solid #e7e7e7;background:#fff;width:44px;height:44px;border-radius:12px;cursor:pointer;font-size:20px;line-height:1}
-    #sidebarOverlay{
-      position:fixed;inset:0;background:rgba(0,0,0,.35);
-      display:none;z-index:60;
-    }
-    #sidebar{
-      position:fixed;top:0;bottom:0;
-      right:0;
-      width:min(320px, 86vw);
-      background:#fff;border-left:1px solid #eee;
-      transform:translateX(105%);
-      transition:transform .2s ease;
-      z-index:61;
-      display:flex;flex-direction:column;
-    }
-    #sidebar.open{transform:translateX(0)}
-    #sidebarHeader{padding:14px;border-bottom:1px solid #eee}
-    #sidebarHeader .title{font-weight:800;font-size:16px}
-    #sidebarHeader .sub{font-size:12px;color:#666;margin-top:4px}
-    #sidebarNav{padding:12px;display:flex;flex-direction:column;gap:10px}
-    .sideLink{
-      display:flex;align-items:center;justify-content:space-between;
-      border:1px solid #eee;background:#fff;border-radius:12px;
-      padding:12px;cursor:pointer;text-decoration:none;color:#111;
-    }
-    .sideLink:hover{background:#fafafa}
-    .sideLink.danger{border-color:#f2c2c2;color:#b00020}
-    .sideHint{font-size:12px;color:#666}
   </style>
 </head>
 <body>
 
-<div class="wrap">
+<div class="sidebarOverlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebarHeader">
+    <b>القائمة</b>
+    <button class="menuBtn" id="closeSidebarBtn" type="button">✕</button>
+  </div>
+  <div id="sidebarContent"></div>
+</aside>
 
-  <!-- Topbar (hamburger + title) -->
-  <div id="topbar" style="display:none">
-    <button class="iconBtn" id="menuBtn" title="القائمة">☰</button>
-    <div style="text-align:right">
-      <b style="font-size:20px">إدارة الطلبيات</b>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <b>إدارة الطلبيات</b>
       <div class="muted">إضافة / حذف / تعديل</div>
     </div>
-    <div style="width:44px"></div>
+    <button class="menuBtn" id="openSidebarBtn" type="button">☰</button>
   </div>
 
   <div class="grid">
@@ -127,9 +134,11 @@
       <div id="empty" class="muted">اختاري طلبية</div>
 
       <div id="main" style="display:none">
-
         <div class="row" style="justify-content:space-between;align-items:center">
-          <b id="orderTitle"></b>
+          <div class="row" style="gap:8px;align-items:center">
+            <b id="orderTitle"></b>
+            <span class="pill" id="orderStats">—</span>
+          </div>
           <button class="btn" id="editOrderBtn" title="تعديل اسم الطلبية">✏️</button>
         </div>
 
@@ -208,24 +217,6 @@
   </div>
 </div>
 
-<!-- Sidebar + overlay -->
-<div id="sidebarOverlay"></div>
-<aside id="sidebar" aria-hidden="true">
-  <div id="sidebarHeader">
-    <div class="row" style="justify-content:space-between;align-items:center">
-      <div>
-        <div class="title">القائمة</div>
-        <div class="sub" id="sidebarSub"></div>
-      </div>
-      <button class="iconBtn" id="closeSidebarBtn" title="إغلاق">✕</button>
-    </div>
-  </div>
-  <nav id="sidebarNav"></nav>
-  <div style="margin-top:auto;padding:12px;border-top:1px solid #eee">
-    <div class="sideHint">She-Store</div>
-  </div>
-</aside>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL = "https://maucjvxhrnkdeybltjco.supabase.co";
@@ -233,9 +224,15 @@ const SUPABASE_ANON_KEY = "sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const BUCKET = "purchase-images";
 
+const EMAIL_RAHAF = "rahaf@she-store.com";
+const EMAIL_REEM  = "reem@she-store.com";
+const EMAIL_LAAURA= "laaura@she-store.com";
+
 function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 function escapeAttr(s=""){ return escapeHtml(s); }
 function todayName(){ const d=new Date(); return `طلبية ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`; }
+
+function isMobile(){ return window.matchMedia("(max-width: 900px)").matches; }
 
 /* ===== Auth guard ===== */
 async function requireAuth(){
@@ -247,95 +244,75 @@ async function requireAuth(){
   return true;
 }
 
-async function getMyRole(){
-  const { data: userRes } = await sb.auth.getUser();
-  const email = (userRes?.user?.email || "").toLowerCase();
-
-  const { data, error } = await sb.from("user_roles").select("role").single();
-  if(error){
-    if(email === "rahaf@she-store.com") return { role: "admin", email };
-    if(email === "reem@she-store.com") return { role: "viewer", email };
-    if(email === "laaura@she-store.com") return { role: "laaura", email };
-    return { role: "unknown", email };
-  }
-  return { role: (data?.role || "").toLowerCase(), email };
+let myEmail = "";
+async function loadMe(){
+  const { data } = await sb.auth.getUser();
+  myEmail = (data?.user?.email || "").toLowerCase();
 }
 
-/* ===== Index page access (Rahaf only) ===== */
-let myEmail = "";
-let myRole = "";
-
-async function requireIndexAccess(){
+async function guardIndexAccess(){
   const ok = await requireAuth();
-  if(!ok) return false;
+  if(!ok) return;
+  await loadMe();
 
-  const me = await getMyRole();
-  myEmail = me.email;
-  myRole = me.role;
-
-  // Only Rahaf (admin) can open index.html
-  if(myEmail !== "rahaf@she-store.com" && myRole !== "admin"){
-    window.location.href = "./view.html";
-    return false;
+  // Index allowed: Rahaf فقط
+  if(myEmail !== EMAIL_RAHAF){
+    window.location.replace("./view.html");
+    return;
   }
-  return true;
 }
 
 /* ===== Sidebar ===== */
-const topbar = document.getElementById("topbar");
-const menuBtn = document.getElementById("menuBtn");
 const sidebar = document.getElementById("sidebar");
-const sidebarOverlay = document.getElementById("sidebarOverlay");
-const closeSidebarBtn = document.getElementById("closeSidebarBtn");
-const sidebarNav = document.getElementById("sidebarNav");
-const sidebarSub = document.getElementById("sidebarSub");
+const overlay = document.getElementById("sidebarOverlay");
+const openBtn = document.getElementById("openSidebarBtn");
+const closeBtn = document.getElementById("closeSidebarBtn");
+const sidebarContent = document.getElementById("sidebarContent");
 
 function openSidebar(){
   sidebar.classList.add("open");
-  sidebarOverlay.style.display = "block";
-  sidebar.setAttribute("aria-hidden","false");
+  overlay.classList.add("open");
 }
 function closeSidebar(){
   sidebar.classList.remove("open");
-  sidebarOverlay.style.display = "none";
-  sidebar.setAttribute("aria-hidden","true");
+  overlay.classList.remove("open");
 }
-menuBtn?.addEventListener("click", openSidebar);
-closeSidebarBtn?.addEventListener("click", closeSidebar);
-sidebarOverlay?.addEventListener("click", closeSidebar);
-document.addEventListener("keydown",(e)=>{ if(e.key === "Escape") closeSidebar(); });
+openBtn.onclick = openSidebar;
+closeBtn.onclick = closeSidebar;
+overlay.onclick = closeSidebar;
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeSidebar(); });
 
-function addSideLink(text, href){
-  const a = document.createElement("a");
-  a.className = "sideLink";
-  a.href = href;
-  a.innerHTML = `<span>${text}</span><span>›</span>`;
-  sidebarNav.appendChild(a);
-}
-function addSideBtn(text, onClick, danger=false){
-  const b = document.createElement("button");
-  b.type = "button";
-  b.className = "sideLink" + (danger ? " danger" : "");
-  b.style.textAlign = "right";
-  b.innerHTML = `<span>${text}</span><span>${danger ? "⎋" : "›"}</span>`;
-  b.onclick = onClick;
-  sidebarNav.appendChild(b);
-}
+function renderSidebar(){
+  // Rahaf only here anyway, but keep it clean
+  sidebarContent.innerHTML = "";
 
-async function renderSidebar(){
-  // Rahaf only (since no one else can be here anyway)
-  topbar.style.display = "flex";
-  sidebarNav.innerHTML = "";
-  sidebarSub.textContent = myEmail;
+  const link = (text, href)=>{
+    const a = document.createElement("a");
+    a.href = href;
+    a.textContent = text;
+    a.onclick = ()=> closeSidebar();
+    sidebarContent.appendChild(a);
+  };
+  const btn = (text, cls, onClick)=>{
+    const b = document.createElement("button");
+    b.type="button";
+    b.className = cls || "";
+    b.textContent = text;
+    b.onclick = async ()=>{
+      await onClick();
+      closeSidebar();
+    };
+    sidebarContent.appendChild(b);
+  };
 
-  addSideLink("إضافة طلبية", "./index.html");
-  addSideLink("عرض الطلبيات", "./view.html");
-  addSideLink("La Aura", "./pickuppoint.html");
+  link("إضافة طلبية", "./index.html");
+  link("عرض الطلبيات", "./view.html");
+  link("La Aura", "./pickuppoint.html");
 
-  addSideBtn("تسجيل خروج", async ()=>{
+  btn("تسجيل خروج", "danger", async ()=>{
     await sb.auth.signOut();
     window.location.href="./login.html";
-  }, true);
+  });
 }
 
 /* ===== DOM ===== */
@@ -344,6 +321,7 @@ const newOrderBtn = document.getElementById("newOrderBtn");
 const main = document.getElementById("main");
 const empty = document.getElementById("empty");
 const orderTitle = document.getElementById("orderTitle");
+const orderStats = document.getElementById("orderStats");
 const tbody = document.getElementById("tbody");
 
 const customer = document.getElementById("customer");
@@ -385,7 +363,7 @@ saveOrderBtn.onclick = async () => {
   activeOrder.order_name = newName;
   orderTitle.textContent = newName;
   editOrderRow.style.display="none";
-  loadOrders();
+  await loadOrders();
 };
 
 /* ===== New purchase links inputs ===== */
@@ -448,7 +426,7 @@ async function loadOrders(){
   (data||[]).forEach(o=>{
     const div=document.createElement("div");
     div.className="orderItem"+(activeOrder?.id===o.id?" active":"");
-    div.textContent=o.order_name;
+    div.innerHTML = `<span>${escapeHtml(o.order_name || "")}</span><span class="pill">فتح</span>`;
     div.onclick=()=>selectOrder(o);
     ordersList.appendChild(div);
   });
@@ -460,6 +438,10 @@ async function selectOrder(o){
   empty.style.display="none";
   main.style.display="";
   orderTitle.textContent=o.order_name;
+
+  // important: on mobile, close sidebar if open so it doesn't cover orders
+  if(isMobile()) closeSidebar();
+
   await loadPurchases();
   await loadOrders();
 }
@@ -474,7 +456,7 @@ newOrderBtn.onclick = async ()=>{
   if(error){ console.error(error); alert("فشل إنشاء الطلبية"); return; }
 
   orderNameInput.value="";
-  selectOrder(data);
+  await selectOrder(data);
 };
 
 deleteOrderBtn.onclick = async ()=>{
@@ -495,10 +477,167 @@ deleteOrderBtn.onclick = async ()=>{
   deleteOrderBtn.disabled=true;
   main.style.display="none";
   empty.style.display="";
-  loadOrders();
+  orderStats.textContent = "—";
+  await loadOrders();
 };
 
-/* ===== Purchases table ===== */
+/* =========================================================
+   INLINE EDIT (WITH IMAGES + pickup_point + note)
+   ========================================================= */
+const editImageState = new Map();
+let activeEditPasteTarget = null;
+
+function getOrCreateEditState(purchaseId, existingCount){
+  if(!editImageState.has(purchaseId)){
+    editImageState.set(purchaseId, { newFiles:[], deleteImgIds:new Set(), deletePaths:new Set(), existingCount:existingCount||0 });
+  } else {
+    editImageState.get(purchaseId).existingCount = existingCount||0;
+  }
+  return editImageState.get(purchaseId);
+}
+
+function updateEditCounts(purchaseId){
+  const row = tbody.querySelector(`tr[data-edit-row="${purchaseId}"]`);
+  if(!row) return;
+  const state = editImageState.get(purchaseId);
+  if(!state) return;
+  const badge = row.querySelector(`[data-edit-imgcount="${purchaseId}"]`);
+  if(!badge) return;
+  const remainingExisting = state.existingCount - state.deleteImgIds.size;
+  const total = remainingExisting + state.newFiles.length;
+  badge.textContent = `${total}/10`;
+}
+
+function renderNewPreview(purchaseId){
+  const row = tbody.querySelector(`tr[data-edit-row="${purchaseId}"]`);
+  if(!row) return;
+  const state = editImageState.get(purchaseId);
+  if(!state) return;
+
+  const previewEl = row.querySelector(`[data-new-preview="${purchaseId}"]`);
+  if(!previewEl) return;
+
+  previewEl.innerHTML="";
+  state.newFiles.forEach((file,i)=>{
+    const url=URL.createObjectURL(file);
+    const div=document.createElement("div");
+    div.className="thumb";
+    div.innerHTML=`<button type="button" title="حذف">×</button><img alt="صورة">`;
+    div.querySelector("img").src=url;
+    div.querySelector("button").onclick=()=>{ state.newFiles.splice(i,1); renderNewPreview(purchaseId); updateEditCounts(purchaseId); };
+    previewEl.appendChild(div);
+  });
+}
+
+function addEditFiles(purchaseId, files){
+  const row = tbody.querySelector(`tr[data-edit-row="${purchaseId}"]`);
+  if(!row) return;
+  const state = editImageState.get(purchaseId);
+  if(!state) return;
+
+  const arr=[...files].filter(f=>f && f.type && f.type.startsWith("image/"));
+  const remainingExisting = state.existingCount - state.deleteImgIds.size;
+  const allowed = Math.max(0, 10 - remainingExisting - state.newFiles.length);
+  arr.slice(0,allowed).forEach(f=>state.newFiles.push(f));
+
+  renderNewPreview(purchaseId);
+  updateEditCounts(purchaseId);
+}
+
+function closeAllEditRows(){ tbody.querySelectorAll('tr[data-edit-row]').forEach(r=>r.style.display="none"); }
+
+function toggleEditRow(purchaseId){
+  const row = tbody.querySelector(`tr[data-edit-row="${purchaseId}"]`);
+  if(!row) return;
+
+  tbody.querySelectorAll('tr[data-edit-row]').forEach(r=>{ if(r!==row) r.style.display="none"; });
+  const willOpen = row.style.display === "none";
+  row.style.display = willOpen ? "" : "none";
+  activeEditPasteTarget = willOpen ? purchaseId : null;
+}
+
+function closeEditRow(purchaseId){
+  const row = tbody.querySelector(`tr[data-edit-row="${purchaseId}"]`);
+  if(row) row.style.display="none";
+  if(activeEditPasteTarget===purchaseId) activeEditPasteTarget=null;
+}
+
+async function saveInlineEdit(purchaseId){
+  const row = tbody.querySelector(`tr[data-edit-row="${purchaseId}"]`);
+  if(!row) return;
+
+  const msgEl = row.querySelector(`[data-msg="${purchaseId}"]`);
+  msgEl.textContent="جاري الحفظ...";
+
+  const name = row.querySelector(`[data-f="name"]`).value.trim();
+  const qtyVal = Number(row.querySelector(`[data-f="qty"]`).value);
+  const priceVal = Number(row.querySelector(`[data-f="price"]`).value);
+  const pickupVal = row.querySelector(`[data-f="pickup"]`).value;
+  const noteVal = row.querySelector(`[data-f="note"]`).value.trim();
+
+  if(!name){ msgEl.textContent="اسم الزبون مطلوب."; return; }
+  if(!Number.isFinite(qtyVal) || qtyVal<1){ msgEl.textContent="العدد غير صحيح."; return; }
+  if(!Number.isFinite(priceVal) || priceVal<0){ msgEl.textContent="السعر غير صحيح."; return; }
+
+  const links=[];
+  for(let i=1;i<=5;i++){
+    const v = row.querySelector(`[data-l="${i}"]`).value.trim();
+    if(v) links.push(v);
+  }
+
+  const { error: upErr } = await sb
+    .from("purchases")
+    .update({
+      customer_name:name,
+      qty:qtyVal,
+      price:priceVal,
+      pickup_point: pickupVal,
+      note: noteVal
+    })
+    .eq("id", purchaseId);
+
+  if(upErr){ console.error(upErr); msgEl.textContent="فشل حفظ التعديل."; return; }
+
+  await sb.from("purchase_links").delete().eq("purchase_id", purchaseId);
+  if(links.length){
+    const { error: linkErr } = await sb.from("purchase_links")
+      .insert(links.map(url=>({purchase_id:purchaseId,url})));
+    if(linkErr) console.error(linkErr);
+  }
+
+  const state = editImageState.get(purchaseId);
+  if(state){
+    if(state.deletePaths.size){
+      const paths=[...state.deletePaths];
+      const ids=[...state.deleteImgIds];
+
+      const { error: rmErr } = await sb.storage.from(BUCKET).remove(paths);
+      if(rmErr) console.error(rmErr);
+
+      const { error: delErr } = await sb.from("purchase_images").delete().in("id", ids);
+      if(delErr) console.error(delErr);
+    }
+
+    for(const f of state.newFiles){
+      const safeName = `${Date.now()}-${f.name}`.replace(/\s+/g,"_");
+      const path = `${activeOrder.id}/${purchaseId}/${safeName}`;
+
+      const { error: upImgErr } = await sb.storage.from(BUCKET).upload(path, f);
+      if(upImgErr){ console.error(upImgErr); continue; }
+
+      const { error: metaErr } = await sb.from("purchase_images").insert({ purchase_id: purchaseId, storage_path: path });
+      if(metaErr) console.error(metaErr);
+    }
+
+    editImageState.delete(purchaseId);
+  }
+
+  msgEl.textContent="تم ✅";
+  await loadPurchases();
+  closeAllEditRows();
+}
+
+/* ===== Purchases table + inline edit UI ===== */
 async function loadPurchases(){
   if(!activeOrder) return;
 
@@ -509,6 +648,11 @@ async function loadPurchases(){
     .order("created_at", { ascending:false });
 
   if(error){ console.error(error); return; }
+
+  // ✅ restore totals per order
+  const purchasesCount = (data||[]).length;
+  const totalItems = (data||[]).reduce((sum,p)=> sum + Number(p.qty || 0), 0);
+  orderStats.textContent = `عدد المشتريات: ${purchasesCount} — مجموع القطع: ${totalItems}`;
 
   tbody.innerHTML="";
 
@@ -531,40 +675,188 @@ async function loadPurchases(){
       <td class="thumbs">${imgs}</td>
       <td>${escapeHtml(noteTxt) || "—"}</td>
       <td>
+        <button class="btn" data-edit="${p.id}" title="تعديل">✏️</button>
         <button class="btn danger" data-del="${p.id}" title="حذف">🗑</button>
       </td>
     `;
+
+    const editTr = document.createElement("tr");
+    editTr.className="inlineEditRow";
+    editTr.dataset.editRow = p.id;
+    editTr.style.display="none";
+
+    const links=(p.purchase_links||[]).slice(0,5).map(x=>x.url||"");
+    while(links.length<5) links.push("");
+
+    const existingThumbs=(p.purchase_images||[]).map(img=>{
+      const url=sb.storage.from(BUCKET).getPublicUrl(img.storage_path).data.publicUrl;
+      return `
+        <div class="editThumb" data-existing-thumb="${p.id}" data-imgid="${escapeAttr(img.id)}" data-path="${escapeAttr(img.storage_path)}">
+          <button type="button" title="حذف/تراجع" data-toggle-del="${p.id}">🗑</button>
+          <img src="${escapeAttr(url)}" alt="صورة">
+        </div>
+      `;
+    }).join("");
+
+    const sel = (v, x) => (v===x ? "selected" : "");
+
+    editTr.innerHTML=`
+      <td colspan="8">
+        <div class="inlineEditBox">
+          <div class="row" style="justify-content:space-between">
+            <b>تعديل المشترى</b>
+            <span class="pill" data-edit-imgcount="${p.id}">0/10</span>
+          </div>
+
+          <div class="row" style="margin-top:10px">
+            <input data-f="name" placeholder="اسم الزبون" value="${escapeAttr(p.customer_name || "")}">
+            <input data-f="qty" type="number" step="1" min="1" placeholder="العدد" value="${escapeAttr(p.qty ?? 1)}">
+            <input data-f="price" type="number" step="0.01" min="0" placeholder="السعر" value="${escapeAttr(p.price ?? "")}">
+          </div>
+
+          <div class="row" style="margin-top:10px">
+            <input data-l="1" placeholder="رابط 1" value="${escapeAttr(links[0])}">
+            <input data-l="2" placeholder="رابط 2" value="${escapeAttr(links[1])}">
+            <input data-l="3" placeholder="رابط 3" value="${escapeAttr(links[2])}">
+            <input data-l="4" placeholder="رابط 4" value="${escapeAttr(links[3])}">
+            <input data-l="5" placeholder="رابط 5" value="${escapeAttr(links[4])}">
+          </div>
+
+          <div class="row" style="margin-top:10px">
+            <span class="muted">مكان الاستلام</span>
+            <select data-f="pickup">
+              <option value="من البيت" ${sel(pickupTxt,'من البيت')}>من البيت</option>
+              <option value="توصيل" ${sel(pickupTxt,'توصيل')}>توصيل</option>
+              <option value="من نقطة الاستلام" ${sel(pickupTxt,'من نقطة الاستلام')}>من نقطة الاستلام</option>
+            </select>
+          </div>
+
+          <div class="editImgsRow">
+            <div style="flex:1;min-width:260px">
+              <div class="muted">الصور الحالية (اضغطي 🗑 للتحديد/التراجع)</div>
+              <div class="editImgsRow" style="margin-top:8px">
+                ${existingThumbs || `<div class="muted">لا يوجد صور</div>`}
+              </div>
+            </div>
+
+            <div class="miniDropZone" data-mini-drop="${p.id}" tabindex="0" title="اسحبي/الصقي الصور هنا">
+              <b>إضافة صور</b>
+              <div class="muted" style="margin-top:6px">سحب/إفلات أو لصق (Ctrl+V) أو اختيار ملفات</div>
+              <div class="row" style="margin-top:8px">
+                <button class="btn" type="button" data-mini-pick="${p.id}">اختيار صور</button>
+                <span class="pill">حد أقصى 10</span>
+              </div>
+              <input type="file" accept="image/*" multiple style="display:none" data-mini-file="${p.id}">
+              <div class="miniPreview" data-new-preview="${p.id}"></div>
+            </div>
+          </div>
+
+          <div style="margin-top:10px">
+            <div class="muted" style="margin-bottom:6px">ملاحظة</div>
+            <textarea data-f="note" placeholder="اكتبي أي ملاحظة...">${escapeHtml(noteTxt)}</textarea>
+          </div>
+
+          <div class="row" style="margin-top:10px;justify-content:space-between">
+            <div class="row">
+              <button class="btn primary" data-save="${p.id}" type="button">حفظ</button>
+              <button class="btn" data-cancel="${p.id}" type="button">إلغاء</button>
+            </div>
+            <span class="muted" data-msg="${p.id}"></span>
+          </div>
+        </div>
+      </td>
+    `;
+
     tbody.appendChild(tr);
+    tbody.appendChild(editTr);
+
+    getOrCreateEditState(p.id, (p.purchase_images||[]).length);
   });
 
   tbody.querySelectorAll("button[data-del]").forEach(btn=> btn.onclick=()=>deletePurchase(btn.dataset.del));
+  tbody.querySelectorAll("button[data-edit]").forEach(btn=>{
+    btn.onclick=()=>{
+      const id=btn.dataset.edit;
+      toggleEditRow(id);
+      updateEditCounts(id);
+      renderNewPreview(id);
+    };
+  });
+  tbody.querySelectorAll("button[data-cancel]").forEach(btn=> btn.onclick=()=>closeEditRow(btn.dataset.cancel));
+  tbody.querySelectorAll("button[data-save]").forEach(btn=> btn.onclick=()=>saveInlineEdit(btn.dataset.save));
+
+  tbody.querySelectorAll("[data-existing-thumb]").forEach(thumb=>{
+    const purchaseId=thumb.dataset.existingThumb;
+    const imgId=thumb.dataset.imgid;
+    const path=thumb.dataset.path;
+    const btn=thumb.querySelector("button[data-toggle-del]");
+    if(!btn) return;
+    btn.onclick=()=>{
+      const state=editImageState.get(purchaseId);
+      if(!state) return;
+      const already=state.deleteImgIds.has(imgId);
+      if(already){ state.deleteImgIds.delete(imgId); state.deletePaths.delete(path); thumb.classList.remove("removing"); }
+      else { state.deleteImgIds.add(imgId); state.deletePaths.add(path); thumb.classList.add("removing"); }
+      updateEditCounts(purchaseId);
+    };
+  });
+
+  tbody.querySelectorAll("[data-mini-pick]").forEach(btn=>{
+    const purchaseId=btn.dataset.miniPick;
+    btn.onclick=()=>{ const fileInput=tbody.querySelector(`[data-mini-file="${purchaseId}"]`); if(fileInput) fileInput.click(); };
+  });
+  tbody.querySelectorAll("[data-mini-file]").forEach(inp=>{
+    const purchaseId=inp.dataset.miniFile;
+    inp.onchange=()=>{ addEditFiles(purchaseId, inp.files); inp.value=""; };
+  });
+
+  tbody.querySelectorAll("[data-mini-drop]").forEach(zone=>{
+    const purchaseId=zone.dataset.miniDrop;
+    ["dragenter","dragover"].forEach(evt=>{
+      zone.addEventListener(evt,(e)=>{ e.preventDefault(); e.stopPropagation(); zone.classList.add("dragover"); });
+    });
+    ["dragleave","drop"].forEach(evt=>{
+      zone.addEventListener(evt,(e)=>{ e.preventDefault(); e.stopPropagation(); zone.classList.remove("dragover"); });
+    });
+    zone.addEventListener("drop",(e)=> addEditFiles(purchaseId, e.dataTransfer.files));
+    zone.addEventListener("focus",()=>{ activeEditPasteTarget=purchaseId; });
+    zone.addEventListener("click",()=>{ activeEditPasteTarget=purchaseId; });
+  });
+
+  (data||[]).forEach(p=>updateEditCounts(p.id));
 }
+
+document.addEventListener("paste",(e)=>{
+  if(!activeEditPasteTarget) return;
+  const row = tbody.querySelector(`tr[data-edit-row="${activeEditPasteTarget}"]`);
+  if(!row || row.style.display==="none") return;
+
+  const items=e.clipboardData?.items||[];
+  const pasted=[];
+  for(const it of items){
+    if(it.type && it.type.startsWith("image/")){
+      const f=it.getAsFile(); if(f) pasted.push(f);
+    }
+  }
+  if(pasted.length) addEditFiles(activeEditPasteTarget, pasted);
+});
 
 async function deletePurchase(id){
   if(!confirm("حذف؟")) return;
-  const { error } = await sb.from("purchases").delete().eq("id",id);
-  if(error){ console.error(error); alert("فشل الحذف"); return; }
-  loadPurchases();
+  await sb.from("purchases").delete().eq("id",id);
+  await loadPurchases();
 }
 
 /* ===== Add new purchase ===== */
 addBtn.onclick = async ()=>{
   if(!activeOrder) return;
 
-  const cName = customer.value.trim();
-  const qVal = Number(qty.value);
-  const pVal = Number(price.value);
-
-  if(!cName){ alert("اسم الزبون مطلوب"); return; }
-  if(!Number.isFinite(qVal) || qVal < 1){ alert("العدد غير صحيح"); return; }
-  if(!Number.isFinite(pVal) || pVal < 0){ alert("السعر غير صحيح"); return; }
-
   const { data:p, error:pErr } = await sb.from("purchases")
     .insert({
       order_id: activeOrder.id,
-      customer_name: cName,
-      qty: qVal,
-      price: pVal,
+      customer_name: customer.value,
+      qty: Number(qty.value),
+      price: Number(price.value),
       pickup_point: pickupPoint.value,
       note: note.value.trim()
     })
@@ -573,11 +865,8 @@ addBtn.onclick = async ()=>{
 
   if(pErr){ console.error(pErr); alert("فشل إضافة المشترى"); return; }
 
-  const urls=[...linksWrap.querySelectorAll("input")].map(i=>i.value.trim()).filter(Boolean);
-  if(urls.length){
-    const { error: linkErr } = await sb.from("purchase_links").insert(urls.map(u=>({purchase_id:p.id,url:u})));
-    if(linkErr) console.error(linkErr);
-  }
+  const urls=[...linksWrap.querySelectorAll("input")].map(i=>i.value).filter(Boolean);
+  if(urls.length) await sb.from("purchase_links").insert(urls.map(u=>({purchase_id:p.id,url:u})));
 
   for(const f of selectedImages){
     const safeName = `${Date.now()}-${f.name}`.replace(/\s+/g,"_");
@@ -586,26 +875,22 @@ addBtn.onclick = async ()=>{
     const { error: upErr } = await sb.storage.from(BUCKET).upload(path, f);
     if(upErr){ console.error(upErr); alert("فشل رفع صورة."); continue; }
 
-    const { error: metaErr } = await sb.from("purchase_images").insert({ purchase_id: p.id, storage_path: path });
-    if(metaErr) console.error(metaErr);
+    await sb.from("purchase_images").insert({ purchase_id: p.id, storage_path: path });
   }
 
-  // reset
   customer.value=""; price.value=""; qty.value=1;
   pickupPoint.value="من نقطة الاستلام";
   note.value="";
+  images.value="";
   linksWrap.querySelectorAll("input").forEach(i=>i.value="");
   selectedImages=[]; updatePreview();
 
-  loadPurchases();
+  await loadPurchases();
 };
 
-/* ===== Init ===== */
 (async function init(){
-  const ok = await requireIndexAccess();
-  if(!ok) return;
-
-  await renderSidebar();
+  await guardIndexAccess();
+  renderSidebar();
   await loadOrders();
 })();
 </script>
