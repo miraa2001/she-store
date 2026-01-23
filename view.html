@@ -198,18 +198,11 @@ async function guardViewAccess(){
   const me = await getMyRole();
   myEmail = me.email;
 
-  // pickup role (La Aura) goes to pickup page
-  if(me.role === "pickup"){
+  if(myEmail === EMAIL_LAAURA){
     window.location.replace("./pickuppoint.html");
     return;
   }
 
-  // viewer + admin are allowed
-  if(me.role !== "viewer" && me.role !== "admin"){
-    window.location.replace("./login.html");
-    return;
-  }
-}
   if(myEmail !== EMAIL_RAHAF && myEmail !== EMAIL_REEM){
     window.location.replace("./login.html");
     return;
