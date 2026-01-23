@@ -8,118 +8,94 @@
   <style>
     body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa;color:#111}
     .wrap{max-width:1100px;margin:auto;padding:16px}
+
+    .muted{color:#666;font-size:13px}
+    .btn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
+    .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px;color:#444}
+    input{padding:10px;border:1px solid #e7e7e7;border-radius:10px;font-family:inherit}
+
+    /* ===== Sidebar ===== */
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+    .brand b{font-size:20px}
+    .menuBtn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
+
+    .sidebarOverlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:50}
+    .sidebar{
+      position:fixed;top:0;right:0;height:100vh;width:min(280px,82vw);
+      background:#fff;border-left:1px solid #eee;z-index:60;
+      transform:translateX(100%);transition:transform .2s ease;
+      display:flex;flex-direction:column;padding:14px;box-sizing:border-box
+    }
+    .sidebar.open{transform:translateX(0)}
+    .sidebarOverlay.open{display:block}
+    .sidebarHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+    .sidebarHeader b{font-size:16px}
+    .sidebar a,.sidebar button{
+      width:100%;text-align:right;border:1px solid #e7e7e7;background:#fff;
+      padding:10px 12px;border-radius:10px;cursor:pointer;margin-top:8px;font-family:inherit
+    }
+    .sidebar a{color:#111;text-decoration:none;display:block}
+    .sidebar .danger{border-color:#f2c2c2;color:#b00020}
+
+    /* ===== Layout ===== */
     .grid{display:grid;grid-template-columns:320px 1fr;gap:12px}
     @media(max-width:900px){.grid{grid-template-columns:1fr}}
     .card{background:#fff;border:1px solid #e7e7e7;border-radius:14px;padding:12px}
     .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-    .btn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
-    .muted{color:#666;font-size:13px}
+
     .orderItem{border:1px solid #e7e7e7;border-radius:12px;padding:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
     .orderItem.active{border-color:#111}
+
+    .nav{display:flex;justify-content:space-between;align-items:center;margin:12px 0;gap:10px}
     .thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
     .thumbs img{width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid #eee;cursor:pointer}
-    .nav{display:flex;justify-content:space-between;align-items:center;margin:12px 0;gap:10px}
-    .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px;color:#444}
-    #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
-    #lightbox img{max-width:92vw;max-height:92vh;border-radius:16px}
-    a{color:#111;text-decoration:none}
 
-    /* bigger font only for purchase display */
+    #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;padding:16px;z-index:100}
+    #lightbox img{max-width:92vw;max-height:92vh;border-radius:16px}
+
     #content { font-size: 18px; line-height: 1.7; }
     #content b { font-size: 19px; }
 
     .toggleRow{display:flex;gap:10px;align-items:center;margin-top:8px}
     .toggleRow input{width:18px;height:18px}
 
-    /* ===== Sidebar ===== */
-    #menuBtn{
-      position:fixed;
-      top:14px;
-      right:14px;
-      z-index:120;
-      width:44px;height:44px;
-      border-radius:14px;
-      border:1px solid #e7e7e7;
-      background:#fff;
-      cursor:pointer;
-      display:none; /* shown only for Rahaf/Reem */
-      align-items:center;
-      justify-content:center;
-      font-size:20px;
-      box-shadow:0 6px 18px rgba(0,0,0,.08);
+    /* ===== Search ===== */
+    .searchBox{width:100%;max-width:420px}
+    .searchResults{margin-top:8px;border:1px solid #eee;border-radius:12px;overflow:hidden}
+    .searchResults button{
+      width:100%;text-align:right;background:#fff;border:none;padding:10px;cursor:pointer;border-bottom:1px solid #eee
     }
-
-    #overlay{
-      position:fixed; inset:0;
-      background:rgba(0,0,0,.35);
-      z-index:110;
-      display:none;
-    }
-
-    #sidebar{
-      position:fixed;
-      top:0; right:0;
-      height:100vh;
-      width:min(310px, 86vw);
-      background:#fff;
-      border-left:1px solid #eee;
-      z-index:115;
-      transform:translateX(100%);
-      transition:transform .18s ease;
-      padding:14px;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
-    #sidebar.open{ transform:translateX(0); }
-
-    .sideTop{display:flex;align-items:center;justify-content:space-between;gap:10px}
-    .sideTitle{font-weight:800;font-size:16px}
-    .sideClose{
-      width:40px;height:40px;border-radius:14px;border:1px solid #eee;background:#fff;cursor:pointer;
-      font-size:18px;
-    }
-    .sideUser{font-size:12px;color:#666;margin-top:-6px}
-    .sideLinks{display:flex;flex-direction:column;gap:8px;margin-top:6px}
-    .sideLink{
-      border:1px solid #e7e7e7;
-      background:#fff;
-      padding:12px 12px;
-      border-radius:12px;
-      cursor:pointer;
-      text-align:right;
-      font-weight:700;
-    }
-    .sideLink:hover{background:#fafafa}
-    .sideLink.danger{border-color:#f2c2c2;color:#b00020}
-
-    /* Give space top on mobile so menu button doesn't overlap content */
-    @media(max-width:900px){
-      .wrap{padding-top:72px;}
-    }
+    .searchResults button:last-child{border-bottom:none}
+    .searchResults button:hover{background:#fafafa}
+    .highlight{background:#fff8d6;padding:6px 8px;border-radius:10px}
   </style>
 </head>
 <body>
 
-<button id="menuBtn" title="القائمة">☰</button>
-<div id="overlay"></div>
-
-<aside id="sidebar" aria-hidden="true">
-  <div class="sideTop">
-    <div>
-      <div class="sideTitle">القائمة</div>
-      <div class="sideUser" id="sideUser"></div>
-    </div>
-    <button class="sideClose" id="closeSide" title="إغلاق">✕</button>
+<div class="sidebarOverlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebarHeader">
+    <b>القائمة</b>
+    <button class="menuBtn" id="closeSidebarBtn" type="button">✕</button>
   </div>
-  <div class="sideLinks" id="sideLinks"></div>
+  <div id="sidebarContent"></div>
 </aside>
 
 <div class="wrap">
-  <div style="margin-bottom:12px">
-    <b style="font-size:20px">عرض الطلبيات</b>
-    <div class="muted">استعراض المشتريات</div>
+  <div class="topbar">
+    <div class="brand">
+      <b>عرض الطلبيات</b>
+      <div class="muted">استعراض المشتريات</div>
+    </div>
+    <button class="menuBtn" id="openSidebarBtn" type="button">☰</button>
   </div>
+
+  <!-- Search row -->
+  <div class="row" style="margin-bottom:12px">
+    <input id="searchInput" class="searchBox" placeholder="بحث باسم الزبون...">
+    <span class="pill" id="searchCount" style="display:none"></span>
+  </div>
+  <div id="searchResults" class="searchResults" style="display:none"></div>
 
   <div class="grid">
     <aside class="card">
@@ -139,7 +115,7 @@
           <div>
             <b id="title"></b>
 
-            <!-- Order-level toggle (Rahaf only) -->
+            <!-- Rahaf only -->
             <div id="placedToggleWrap" class="toggleRow" style="display:none">
               <label class="toggleRow" style="cursor:pointer">
                 <input type="checkbox" id="placedAtPickupToggle">
@@ -173,7 +149,15 @@ const SUPABASE_ANON_KEY="sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const BUCKET="purchase-images";
 
-/* ========= Auth + Access ========= */
+const EMAIL_RAHAF = "rahaf@she-store.com";
+const EMAIL_REEM  = "reem@she-store.com";
+const EMAIL_LAAURA= "laaura@she-store.com";
+
+function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function escapeAttr(s=""){ return escapeHtml(s); }
+function isMobile(){ return window.matchMedia("(max-width: 900px)").matches; }
+
+/* ===== Auth + gate ===== */
 async function requireAuth(){
   const { data } = await sb.auth.getSession();
   if(!data.session){
@@ -183,107 +167,75 @@ async function requireAuth(){
   return true;
 }
 
-async function requireViewAccess(){
+let myEmail = "";
+async function loadMe(){
   const { data } = await sb.auth.getUser();
-  const email = (data?.user?.email || "").toLowerCase();
-
-  // Only Rahaf + Reem can view this page
-  if(email !== "rahaf@she-store.com" && email !== "reem@she-store.com"){
-    window.location.href = "./pickuppoint.html";
-    return false;
-  }
-  return true;
+  myEmail = (data?.user?.email || "").toLowerCase();
 }
 
-async function getMyRole(){
-  const { data: userRes } = await sb.auth.getUser();
-  const email = (userRes?.user?.email || "").toLowerCase();
+async function guardViewAccess(){
+  const ok = await requireAuth();
+  if(!ok) return;
 
-  const { data, error } = await sb
-    .from("user_roles")
-    .select("role")
-    .single();
-
-  if(error){
-    // fallback by email
-    if(email === "rahaf@she-store.com") return { role: "admin", email };
-    if(email === "reem@she-store.com") return { role: "viewer", email };
-    if(email === "laaura@she-store.com") return { role: "laaura", email };
-    return { role: "unknown", email };
-  }
-
-  return { role: (data?.role || "").toLowerCase(), email };
-}
-
-/* ========= Sidebar ========= */
-const menuBtn = document.getElementById("menuBtn");
-const overlay = document.getElementById("overlay");
-const sidebar = document.getElementById("sidebar");
-const closeSide = document.getElementById("closeSide");
-const sideLinks = document.getElementById("sideLinks");
-const sideUser = document.getElementById("sideUser");
-
-function openSide(){
-  sidebar.classList.add("open");
-  overlay.style.display = "block";
-  sidebar.setAttribute("aria-hidden","false");
-}
-function closeSideFn(){
-  sidebar.classList.remove("open");
-  overlay.style.display = "none";
-  sidebar.setAttribute("aria-hidden","true");
-}
-overlay.onclick = closeSideFn;
-closeSide.onclick = closeSideFn;
-menuBtn.onclick = openSide;
-
-async function renderSidebar(){
-  const { role, email } = await getMyRole();
-
-  // La Aura: no sidebar (also redirected)
-  if(email === "laaura@she-store.com" || role === "laaura"){
-    menuBtn.style.display = "none";
+  await loadMe();
+  if(myEmail === EMAIL_LAAURA){
+    window.location.replace("./pickuppoint.html");
     return;
   }
+  if(myEmail !== EMAIL_RAHAF && myEmail !== EMAIL_REEM){
+    window.location.replace("./login.html");
+    return;
+  }
+}
 
-  // show hamburger
-  menuBtn.style.display = "flex";
-  sideUser.textContent = email;
+/* ===== Sidebar ===== */
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("sidebarOverlay");
+document.getElementById("openSidebarBtn").onclick = ()=>{ sidebar.classList.add("open"); overlay.classList.add("open"); };
+document.getElementById("closeSidebarBtn").onclick = closeSidebar;
+overlay.onclick = closeSidebar;
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeSidebar(); });
 
-  sideLinks.innerHTML = "";
+function closeSidebar(){
+  sidebar.classList.remove("open");
+  overlay.classList.remove("open");
+}
 
-  function addLink(text, href){
+function renderSidebar(){
+  const wrap = document.getElementById("sidebarContent");
+  wrap.innerHTML = "";
+
+  const link = (text, href)=>{
     const a = document.createElement("a");
-    a.className = "sideLink";
     a.href = href;
     a.textContent = text;
-    sideLinks.appendChild(a);
-  }
-  function addBtn(text, cls, onClick){
+    a.onclick = ()=> closeSidebar();
+    wrap.appendChild(a);
+  };
+  const btn = (text, cls, onClick)=>{
     const b = document.createElement("button");
-    b.type = "button";
-    b.className = "sideLink " + (cls || "");
+    b.type="button";
+    if(cls) b.className = cls;
     b.textContent = text;
-    b.onclick = onClick;
-    sideLinks.appendChild(b);
-  }
+    b.onclick = async ()=>{
+      await onClick();
+      closeSidebar();
+    };
+    wrap.appendChild(b);
+  };
 
-  // Reem + Rahaf
-  addLink("عرض الطلبيات", "./view.html");
-  addLink("La Aura", "./pickuppoint.html");
+  // Rahaf sees index, Reem doesn't
+  if(myEmail === EMAIL_RAHAF) link("إضافة طلبية", "./index.html");
+  link("عرض الطلبيات", "./view.html");
+  link("La Aura", "./pickuppoint.html");
 
-  // Rahaf only
-  if(email === "rahaf@she-store.com" || role === "admin"){
-    addLink("إضافة طلبية", "./index.html");
-  }
-
-  addBtn("تسجيل خروج", "danger", async ()=>{
+  btn("تسجيل خروج", "danger", async ()=>{
     await sb.auth.signOut();
-    window.location.href = "./login.html";
+    window.location.href="./login.html";
   });
 }
 
-/* ========= Page Logic ========= */
+/* ===== DOM ===== */
 const ordersListEl = document.getElementById("ordersList");
 const ordersEmptyEl = document.getElementById("ordersEmpty");
 const ordersCountEl = document.getElementById("ordersCount");
@@ -301,6 +253,10 @@ const placedToggleWrap = document.getElementById("placedToggleWrap");
 const placedAtPickupToggle = document.getElementById("placedAtPickupToggle");
 const placedToggleMsg = document.getElementById("placedToggleMsg");
 
+const searchInput = document.getElementById("searchInput");
+const searchResultsEl = document.getElementById("searchResults");
+const searchCountEl = document.getElementById("searchCount");
+
 const lb = document.getElementById("lightbox");
 const lbImg = lb.querySelector("img");
 
@@ -308,18 +264,14 @@ let orders = [];
 let activeOrder = null;
 let purchases = [];
 let idx = 0;
-
-let myRole = "viewer";
-let myEmail = "";
-
-function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
-function escapeAttr(s=""){ return escapeHtml(s); }
+let highlightPurchaseId = null;
 
 function showViewer(on){
   viewer.style.display = on ? "" : "none";
   viewerEmpty.style.display = on ? "none" : "";
 }
 
+/* ===== Load orders ===== */
 async function loadOrders(){
   const { data, error } = await sb
     .from("orders")
@@ -338,14 +290,14 @@ async function loadOrders(){
     const div = document.createElement("div");
     div.className = "orderItem" + (activeOrder?.id === o.id ? " active" : "");
     div.innerHTML = `<span>${escapeHtml(o.order_name || "")}</span><span class="pill">عرض</span>`;
-    div.onclick = () => selectOrder(o);
+    div.onclick = () => selectOrder(o, {fromSidebar:true});
     ordersListEl.appendChild(div);
   });
 }
 
+/* ===== Rahaf-only toggle ===== */
 async function setPlacedToggleUI(order){
-  // Rahaf only
-  if(myEmail !== "rahaf@she-store.com" && myRole !== "admin"){
+  if(myEmail !== EMAIL_RAHAF){
     placedToggleWrap.style.display = "none";
     return;
   }
@@ -359,15 +311,11 @@ async function setPlacedToggleUI(order){
     placedToggleMsg.textContent = "جاري الحفظ...";
 
     const val = placedAtPickupToggle.checked;
-
     const payload = val
       ? { placed_at_pickup: true, placed_at_pickup_at: new Date().toISOString() }
       : { placed_at_pickup: false, placed_at_pickup_at: null };
 
-    const { error } = await sb
-      .from("orders")
-      .update(payload)
-      .eq("id", activeOrder.id);
+    const { error } = await sb.from("orders").update(payload).eq("id", activeOrder.id);
 
     if(error){
       console.error(error);
@@ -379,14 +327,17 @@ async function setPlacedToggleUI(order){
     placedToggleMsg.textContent = "تم ✅";
     activeOrder.placed_at_pickup = payload.placed_at_pickup;
     activeOrder.placed_at_pickup_at = payload.placed_at_pickup_at;
-
     await loadOrders();
   };
 }
 
-async function selectOrder(o){
+/* ===== Select order ===== */
+async function selectOrder(o, opts={}){
   activeOrder = o;
   idx = 0;
+
+  // mobile: if menu open, close it so it doesn't cover
+  if(isMobile()) closeSidebar();
 
   await loadOrders();
 
@@ -400,7 +351,9 @@ async function selectOrder(o){
 
   purchases = data || [];
   title.textContent = o.order_name || "";
-  purchaseCount.textContent = `عدد المشتريات: ${purchases.length}`;
+
+  const totalItems = purchases.reduce((sum,p)=> sum + Number(p.qty || 0), 0);
+  purchaseCount.textContent = `عدد المشتريات: ${purchases.length} — مجموع القطع: ${totalItems}`;
 
   await setPlacedToggleUI(o);
 
@@ -408,6 +361,7 @@ async function selectOrder(o){
   render();
 }
 
+/* ===== Render purchase ===== */
 function render(){
   if(!purchases.length){
     counter.textContent = "0/0";
@@ -430,10 +384,15 @@ function render(){
   const pickup = p.pickup_point || "—";
   const note = (p.note || "").trim();
 
+  const highlight = (highlightPurchaseId && highlightPurchaseId === p.id)
+    ? `<div class="highlight" style="margin-bottom:10px">✅ هذا هو البحث</div>`
+    : "";
+
   content.innerHTML = `
+    ${highlight}
     <div><b>الزبون:</b> ${escapeHtml(p.customer_name || "")}</div>
-    <div><b>السعر:</b> ${escapeHtml(p.price ?? "")}</div>
     <div><b>العدد:</b> ${escapeHtml(p.qty ?? "")}</div>
+    <div><b>السعر:</b> ${escapeHtml(p.price ?? "")}</div>
     <div style="margin-top:8px"><b>روابط:</b><br>${links}</div>
     <div style="margin-top:10px"><b>مكان الاستلام:</b> ${escapeHtml(pickup)}</div>
     <div class="thumbs">${imgs || ""}</div>
@@ -448,26 +407,81 @@ function render(){
 prev.onclick = ()=>{
   if(!purchases.length) return;
   idx = (idx - 1 + purchases.length) % purchases.length;
+  highlightPurchaseId = null;
   render();
 };
 next.onclick = ()=>{
   if(!purchases.length) return;
   idx = (idx + 1) % purchases.length;
+  highlightPurchaseId = null;
   render();
 };
 lb.onclick = ()=> lb.style.display="none";
 
+/* ===== Search by customer name (across all orders) ===== */
+let searchTimer = null;
+
+searchInput.addEventListener("input", ()=>{
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(runSearch, 250);
+});
+
+function clearSearchUI(){
+  searchResultsEl.style.display = "none";
+  searchCountEl.style.display = "none";
+  searchResultsEl.innerHTML = "";
+}
+
+async function runSearch(){
+  const q = (searchInput.value || "").trim();
+  if(q.length < 2){ clearSearchUI(); return; }
+
+  // Search purchases by customer name
+  const { data, error } = await sb
+    .from("purchases")
+    .select("id, order_id, customer_name, price, qty, created_at")
+    .ilike("customer_name", `%${q}%`)
+    .order("created_at",{ascending:false})
+    .limit(50);
+
+  if(error){ console.error(error); return; }
+
+  const results = data || [];
+  searchCountEl.textContent = `${results.length} نتيجة`;
+  searchCountEl.style.display = "";
+  searchResultsEl.style.display = "";
+  searchResultsEl.innerHTML = "";
+
+  results.forEach(r=>{
+    const ord = orders.find(o=>o.id === r.order_id);
+    const btn = document.createElement("button");
+    btn.innerHTML = `
+      <b>${escapeHtml(r.customer_name || "")}</b>
+      <div class="muted">${escapeHtml(ord?.order_name || "طلبية")} — العدد: ${escapeHtml(r.qty ?? "")} — السعر: ${escapeHtml(r.price ?? "")}</div>
+    `;
+    btn.onclick = async ()=>{
+      searchResultsEl.style.display="none";
+      highlightPurchaseId = r.id;
+
+      // open order
+      if(ord) await selectOrder(ord);
+
+      // jump to that purchase inside current purchases list
+      const pos = purchases.findIndex(p=>String(p.id)===String(r.id));
+      if(pos >= 0){
+        idx = pos;
+        render();
+      }
+
+      setTimeout(()=>{ highlightPurchaseId = null; }, 2500);
+    };
+    searchResultsEl.appendChild(btn);
+  });
+}
+
+/* ===== Init ===== */
 (async function init(){
-  const ok = await requireAuth();
-  if(!ok) return;
-
-  const ok2 = await requireViewAccess();
-  if(!ok2) return;
-
-  const me = await getMyRole();
-  myRole = me.role;
-  myEmail = me.email;
-
+  await guardViewAccess();
   await renderSidebar();
   await loadOrders();
   if(orders.length) selectOrder(orders[0]);
