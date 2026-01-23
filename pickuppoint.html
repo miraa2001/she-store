@@ -103,8 +103,7 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const PICKUP_VALUE = "من نقطة الاستلام";
 
 /* ========= Auth + Role Gate =========
-   Allowed here: admin + pickup
-   viewer gets redirected to view.html
+   Allowed here: Rahaf + Reem + Laaura
 */
 async function requireAuth(){
   const { data } = await sb.auth.getSession();
@@ -138,15 +137,17 @@ async function guardPickupPage(){
   const ok = await requireAuth();
   if(!ok) return;
 
-  const { role } = await getMyRole();
+  const { email } = await getMyRole();
+  const normalized = (email || "").toLowerCase();
+  const allowed = [
+    "rahaf@she-store.com",
+    "reem@she-store.com",
+    "laaura@she-store.com"
+  ];
 
-  // viewer (Reem) should NOT see pickup page
-  if(role === "viewer"){
-    window.location.replace("./view.html");
-    return;
+  if(!allowed.includes(normalized)){
+    window.location.replace("./login.html");
   }
-
-  // admin + pickup are allowed
 }
 guardPickupPage();
 /* =================================== */

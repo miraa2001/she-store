@@ -42,6 +42,7 @@
       padding:10px 12px;border-radius:10px;cursor:pointer;
       margin-top:8px;
       font-family:inherit;
+      box-sizing:border-box;
     }
     .sidebar a{color:#111;text-decoration:none;display:block}
     .sidebar .danger{border-color:#f2c2c2;color:#b00020}
@@ -297,13 +298,22 @@ async function guardIndexAccess(){
   if(!ok) return;
 
   const me = await getMyRole();
+  myEmail = me.email;
 
-  // Index allowed: admin (Rahaf)
-  if(me.role !== "admin"){
+  // Index allowed: Rahaf only
+  if(myEmail === EMAIL_RAHAF){
+    return;
+  }
+  if(myEmail === EMAIL_REEM){
     window.location.replace("./view.html");
     return;
   }
-  myEmail = me.email;
+  if(myEmail === EMAIL_LAAURA){
+    window.location.replace("./pickuppoint.html");
+    return;
+  }
+
+  window.location.replace("./login.html");
 }
 
 /* ===== Sidebar ===== */
