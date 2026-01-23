@@ -37,11 +37,14 @@
     .sidebarHeader b{font-size:16px}
     .sidebar a,.sidebar button{
       width:100%;
+      max-width:100%;
+      display:block;
       text-align:right;
       border:1px solid #e7e7e7;background:#fff;
       padding:10px 12px;border-radius:10px;cursor:pointer;
       margin-top:8px;
       font-family:inherit;
+      box-sizing:border-box;
     }
     .sidebar a{color:#111;text-decoration:none;display:block}
     .sidebar .danger{border-color:#f2c2c2;color:#b00020}
@@ -54,6 +57,7 @@
     .btn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
     .btn.primary{background:#111;color:#fff;border-color:#111}
     .btn.danger{border-color:#f2c2c2;color:#b00020}
+    .dangerText{color:#b00020;font-size:13px}
     input, select, textarea{padding:10px;border:1px solid #e7e7e7;border-radius:10px;font-family:inherit}
     textarea{width:100%;min-height:84px;resize:vertical}
     table{width:100%;border-collapse:collapse}
@@ -192,14 +196,18 @@
           </div>
 
           <div style="margin-top:10px">
-            <div class="muted" style="margin-bottom:6px">ملاحظة</div>
-            <textarea id="note" placeholder="اكتبي أي ملاحظة..."></textarea>
-          </div>
-
-          <div class="row" style="margin-top:10px">
-            <button class="btn primary" id="addBtn">إضافة</button>
-          </div>
+          <div class="muted" style="margin-bottom:6px">ملاحظة</div>
+          <textarea id="note" placeholder="اكتبي أي ملاحظة..."></textarea>
         </div>
+
+        <div class="row" style="margin-top:10px">
+          <div id="duplicateWarning" class="dangerText" style="display:none">⛔ يوجد مشترى بنفس الاسم في هذه الطلبية</div>
+        </div>
+
+        <div class="row" style="margin-top:6px">
+          <button class="btn primary" id="addBtn">إضافة</button>
+        </div>
+      </div>
 
         <hr>
 
@@ -297,13 +305,22 @@ async function guardIndexAccess(){
   if(!ok) return;
 
   const me = await getMyRole();
+  myEmail = me.email;
 
-  // Index allowed: admin (Rahaf)
-  if(me.role !== "admin"){
+  // Index allowed: Rahaf only
+  if(myEmail === EMAIL_RAHAF){
+    return;
+  }
+  if(myEmail === EMAIL_REEM){
     window.location.replace("./view.html");
     return;
   }
-  myEmail = me.email;
+  if(myEmail === EMAIL_LAAURA){
+    window.location.replace("./pickuppoint.html");
+    return;
+  }
+
+  window.location.replace("./login.html");
 }
 
 /* ===== Sidebar ===== */
@@ -377,6 +394,7 @@ const images = document.getElementById("images");
 const linksWrap = document.getElementById("links");
 const addBtn = document.getElementById("addBtn");
 const deleteOrderBtn = document.getElementById("deleteOrderBtn");
+const duplicateWarning = document.getElementById("duplicateWarning");
 
 const dropZone = document.getElementById("dropZone");
 const pickImagesBtn = document.getElementById("pickImagesBtn");
@@ -432,6 +450,21 @@ document.addEventListener("click", (e)=>{
 
 
 let activeOrder = null;
+let activePurchases = [];
+
+function normalizeName(value){
+  return (value || "").trim().toLowerCase();
+}
+
+function clearDuplicateWarning(){
+  if(duplicateWarning) duplicateWarning.style.display = "none";
+}
+
+function showDuplicateWarning(){
+  if(duplicateWarning) duplicateWarning.style.display = "";
+}
+
+customer.addEventListener("input", clearDuplicateWarning);
 
 /* ===== Order name edit ===== */
 editOrderBtn.onclick = () => {
@@ -523,6 +556,7 @@ async function selectOrder(o){
   empty.style.display="none";
   main.style.display="";
   orderTitle.textContent=o.order_name;
+  clearDuplicateWarning();
 
   // important: on mobile, close sidebar if open so it doesn't cover orders
   if(isMobile()) closeSidebar();
@@ -734,6 +768,8 @@ async function loadPurchases(){
 
   if(error){ console.error(error); return; }
 
+  activePurchases = data || [];
+
   // ✅ restore totals per order
   const purchasesCount = (data||[]).length;
   const totalItems = (data||[]).reduce((sum,p)=> sum + Number(p.qty || 0), 0);
@@ -937,6 +973,13 @@ async function deletePurchase(id){
 addBtn.onclick = async ()=>{
   if(!activeOrder) return;
 
+  const normalizedName = normalizeName(customer.value);
+  const hasDuplicate = activePurchases.some(p => normalizeName(p.customer_name) === normalizedName);
+  if(normalizedName && hasDuplicate){
+    showDuplicateWarning();
+    return;
+  }
+
   const { data:p, error:pErr } = await sb.from("purchases")
     .insert({
       order_id: activeOrder.id,
@@ -970,6 +1013,7 @@ addBtn.onclick = async ()=>{
   images.value="";
   linksWrap.querySelectorAll("input").forEach(i=>i.value="");
   selectedImages=[]; updatePreview();
+  clearDuplicateWarning();
 
   await loadPurchases();
 };
