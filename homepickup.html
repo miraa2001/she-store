@@ -61,6 +61,7 @@
             <b id="orderTitle"></b>
           </div>
           <span class="pill" id="purchaseCount">0</span>
+          <span class="pill" id="totalPrice">مجموع الأسعار: 0</span>
         </div>
 
         <hr>
@@ -135,6 +136,7 @@ const emptyEl = document.getElementById("empty");
 const mainEl = document.getElementById("main");
 const orderTitleEl = document.getElementById("orderTitle");
 const purchaseCountEl = document.getElementById("purchaseCount");
+const totalPriceEl = document.getElementById("totalPrice");
 const tbody = document.getElementById("tbody");
 const lb = document.getElementById("lightbox");
 const lbImg = lb.querySelector("img");
@@ -156,6 +158,21 @@ function formatDateTime(iso){
   const date = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
   const time = `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
   return `${date} ${time}`;
+}
+
+function parsePrice(v){
+  if(v === null || v === undefined) return 0;
+  if(typeof v === "number") return isFinite(v) ? v : 0;
+  const s = String(v).replace(/[, ]/g, "").replace(/[₪]/g, "");
+  const m = s.match(/-?\d+(?:\.\d+)?/);
+  return m ? Number(m[0]) : 0;
+}
+
+function formatILS(n){
+  const x = Number(n || 0);
+  if(!isFinite(x)) return "0";
+  const fixed = x.toFixed(2);
+  return fixed.endsWith(".00") ? String(Math.round(x)) : fixed;
 }
 
 async function loadOrders(){
@@ -197,6 +214,8 @@ async function selectOrder(order){
 
   const purchases = data || [];
   purchaseCountEl.textContent = `عدد المشتريات: ${purchases.length}`;
+  const totalPrice = purchases.reduce((sum,p)=> sum + parsePrice(p.price), 0);
+  totalPriceEl.textContent = `مجموع الأسعار: ${formatILS(totalPrice)} ₪`;
 
   tbody.innerHTML = "";
   purchases.forEach(p=>{
