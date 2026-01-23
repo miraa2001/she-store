@@ -37,11 +37,14 @@
     .sidebarHeader b{font-size:16px}
     .sidebar a,.sidebar button{
       width:100%;
+      max-width:100%;
+      display:block;
       text-align:right;
       border:1px solid #e7e7e7;background:#fff;
       padding:10px 12px;border-radius:10px;cursor:pointer;
       margin-top:8px;
       font-family:inherit;
+      box-sizing:border-box;
     }
     .sidebar a{color:#111;text-decoration:none;display:block}
     .sidebar .danger{border-color:#f2c2c2;color:#b00020}
@@ -54,6 +57,7 @@
     .btn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
     .btn.primary{background:#111;color:#fff;border-color:#111}
     .btn.danger{border-color:#f2c2c2;color:#b00020}
+    .dangerText{color:#b00020;font-size:13px}
     input, select, textarea{padding:10px;border:1px solid #e7e7e7;border-radius:10px;font-family:inherit}
     textarea{width:100%;min-height:84px;resize:vertical}
     table{width:100%;border-collapse:collapse}
@@ -148,6 +152,14 @@
           <button class="btn" id="editOrderBtn" title="تعديل اسم الطلبية">✏️</button>
         </div>
 
+        <div class="row" id="arrivedRow" style="margin-top:8px;display:none">
+          <label class="row" style="gap:8px;cursor:pointer">
+            <input type="checkbox" id="arrivedToggle">
+            <span>تم وصول الطلب</span>
+          </label>
+          <span class="muted" id="arrivedMsg"></span>
+        </div>
+
         <div class="row" id="editOrderRow" style="display:none;margin-top:6px">
           <input id="editOrderInput" placeholder="اسم الطلبية الجديد">
           <button class="btn primary" id="saveOrderBtn">حفظ</button>
@@ -192,14 +204,18 @@
           </div>
 
           <div style="margin-top:10px">
-            <div class="muted" style="margin-bottom:6px">ملاحظة</div>
-            <textarea id="note" placeholder="اكتبي أي ملاحظة..."></textarea>
-          </div>
-
-          <div class="row" style="margin-top:10px">
-            <button class="btn primary" id="addBtn">إضافة</button>
-          </div>
+          <div class="muted" style="margin-bottom:6px">ملاحظة</div>
+          <textarea id="note" placeholder="اكتبي أي ملاحظة..."></textarea>
         </div>
+
+        <div class="row" style="margin-top:10px">
+          <div id="duplicateWarning" class="dangerText" style="display:none">⛔ يوجد مشترى بنفس الاسم في هذه الطلبية</div>
+        </div>
+
+        <div class="row" style="margin-top:6px">
+          <button class="btn primary" id="addBtn">إضافة</button>
+        </div>
+      </div>
 
         <hr>
 
@@ -277,12 +293,13 @@ async function loadMe(){
 async function getMyRole(){
   const { data: u } = await sb.auth.getUser();
   const email = (u?.user?.email || "").toLowerCase();
-  if(!email) return { email:"", role:"viewer" };
+  const userId = u?.user?.id || "";
+  if(!userId) return { email, role:"viewer" };
 
   const { data: r, error } = await sb
     .from("user_roles")
     .select("role")
-    .eq("email", email)
+    .eq("user_id", userId)
     .maybeSingle();
 
   if(error){
@@ -297,13 +314,22 @@ async function guardIndexAccess(){
   if(!ok) return;
 
   const me = await getMyRole();
+  myEmail = me.email;
 
-  // Index allowed: admin (Rahaf)
-  if(me.role !== "admin"){
+  // Index allowed: Rahaf only
+  if(myEmail === EMAIL_RAHAF){
+    return;
+  }
+  if(myEmail === EMAIL_REEM){
     window.location.replace("./view.html");
     return;
   }
-  myEmail = me.email;
+  if(myEmail === EMAIL_LAAURA){
+    window.location.replace("./pickuppoint.html");
+    return;
+  }
+
+  window.location.replace("./login.html");
 }
 
 /* ===== Sidebar ===== */
@@ -349,9 +375,11 @@ function renderSidebar(){
     sidebarContent.appendChild(b);
   };
 
-  link("إضافة طلبية", "./index.html");
-  link("عرض الطلبيات", "./view.html");
-  link("La Aura", "./pickuppoint.html");
+  if(myEmail === EMAIL_RAHAF){
+    link("عرض الطلبيات", "./view.html");
+    link("La Aura", "./pickuppoint.html");
+    link("مستلمو البيت", "./homepickup.html");
+  }
 
   btn("تسجيل خروج", "danger", async ()=>{
     await sb.auth.signOut();
@@ -367,6 +395,9 @@ const empty = document.getElementById("empty");
 const orderTitle = document.getElementById("orderTitle");
 const orderStats = document.getElementById("orderStats");
 const tbody = document.getElementById("tbody");
+const arrivedRow = document.getElementById("arrivedRow");
+const arrivedToggle = document.getElementById("arrivedToggle");
+const arrivedMsg = document.getElementById("arrivedMsg");
 
 const customer = document.getElementById("customer");
 const price = document.getElementById("price");
@@ -377,6 +408,7 @@ const images = document.getElementById("images");
 const linksWrap = document.getElementById("links");
 const addBtn = document.getElementById("addBtn");
 const deleteOrderBtn = document.getElementById("deleteOrderBtn");
+const duplicateWarning = document.getElementById("duplicateWarning");
 
 const dropZone = document.getElementById("dropZone");
 const pickImagesBtn = document.getElementById("pickImagesBtn");
@@ -432,6 +464,21 @@ document.addEventListener("click", (e)=>{
 
 
 let activeOrder = null;
+let activePurchases = [];
+
+function normalizeName(value){
+  return (value || "").trim().toLowerCase();
+}
+
+function clearDuplicateWarning(){
+  if(duplicateWarning) duplicateWarning.style.display = "none";
+}
+
+function showDuplicateWarning(){
+  if(duplicateWarning) duplicateWarning.style.display = "";
+}
+
+customer.addEventListener("input", clearDuplicateWarning);
 
 /* ===== Order name edit ===== */
 editOrderBtn.onclick = () => {
@@ -523,6 +570,13 @@ async function selectOrder(o){
   empty.style.display="none";
   main.style.display="";
   orderTitle.textContent=o.order_name;
+  if(arrivedRow){
+    const canSeeArrived = myEmail === EMAIL_RAHAF;
+    arrivedRow.style.display = canSeeArrived ? "" : "none";
+    arrivedMsg.textContent = "";
+    arrivedToggle.checked = !!o.arrived;
+  }
+  clearDuplicateWarning();
 
   // important: on mobile, close sidebar if open so it doesn't cover orders
   if(isMobile()) closeSidebar();
@@ -563,8 +617,40 @@ deleteOrderBtn.onclick = async ()=>{
   main.style.display="none";
   empty.style.display="";
   orderStats.textContent = "—";
+  if(arrivedRow){
+    arrivedRow.style.display = "none";
+    arrivedMsg.textContent = "";
+  }
   await loadOrders();
 };
+
+if(arrivedToggle){
+  arrivedToggle.onchange = async ()=>{
+    if(!activeOrder) return;
+    if(myEmail !== EMAIL_RAHAF){
+      arrivedToggle.checked = !!activeOrder.arrived;
+      return;
+    }
+    const val = arrivedToggle.checked;
+    arrivedMsg.textContent = "جاري الحفظ...";
+
+    const { error } = await sb
+      .from("orders")
+      .update({ arrived: val })
+      .eq("id", activeOrder.id);
+
+    if(error){
+      console.error(error);
+      arrivedMsg.textContent = "فشل الحفظ.";
+      arrivedToggle.checked = !val;
+      return;
+    }
+
+    arrivedMsg.textContent = "تم ✅";
+    activeOrder.arrived = val;
+    await loadOrders();
+  };
+}
 
 /* =========================================================
    INLINE EDIT (WITH IMAGES + pickup_point + note)
@@ -733,6 +819,8 @@ async function loadPurchases(){
     .order("created_at", { ascending:false });
 
   if(error){ console.error(error); return; }
+
+  activePurchases = data || [];
 
   // ✅ restore totals per order
   const purchasesCount = (data||[]).length;
@@ -937,6 +1025,13 @@ async function deletePurchase(id){
 addBtn.onclick = async ()=>{
   if(!activeOrder) return;
 
+  const normalizedName = normalizeName(customer.value);
+  const hasDuplicate = activePurchases.some(p => normalizeName(p.customer_name) === normalizedName);
+  if(normalizedName && hasDuplicate){
+    showDuplicateWarning();
+    return;
+  }
+
   const { data:p, error:pErr } = await sb.from("purchases")
     .insert({
       order_id: activeOrder.id,
@@ -970,6 +1065,7 @@ addBtn.onclick = async ()=>{
   images.value="";
   linksWrap.querySelectorAll("input").forEach(i=>i.value="");
   selectedImages=[]; updatePreview();
+  clearDuplicateWarning();
 
   await loadPurchases();
 };
