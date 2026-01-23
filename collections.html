@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>تحصيل المبالغ</title>
+
+  <style>
+    body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa;color:#111}
+    .wrap{max-width:1100px;margin:auto;padding:16px}
+    .grid{display:grid;grid-template-columns:320px 1fr;gap:12px}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+    .card{background:#fff;border:1px solid #e7e7e7;border-radius:14px;padding:12px}
+    .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .btn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
+    .muted{color:#666;font-size:13px}
+    .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px;color:#444}
+    .orderItem{border:1px solid #e7e7e7;border-radius:12px;padding:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+    .orderItem.active{border-color:#111}
+    .sectionTitle{font-weight:700;margin:10px 0 6px}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px solid #eee;padding:10px;text-align:right;vertical-align:top}
+    th{color:#666;font-size:13px}
+  </style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="row" style="margin-bottom:12px">
+    <div>
+      <b style="font-size:20px">تحصيل المبالغ</b>
+      <div class="muted">الطلبات المحصلة</div>
+    </div>
+    <div class="row">
+      <button class="btn" id="logoutBtn">تسجيل خروج</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <aside class="card">
+      <div class="row" style="justify-content:space-between">
+        <b>الطلبيات</b>
+        <span class="pill" id="ordersCount">0</span>
+      </div>
+      <div id="ordersList" style="margin-top:10px"></div>
+      <div id="ordersEmpty" class="muted" style="margin-top:10px;display:none">لا يوجد طلبيات</div>
+    </aside>
+
+    <main class="card">
+      <div id="empty" class="muted">اختاري طلبية من القائمة</div>
+
+      <div id="main" style="display:none">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div>
+            <b id="orderTitle"></b>
+          </div>
+          <span class="pill" id="purchaseCount">0</span>
+        </div>
+
+        <div class="sectionTitle">مستلمو البيت</div>
+        <table>
+          <thead>
+            <tr>
+              <th>الزبون</th>
+              <th>السعر</th>
+            </tr>
+          </thead>
+          <tbody id="homeBody"></tbody>
+        </table>
+
+        <div class="sectionTitle">نقطة الاستلام - La Aura</div>
+        <table>
+          <thead>
+            <tr>
+              <th>الزبون</th>
+              <th>السعر</th>
+            </tr>
+          </thead>
+          <tbody id="pickupBody"></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://maucjvxhrnkdeybltjco.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+const HOME_PICKUP_VALUE = "من البيت";
+const PICKUP_VALUE = "من نقطة الاستلام";
+const EMAIL_RAHAF = "rahaf@she-store.com";
+
+async function requireAuth(){
+  const { data } = await sb.auth.getSession();
+  if(!data.session){
+    window.location.href="./login.html?next=collections.html";
+    return false;
+  }
+  return true;
+}
+
+async function guardCollectionsAccess(){
+  const ok = await requireAuth();
+  if(!ok) return;
+
+  const { data: u } = await sb.auth.getUser();
+  const email = (u?.user?.email || "").toLowerCase();
+  if(email !== EMAIL_RAHAF){
+    window.location.replace("./login.html");
+  }
+}
+
+document.getElementById("logoutBtn").onclick=async()=>{
+  await sb.auth.signOut();
+  window.location.href="./login.html";
+};
+
+const ordersListEl = document.getElementById("ordersList");
+const ordersEmptyEl = document.getElementById("ordersEmpty");
+const ordersCountEl = document.getElementById("ordersCount");
+const emptyEl = document.getElementById("empty");
+const mainEl = document.getElementById("main");
+const orderTitleEl = document.getElementById("orderTitle");
+const purchaseCountEl = document.getElementById("purchaseCount");
+const homeBody = document.getElementById("homeBody");
+const pickupBody = document.getElementById("pickupBody");
+
+let orders = [];
+let activeOrder = null;
+
+function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+
+function showMain(on){
+  mainEl.style.display = on ? "" : "none";
+  emptyEl.style.display = on ? "none" : "";
+}
+
+async function loadOrders(){
+  const { data, error } = await sb
+    .from("orders")
+    .select("id, order_name, created_at, purchases!inner(pickup_point, picked_up, collected)")
+    .eq("arrived", true)
+    .order("created_at",{ascending:false});
+
+  if(error){ console.error(error); return; }
+
+  orders = (data || []).filter(o=>{
+    const list = o.purchases || [];
+    return list.some(p=>p.pickup_point === HOME_PICKUP_VALUE && p.picked_up) ||
+      list.some(p=>p.pickup_point === PICKUP_VALUE && p.collected);
+  });
+
+  ordersCountEl.textContent = orders.length;
+  ordersListEl.innerHTML = "";
+  ordersEmptyEl.style.display = orders.length ? "none" : "";
+
+  orders.forEach(o=>{
+    const div = document.createElement("div");
+    div.className = "orderItem" + (activeOrder?.id === o.id ? " active" : "");
+    div.innerHTML = `<span>${escapeHtml(o.order_name || "")}</span><span class="pill">فتح</span>`;
+    div.onclick = () => selectOrder(o);
+    ordersListEl.appendChild(div);
+  });
+}
+
+async function selectOrder(order){
+  activeOrder = order;
+  orderTitleEl.textContent = order.order_name || "";
+
+  await loadOrders();
+
+  const { data, error } = await sb
+    .from("purchases")
+    .select("id, customer_name, price, pickup_point, picked_up, collected")
+    .eq("order_id", order.id)
+    .order("created_at",{ascending:true});
+
+  if(error){ console.error(error); return; }
+
+  const list = data || [];
+  const homeList = list.filter(p=>p.pickup_point === HOME_PICKUP_VALUE && p.picked_up);
+  const pickupList = list.filter(p=>p.pickup_point === PICKUP_VALUE && p.collected);
+
+  purchaseCountEl.textContent = `عدد المشتريات: ${homeList.length + pickupList.length}`;
+
+  homeBody.innerHTML = homeList.length
+    ? homeList.map(p=>`<tr><td>${escapeHtml(p.customer_name || "")}</td><td>${escapeHtml(p.price ?? "")}</td></tr>`).join("")
+    : `<tr><td colspan="2" class="muted">لا يوجد مشتريات</td></tr>`;
+
+  pickupBody.innerHTML = pickupList.length
+    ? pickupList.map(p=>`<tr><td>${escapeHtml(p.customer_name || "")}</td><td>${escapeHtml(p.price ?? "")}</td></tr>`).join("")
+    : `<tr><td colspan="2" class="muted">لا يوجد مشتريات</td></tr>`;
+
+  showMain(true);
+}
+
+(async function init(){
+  await guardCollectionsAccess();
+  await loadOrders();
+  if(orders.length) selectOrder(orders[0]);
+})();
+</script>
+</body>
+</html>

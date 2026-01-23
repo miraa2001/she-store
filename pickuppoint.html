@@ -100,7 +100,10 @@
           <div>
             <b id="orderTitle"></b>
           </div>
-          <span class="pill" id="purchaseCount">0</span>
+          <div class="row">
+            <span class="pill" id="purchaseCount">0</span>
+            <button class="btn" id="collectBtn" style="display:none">تم استلام تحصيل المستلمين</button>
+          </div>
         </div>
 
         <hr>
@@ -227,6 +230,7 @@ function renderSidebar(){
     link("إضافة طلبية", "./index.html");
     link("عرض الطلبيات", "./view.html");
     link("مستلمو البيت", "./homepickup.html");
+    link("تحصيل المبالغ", "./collections.html");
   }
 
   if(myEmail === "reem@she-store.com"){
@@ -249,6 +253,7 @@ const mainEl = document.getElementById("main");
 const orderTitleEl = document.getElementById("orderTitle");
 const purchaseCountEl = document.getElementById("purchaseCount");
 const tbody = document.getElementById("tbody");
+const collectBtn = document.getElementById("collectBtn");
 
 const searchInput = document.getElementById("searchInput");
 const searchResultsEl = document.getElementById("searchResults");
@@ -288,6 +293,7 @@ async function loadPickupOrders(){
     .from("orders")
     .select("id, order_name, created_at, purchases!inner(pickup_point)")
     .eq("arrived", true)
+    .eq("placed_at_pickup", true)
     .eq("purchases.pickup_point", PICKUP_VALUE)
     .order("created_at",{ascending:false});
 
@@ -331,11 +337,40 @@ async function selectOrder(o){
   const list = await loadPurchasesForOrder(o.id);
   purchasesByOrder.set(o.id, list);
 
-  orderTitleEl.textContent = `طلبية ${formatDMY(o.placed_at_pickup_at)}`;
+  orderTitleEl.textContent = o.order_name || "طلبية";
   purchaseCountEl.textContent = `عدد المشتريات: ${list.length}`;
+
+  if(collectBtn){
+    collectBtn.style.display = isRahaf ? "" : "none";
+  }
 
   renderTable(list);
   showMain(true);
+}
+
+if(collectBtn){
+  collectBtn.onclick = async ()=>{
+    if(!activeOrder || !isRahaf) return;
+
+    collectBtn.disabled = true;
+    const { error } = await sb
+      .from("purchases")
+      .update({ collected: true, collected_at: new Date().toISOString() })
+      .eq("order_id", activeOrder.id)
+      .eq("pickup_point", PICKUP_VALUE)
+      .eq("picked_up", true);
+
+    if(error){
+      console.error(error);
+      collectBtn.disabled = false;
+      return;
+    }
+
+    const list = await loadPurchasesForOrder(activeOrder.id);
+    purchasesByOrder.set(activeOrder.id, list);
+    renderTable(list);
+    collectBtn.disabled = false;
+  };
 }
 
 function fmtDate(iso){
