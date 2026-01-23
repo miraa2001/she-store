@@ -173,15 +173,43 @@ async function loadMe(){
   myEmail = (data?.user?.email || "").toLowerCase();
 }
 
+async function getMyRole(){
+  const { data: u } = await sb.auth.getUser();
+  const email = (u?.user?.email || "").toLowerCase();
+  if(!email) return { email:"", role:"viewer" };
+
+  const { data: r, error } = await sb
+    .from("user_roles")
+    .select("role")
+    .eq("email", email)
+    .maybeSingle();
+
+  if(error){
+    console.error("ROLE READ ERROR:", error);
+    return { email, role:"viewer" };
+  }
+  return { email, role: (r?.role || "viewer") };
+}
+
 async function guardViewAccess(){
   const ok = await requireAuth();
   if(!ok) return;
 
-  await loadMe();
-  if(myEmail === EMAIL_LAAURA){
+  const me = await getMyRole();
+  myEmail = me.email;
+
+  // pickup role (La Aura) goes to pickup page
+  if(me.role === "pickup"){
     window.location.replace("./pickuppoint.html");
     return;
   }
+
+  // viewer + admin are allowed
+  if(me.role !== "viewer" && me.role !== "admin"){
+    window.location.replace("./login.html");
+    return;
+  }
+}
   if(myEmail !== EMAIL_RAHAF && myEmail !== EMAIL_REEM){
     window.location.replace("./login.html");
     return;

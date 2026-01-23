@@ -9,7 +9,34 @@
     body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa;color:#111}
     .wrap{max-width:1100px;margin:auto;padding:16px}
 
-    /* ===== Sidebar ===== */
+    /* ===== Image Lightbox ===== */
+const lightbox = document.getElementById("lightbox");
+const lightboxImg = document.getElementById("lightboxImg");
+
+function openLightbox(src){
+  if(!src) return;
+  lightboxImg.src = src;
+  lightbox.style.display = "flex";
+  lightbox.setAttribute("aria-hidden","false");
+}
+function closeLightbox(){
+  lightbox.style.display = "none";
+  lightboxImg.src = "";
+  lightbox.setAttribute("aria-hidden","true");
+}
+lightbox.addEventListener("click", closeLightbox);
+document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") closeLightbox(); });
+
+// event delegation: any thumbnail in list/edit
+document.addEventListener("click", (e)=>{
+  const img = e.target?.closest?.("img");
+  if(!img) return;
+  if(img.closest(".thumbs") || img.closest(".editThumb") || img.closest(".thumb")){
+    openLightbox(img.src);
+  }
+});
+
+/* ===== Sidebar ===== */
     .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
     .brand b{font-size:20px}
     .muted{color:#666;font-size:13px}
@@ -60,7 +87,11 @@
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     .orderItem{border:1px solid #e7e7e7;border-radius:12px;padding:10px;cursor:pointer;display:flex;justify-content:space-between}
     .orderItem.active{border-color:#111}
-    .thumbs img{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid #eee}
+    .thumbs img{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid #eee;cursor:pointer}
+    .editThumb img{cursor:pointer}
+    #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;padding:16px;z-index:1000}
+    #lightbox img{max-width:92vw;max-height:92vh;border-radius:16px}
+
     .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px}
 
     .dropZone{
@@ -217,6 +248,9 @@
   </div>
 </div>
 
+
+<div id="lightbox" aria-hidden="true"><img id="lightboxImg" alt="صورة"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL = "https://maucjvxhrnkdeybltjco.supabase.co";
@@ -229,6 +263,21 @@ const EMAIL_REEM  = "reem@she-store.com";
 const EMAIL_LAAURA= "laaura@she-store.com";
 
 function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+
+function parsePrice(v){
+  if(v === null || v === undefined) return 0;
+  if(typeof v === "number") return isFinite(v) ? v : 0;
+  const s = String(v).replace(/[, ]/g, "").replace(/[₪]/g, "");
+  const m = s.match(/-?\d+(?:\.\d+)?/);
+  return m ? Number(m[0]) : 0;
+}
+function formatILS(n){
+  const x = Number(n || 0);
+  if(!isFinite(x)) return "0";
+  // keep it clean: 10 vs 10.50
+  const fixed = x.toFixed(2);
+  return fixed.endsWith(".00") ? String(Math.round(x)) : fixed;
+}
 function escapeAttr(s=""){ return escapeHtml(s); }
 function todayName(){ const d=new Date(); return `طلبية ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`; }
 
@@ -250,16 +299,37 @@ async function loadMe(){
   myEmail = (data?.user?.email || "").toLowerCase();
 }
 
+async function getMyRole(){
+  const { data: u } = await sb.auth.getUser();
+  const email = (u?.user?.email || "").toLowerCase();
+  if(!email) return { email:"", role:"viewer" };
+
+  const { data: r, error } = await sb
+    .from("user_roles")
+    .select("role")
+    .eq("email", email)
+    .maybeSingle();
+
+  if(error){
+    console.error("ROLE READ ERROR:", error);
+    return { email, role:"viewer" };
+  }
+  return { email, role: (r?.role || "viewer") };
+}
+
 async function guardIndexAccess(){
   const ok = await requireAuth();
   if(!ok) return;
-  await loadMe();
 
-  // Index allowed: Rahaf فقط
-  if(myEmail !== EMAIL_RAHAF){
+  const me = await getMyRole();
+
+  // Index allowed: admin (Rahaf)
+  if(me.role !== "admin"){
     window.location.replace("./view.html");
     return;
   }
+  myEmail = me.email;
+}
 }
 
 /* ===== Sidebar ===== */
@@ -652,7 +722,8 @@ async function loadPurchases(){
   // ✅ restore totals per order
   const purchasesCount = (data||[]).length;
   const totalItems = (data||[]).reduce((sum,p)=> sum + Number(p.qty || 0), 0);
-  orderStats.textContent = `عدد المشتريات: ${purchasesCount} — مجموع القطع: ${totalItems}`;
+  const totalPrice = (data||[]).reduce((sum,p)=> sum + parsePrice(p.price), 0);
+  orderStats.textContent = `عدد المشتريات: ${purchasesCount} — مجموع القطع: ${totalItems} — مجموع الأسعار: ${formatILS(totalPrice)} ₪`;
 
   tbody.innerHTML="";
 

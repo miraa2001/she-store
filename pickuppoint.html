@@ -118,12 +118,20 @@ async function requireAuth(){
 async function getMyRole(){
   const { data: u } = await sb.auth.getUser();
   const email = (u?.user?.email || "").toLowerCase();
-  const { data: r, error } = await sb.from("user_roles").select("role").single();
+
+  if(!email) return { email:"", role:"viewer" };
+
+  const { data: r, error } = await sb
+    .from("user_roles")
+    .select("role")
+    .eq("email", email)
+    .maybeSingle();
+
   if(error){
     console.error("ROLE READ ERROR:", error);
-    return { email, role: "viewer" }; // safe default
+    return { email, role:"viewer" }; // safe default
   }
-  return { email, role: r?.role || "viewer" };
+  return { email, role: (r?.role || "viewer") };
 }
 
 async function guardPickupPage(){
