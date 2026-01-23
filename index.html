@@ -367,10 +367,11 @@ function renderSidebar(){
     sidebarContent.appendChild(b);
   };
 
-  link("إضافة طلبية", "./index.html");
-  link("عرض الطلبيات", "./view.html");
-  link("مستلمو البيت", "./homepickup.html");
-  link("La Aura", "./pickuppoint.html");
+  if(myEmail === EMAIL_RAHAF){
+    link("عرض الطلبيات", "./view.html");
+    link("La Aura", "./pickuppoint.html");
+    link("مستلمو البيت", "./homepickup.html");
+  }
 
   btn("تسجيل خروج", "danger", async ()=>{
     await sb.auth.signOut();
