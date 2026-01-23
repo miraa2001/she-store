@@ -177,12 +177,13 @@ async function loadMe(){
 async function getMyRole(){
   const { data: u } = await sb.auth.getUser();
   const email = (u?.user?.email || "").toLowerCase();
-  if(!email) return { email:"", role:"viewer" };
+  const userId = u?.user?.id || "";
+  if(!userId) return { email, role:"viewer" };
 
   const { data: r, error } = await sb
     .from("user_roles")
     .select("role")
-    .eq("email", email)
+    .eq("user_id", userId)
     .maybeSingle();
 
   if(error){

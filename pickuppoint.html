@@ -117,13 +117,14 @@ async function requireAuth(){
 async function getMyRole(){
   const { data: u } = await sb.auth.getUser();
   const email = (u?.user?.email || "").toLowerCase();
+  const userId = u?.user?.id || "";
 
-  if(!email) return { email:"", role:"viewer" };
+  if(!userId) return { email, role:"viewer" };
 
   const { data: r, error } = await sb
     .from("user_roles")
     .select("role")
-    .eq("email", email)
+    .eq("user_id", userId)
     .maybeSingle();
 
   if(error){
