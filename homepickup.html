@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>نقطة الاستلام - La Aura</title>
+  <title>مستلمو البيت</title>
 
   <style>
     body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa;color:#111}
@@ -12,10 +12,17 @@
     @media(max-width:900px){.grid{grid-template-columns:1fr}}
     .card{background:#fff;border:1px solid #e7e7e7;border-radius:14px;padding:12px}
     .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-    .btn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
-    .btn.primary{background:#111;color:#fff;border-color:#111}
-    .muted{color:#666;font-size:13px}
     input{padding:10px;border:1px solid #e7e7e7;border-radius:10px;font-family:inherit}
+    .searchBox{width:100%;max-width:420px}
+    .searchResults{margin-top:8px;border:1px solid #eee;border-radius:12px;overflow:hidden}
+    .searchResults button{
+      width:100%;text-align:right;background:#fff;border:none;padding:10px;cursor:pointer;border-bottom:1px solid #eee
+    }
+    .searchResults button:last-child{border-bottom:none}
+    .searchResults button:hover{background:#fafafa}
+    .highlight{background:#fff8d6;padding:6px 8px;border-radius:10px}
+    .btn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
+    .muted{color:#666;font-size:13px}
     .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px;color:#444}
     .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
     .brand b{font-size:20px}
@@ -41,20 +48,15 @@
 
     .orderItem{border:1px solid #e7e7e7;border-radius:12px;padding:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
     .orderItem.active{border-color:#111}
-    .orderItem small{color:#666}
 
     table{width:100%;border-collapse:collapse}
     th,td{border-bottom:1px solid #eee;padding:10px;text-align:right;vertical-align:top}
     th{color:#666;font-size:13px}
     .chk{width:18px;height:18px}
-    .highlight{background:#fff8d6}
-    .searchBox{width:100%;max-width:420px}
-    .searchResults{margin-top:8px;border:1px solid #eee;border-radius:12px;overflow:hidden}
-    .searchResults button{
-      width:100%;text-align:right;background:#fff;border:none;padding:10px;cursor:pointer;border-bottom:1px solid #eee
-    }
-    .searchResults button:last-child{border-bottom:none}
-    .searchResults button:hover{background:#fafafa}
+    .thumbs{display:flex;gap:8px;flex-wrap:wrap}
+    .thumbs img{width:72px;height:72px;object-fit:cover;border-radius:10px;border:1px solid #eee;cursor:pointer}
+    #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;padding:16px;z-index:100}
+    #lightbox img{max-width:92vw;max-height:92vh;border-radius:16px}
   </style>
 </head>
 <body>
@@ -71,7 +73,8 @@
 <div class="wrap">
   <div class="topbar">
     <div class="brand">
-      <b>نقطة الاستلام - La Aura</b>
+      <b>مستلمو البيت</b>
+      <div class="muted">طلبات الاستلام من البيت</div>
     </div>
     <button class="menuBtn" id="openSidebarBtn" type="button">☰</button>
   </div>
@@ -100,10 +103,8 @@
           <div>
             <b id="orderTitle"></b>
           </div>
-          <div class="row">
-            <span class="pill" id="purchaseCount">0</span>
-            <button class="btn" id="collectBtn" style="display:none">تم استلام تحصيل المستلمين</button>
-          </div>
+          <span class="pill" id="purchaseCount">0</span>
+          <span class="pill" id="totalPrice">مجموع أسعار المستلم: 0</span>
         </div>
 
         <hr>
@@ -111,11 +112,11 @@
         <table>
           <thead>
             <tr>
-              <th>#</th>
               <th>الزبون</th>
               <th>السعر</th>
+              <th>صور</th>
               <th>تم الاستلام</th>
-              <th id="pickedAtHeader" style="display:none">تاريخ الاستلام</th>
+              <th>وقت الاستلام</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
@@ -125,65 +126,42 @@
   </div>
 </div>
 
+<div id="lightbox"><img alt="صورة كبيرة"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL="https://maucjvxhrnkdeybltjco.supabase.co";
 const SUPABASE_ANON_KEY="sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const BUCKET="purchase-images";
 
-const PICKUP_VALUE = "من نقطة الاستلام";
+const HOME_PICKUP_VALUE = "من البيت";
+const EMAIL_RAHAF = "rahaf@she-store.com";
+const EMAIL_REEM  = "reem@she-store.com";
+const EMAIL_LAAURA= "laaura@she-store.com";
 
-/* ========= Auth + Role Gate =========
-   Allowed here: Rahaf + Reem + Laaura
-*/
 async function requireAuth(){
   const { data } = await sb.auth.getSession();
   if(!data.session){
-    window.location.href="./login.html?next=pickuppoint.html";
+    window.location.href="./login.html?next=homepickup.html";
     return false;
   }
   return true;
 }
 
-async function getMyRole(){
-  const { data: u } = await sb.auth.getUser();
-  const email = (u?.user?.email || "").toLowerCase();
-  const userId = u?.user?.id || "";
-
-  if(!userId) return { email, role:"viewer" };
-
-  const { data: r, error } = await sb
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if(error){
-    console.error("ROLE READ ERROR:", error);
-    return { email, role:"viewer" }; // safe default
-  }
-  return { email, role: (r?.role || "viewer") };
-}
-
 let myEmail = "";
-async function guardPickupPage(){
+async function guardHomePickupAccess(){
   const ok = await requireAuth();
   if(!ok) return;
 
-  const { email } = await getMyRole();
-  const normalized = (email || "").toLowerCase();
-  myEmail = normalized;
-  const allowed = [
-    "rahaf@she-store.com",
-    "reem@she-store.com",
-    "laaura@she-store.com"
-  ];
+  const { data: u } = await sb.auth.getUser();
+  const email = (u?.user?.email || "").toLowerCase();
+  myEmail = email;
 
-  if(!allowed.includes(normalized)){
+  if(email !== EMAIL_RAHAF && email !== EMAIL_REEM){
     window.location.replace("./login.html");
   }
 }
-/* =================================== */
 /* ===== Sidebar ===== */
 const sidebar = document.getElementById("sidebar");
 const overlay = document.getElementById("sidebarOverlay");
@@ -226,16 +204,16 @@ function renderSidebar(){
     sidebarContent.appendChild(b);
   };
 
-  if(myEmail === "rahaf@she-store.com"){
+  if(myEmail === EMAIL_RAHAF){
     link("إضافة طلبية", "./index.html");
     link("عرض الطلبيات", "./view.html");
-    link("مستلمو البيت", "./homepickup.html");
+    link("La Aura", "./pickuppoint.html");
     link("تحصيل المبالغ", "./collections.html");
   }
 
-  if(myEmail === "reem@she-store.com"){
+  if(myEmail === EMAIL_REEM){
     link("عرض الطلبيات", "./view.html");
-    link("مستلمو البيت", "./homepickup.html");
+    link("La Aura", "./pickuppoint.html");
   }
 
   btn("تسجيل خروج", "danger", async ()=>{
@@ -247,230 +225,186 @@ function renderSidebar(){
 const ordersListEl = document.getElementById("ordersList");
 const ordersEmptyEl = document.getElementById("ordersEmpty");
 const ordersCountEl = document.getElementById("ordersCount");
-
 const emptyEl = document.getElementById("empty");
 const mainEl = document.getElementById("main");
 const orderTitleEl = document.getElementById("orderTitle");
 const purchaseCountEl = document.getElementById("purchaseCount");
+const totalPriceEl = document.getElementById("totalPrice");
 const tbody = document.getElementById("tbody");
-const collectBtn = document.getElementById("collectBtn");
-
+const lb = document.getElementById("lightbox");
+const lbImg = lb.querySelector("img");
 const searchInput = document.getElementById("searchInput");
 const searchResultsEl = document.getElementById("searchResults");
-const searchCount = document.getElementById("searchCount");
-const pickedAtHeader = document.getElementById("pickedAtHeader");
-
-let userEmail = "";
-let isRahaf = false;
+const searchCountEl = document.getElementById("searchCount");
 
 let orders = [];
 let activeOrder = null;
-let purchasesByOrder = new Map();
+let purchases = [];
 let highlightPurchaseId = null;
 
 function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
-
-async function loadUser(){
-  const { data } = await sb.auth.getUser();
-  userEmail = (data?.user?.email || "").toLowerCase();
-  isRahaf = userEmail === "rahaf@she-store.com";
-  pickedAtHeader.style.display = isRahaf ? "" : "none";
-}
+function escapeAttr(s=""){ return escapeHtml(s); }
 
 function showMain(on){
   mainEl.style.display = on ? "" : "none";
   emptyEl.style.display = on ? "none" : "";
 }
 
-function formatDMY(iso){
-  if(!iso) return "";
+function formatDateTime(iso){
+  if(!iso) return "—";
   const d = new Date(iso);
-  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+  const date = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+  const time = `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  return `${date} ${time}`;
 }
 
-async function loadPickupOrders(){
+function parsePrice(v){
+  if(v === null || v === undefined) return 0;
+  if(typeof v === "number") return isFinite(v) ? v : 0;
+  const s = String(v).replace(/[, ]/g, "").replace(/[₪]/g, "");
+  const m = s.match(/-?\d+(?:\.\d+)?/);
+  return m ? Number(m[0]) : 0;
+}
+
+function formatILS(n){
+  const x = Number(n || 0);
+  if(!isFinite(x)) return "0";
+  const fixed = x.toFixed(2);
+  return fixed.endsWith(".00") ? String(Math.round(x)) : fixed;
+}
+
+function renderPurchases(){
+  if(!activeOrder){
+    showMain(false);
+    return;
+  }
+
+  purchaseCountEl.textContent = `عدد المشتريات: ${purchases.length}`;
+  const pickedTotal = purchases
+    .filter(p=>p.picked_up)
+    .reduce((sum,p)=> sum + parsePrice(p.price), 0);
+  totalPriceEl.textContent = `مجموع أسعار المستلم: ${formatILS(pickedTotal)} ₪`;
+
+  tbody.innerHTML = "";
+  purchases.forEach(p=>{
+    const imgs = (p.purchase_images || []).map(img=>{
+      const url = sb.storage.from(BUCKET).getPublicUrl(img.storage_path).data.publicUrl;
+      return `<img src="${escapeAttr(url)}" alt="صورة">`;
+    }).join("");
+
+    const highlight = (highlightPurchaseId && highlightPurchaseId === p.id)
+      ? `<div class="highlight" style="margin-bottom:6px">✅ هذا هو البحث</div>`
+      : "";
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${highlight}${escapeHtml(p.customer_name || "")}</td>
+      <td>${escapeHtml(p.price ?? "")}</td>
+      <td class="thumbs">${imgs || "—"}</td>
+      <td><input class="chk" type="checkbox" data-pick="${p.id}" ${p.picked_up ? "checked" : ""}></td>
+      <td data-picked-at="${p.id}">${formatDateTime(p.picked_up_at)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll("input[data-pick]").forEach(chk=>{
+    chk.onchange = async ()=>{
+      const id = chk.dataset.pick;
+      const checked = chk.checked;
+      const payload = checked
+        ? { picked_up: true, picked_up_at: new Date().toISOString() }
+        : { picked_up: false, picked_up_at: null };
+
+      const { error: upErr } = await sb.from("purchases").update(payload).eq("id", id);
+      if(upErr){
+        console.error(upErr);
+        chk.checked = !checked;
+        return;
+      }
+
+      const entry = purchases.find(p=>String(p.id) === String(id));
+      if(entry){
+        entry.picked_up = payload.picked_up;
+        entry.picked_up_at = payload.picked_up_at;
+      }
+
+      const cell = tbody.querySelector(`[data-picked-at="${id}"]`);
+      if(cell) cell.textContent = formatDateTime(payload.picked_up_at);
+      renderPurchases();
+    };
+  });
+
+  tbody.querySelectorAll(".thumbs img").forEach(img=>{
+    img.onclick = () => { lb.style.display = "flex"; lbImg.src = img.src; };
+  });
+
+  showMain(true);
+}
+
+async function loadOrders(){
   const { data, error } = await sb
     .from("orders")
-    .select("id, order_name, created_at, purchases!inner(pickup_point)")
+    .select("*")
     .eq("arrived", true)
-    .eq("placed_at_pickup", true)
-    .eq("purchases.pickup_point", PICKUP_VALUE)
     .order("created_at",{ascending:false});
 
   if(error){ console.error(error); return; }
 
   orders = data || [];
   ordersCountEl.textContent = orders.length;
-
   ordersListEl.innerHTML = "";
   ordersEmptyEl.style.display = orders.length ? "none" : "";
 
   orders.forEach(o=>{
     const div = document.createElement("div");
-    const label = o.order_name || "طلبية";
     div.className = "orderItem" + (activeOrder?.id === o.id ? " active" : "");
-    div.innerHTML = `
-      <div><b>${escapeHtml(label)}</b></div>
-      <span class="pill">فتح</span>
-    `;
-    div.onclick = ()=>selectOrder(o);
+    div.innerHTML = `<span>${escapeHtml(o.order_name || "")}</span><span class="pill">فتح</span>`;
+    div.onclick = () => selectOrder(o);
     ordersListEl.appendChild(div);
   });
 }
 
-async function loadPurchasesForOrder(orderId){
+async function selectOrder(order){
+  activeOrder = order;
+  orderTitleEl.textContent = order.order_name || "";
+
+  await loadOrders();
+
   const { data, error } = await sb
     .from("purchases")
-    .select("id, order_id, customer_name, price, picked_up, picked_up_at, created_at, pickup_point")
-    .eq("order_id", orderId)
-    .eq("pickup_point", PICKUP_VALUE)
-    .order("created_at",{ascending:true});
+    .select("id, customer_name, price, picked_up, picked_up_at, pickup_point, purchase_images(storage_path)")
+    .eq("order_id", order.id)
+    .eq("pickup_point", HOME_PICKUP_VALUE)
+    .order("created_at", { ascending: true });
 
-  if(error){ console.error(error); return []; }
-  return data || [];
+  if(error){ console.error(error); return; }
+
+  purchases = data || [];
+  renderPurchases();
 }
 
-async function selectOrder(o){
-  activeOrder = o;
-  await loadPickupOrders();
+lb.onclick = ()=> lb.style.display="none";
 
-  const list = await loadPurchasesForOrder(o.id);
-  purchasesByOrder.set(o.id, list);
-
-  orderTitleEl.textContent = o.order_name || "طلبية";
-  purchaseCountEl.textContent = `عدد المشتريات: ${list.length}`;
-
-  if(collectBtn){
-    collectBtn.style.display = isRahaf ? "" : "none";
-  }
-
-  renderTable(list);
-  showMain(true);
-}
-
-if(collectBtn){
-  collectBtn.onclick = async ()=>{
-    if(!activeOrder || !isRahaf) return;
-
-    collectBtn.disabled = true;
-    const { error } = await sb
-      .from("purchases")
-      .update({ collected: true, collected_at: new Date().toISOString() })
-      .eq("order_id", activeOrder.id)
-      .eq("pickup_point", PICKUP_VALUE)
-      .eq("picked_up", true);
-
-    if(error){
-      console.error(error);
-      collectBtn.disabled = false;
-      return;
-    }
-
-    const list = await loadPurchasesForOrder(activeOrder.id);
-    purchasesByOrder.set(activeOrder.id, list);
-    renderTable(list);
-    collectBtn.disabled = false;
-  };
-}
-
-function fmtDate(iso){
-  try{
-    if(!iso) return "—";
-    const d = new Date(iso);
-    return d.toLocaleString("ar", { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" });
-  } catch { return "—"; }
-}
-
-function renderTable(list){
-  tbody.innerHTML = "";
-
-  if(!list.length){
-    tbody.innerHTML = `<tr><td colspan="${isRahaf?5:4}" class="muted">لا يوجد مشتريات</td></tr>`;
-    return;
-  }
-
-  list.forEach((p, i)=>{
-    const tr = document.createElement("tr");
-    if(highlightPurchaseId && highlightPurchaseId === p.id) tr.classList.add("highlight");
-
-    const checked = p.picked_up ? "checked" : "";
-    const pickedAt = fmtDate(p.picked_up_at);
-
-    tr.innerHTML = `
-      <td>${i+1}</td>
-      <td>${escapeHtml(p.customer_name || "")}</td>
-      <td>${escapeHtml(p.price ?? "")}</td>
-      <td><input class="chk" type="checkbox" data-id="${p.id}" ${checked}></td>
-      ${isRahaf ? `<td>${escapeHtml(pickedAt)}</td>` : ``}
-    `;
-    tbody.appendChild(tr);
-  });
-
-  tbody.querySelectorAll('input[type="checkbox"][data-id]').forEach(chk=>{
-    chk.onchange = async ()=>{
-      const id = chk.dataset.id;
-      const val = chk.checked;
-      const pickedAt = val ? new Date().toISOString() : null;
-
-      const list = purchasesByOrder.get(activeOrder.id) || [];
-      const item = list.find(x=>String(x.id)===String(id));
-      if(item){
-        item.picked_up = val;
-        item.picked_up_at = pickedAt;
-      }
-
-      const { error } = await sb
-        .from("purchases")
-        .update({ picked_up: val, picked_up_at: pickedAt })
-        .eq("id", id);
-
-      if(error){
-        console.error(error);
-        alert(error.message || "فشل تحديث الاستلام");
-        chk.checked = !val;
-        if(item){
-          item.picked_up = !val;
-          item.picked_up_at = item.picked_up ? item.picked_up_at : null;
-        }
-        return;
-      }
-
-      if(isRahaf){
-        renderTable(purchasesByOrder.get(activeOrder.id) || []);
-      }
-    };
-  });
-}
-
-/* ===== Search ===== */
 let searchTimer = null;
-
 searchInput.addEventListener("input", ()=>{
   clearTimeout(searchTimer);
   searchTimer = setTimeout(runSearch, 250);
 });
 
+function clearSearchUI(){
+  searchResultsEl.style.display = "none";
+  searchCountEl.style.display = "none";
+  searchResultsEl.innerHTML = "";
+}
+
 async function runSearch(){
   const q = (searchInput.value || "").trim();
-  if(q.length < 2){
-    searchResultsEl.style.display = "none";
-    searchCount.style.display = "none";
-    searchResultsEl.innerHTML = "";
-    return;
-  }
-
-  const orderIds = orders.map(o=>o.id);
-  if(!orderIds.length){
-    searchResultsEl.style.display = "none";
-    searchCount.style.display = "none";
-    return;
-  }
+  if(q.length < 2){ clearSearchUI(); return; }
 
   const { data, error } = await sb
     .from("purchases")
-    .select("id, order_id, customer_name, price, created_at")
-    .in("order_id", orderIds)
-    .eq("pickup_point", PICKUP_VALUE)
+    .select("id, order_id, customer_name, price, pickup_point, created_at")
+    .eq("pickup_point", HOME_PICKUP_VALUE)
     .ilike("customer_name", `%${q}%`)
     .order("created_at",{ascending:false})
     .limit(50);
@@ -478,36 +412,34 @@ async function runSearch(){
   if(error){ console.error(error); return; }
 
   const results = data || [];
-  searchCount.textContent = `${results.length} نتيجة`;
-  searchCount.style.display = "";
+  searchCountEl.textContent = `${results.length} نتيجة`;
+  searchCountEl.style.display = "";
   searchResultsEl.style.display = "";
   searchResultsEl.innerHTML = "";
 
   results.forEach(r=>{
     const ord = orders.find(o=>o.id === r.order_id);
-    const label = ord ? `طلبية ${formatDMY(ord.placed_at_pickup_at)}` : "طلبية";
-
     const btn = document.createElement("button");
     btn.innerHTML = `
       <b>${escapeHtml(r.customer_name || "")}</b>
-      <div class="muted">${escapeHtml(label)} — السعر: ${escapeHtml(r.price ?? "")}</div>
+      <div class="muted">${escapeHtml(ord?.order_name || "طلبية")} — السعر: ${escapeHtml(r.price ?? "")}</div>
     `;
     btn.onclick = async ()=>{
+      searchResultsEl.style.display="none";
       highlightPurchaseId = r.id;
-      searchResultsEl.style.display = "none";
+
       if(ord) await selectOrder(ord);
-      setTimeout(()=>{ highlightPurchaseId = null; }, 2500);
+
+      setTimeout(()=>{ highlightPurchaseId = null; renderPurchases(); }, 2500);
     };
     searchResultsEl.appendChild(btn);
   });
 }
 
-/* ===== Init ===== */
 (async function init(){
-  await guardPickupPage();
+  await guardHomePickupAccess();
   renderSidebar();
-  await loadUser();
-  await loadPickupOrders();
+  await loadOrders();
   if(orders.length) selectOrder(orders[0]);
 })();
 </script>
