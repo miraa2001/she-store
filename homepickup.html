@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>مستلمو البيت</title>
+
+  <style>
+    body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa;color:#111}
+    .wrap{max-width:1100px;margin:auto;padding:16px}
+    .grid{display:grid;grid-template-columns:320px 1fr;gap:12px}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+    .card{background:#fff;border:1px solid #e7e7e7;border-radius:14px;padding:12px}
+    .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .btn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
+    .muted{color:#666;font-size:13px}
+    .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px;color:#444}
+
+    .orderItem{border:1px solid #e7e7e7;border-radius:12px;padding:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+    .orderItem.active{border-color:#111}
+
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px solid #eee;padding:10px;text-align:right;vertical-align:top}
+    th{color:#666;font-size:13px}
+    .chk{width:18px;height:18px}
+    .thumbs{display:flex;gap:8px;flex-wrap:wrap}
+    .thumbs img{width:72px;height:72px;object-fit:cover;border-radius:10px;border:1px solid #eee;cursor:pointer}
+    #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;padding:16px;z-index:100}
+    #lightbox img{max-width:92vw;max-height:92vh;border-radius:16px}
+  </style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="row" style="margin-bottom:12px">
+    <div>
+      <b style="font-size:20px">مستلمو البيت</b>
+      <div class="muted">طلبات الاستلام من البيت</div>
+    </div>
+    <div class="row">
+      <button class="btn" id="logoutBtn">تسجيل خروج</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <aside class="card">
+      <div class="row" style="justify-content:space-between">
+        <b>الطلبيات</b>
+        <span class="pill" id="ordersCount">0</span>
+      </div>
+      <div id="ordersList" style="margin-top:10px"></div>
+      <div id="ordersEmpty" class="muted" style="margin-top:10px;display:none">لا يوجد طلبيات</div>
+    </aside>
+
+    <main class="card">
+      <div id="empty" class="muted">اختاري طلبية من القائمة</div>
+
+      <div id="main" style="display:none">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div>
+            <b id="orderTitle"></b>
+          </div>
+          <span class="pill" id="purchaseCount">0</span>
+          <span class="pill" id="totalPrice">مجموع الأسعار: 0</span>
+        </div>
+
+        <hr>
+
+        <table>
+          <thead>
+            <tr>
+              <th>الزبون</th>
+              <th>السعر</th>
+              <th>صور</th>
+              <th>تم الاستلام</th>
+              <th>وقت الاستلام</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div id="lightbox"><img alt="صورة كبيرة"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://maucjvxhrnkdeybltjco.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const BUCKET="purchase-images";
+
+const HOME_PICKUP_VALUE = "من البيت";
+const EMAIL_RAHAF = "rahaf@she-store.com";
+const EMAIL_REEM  = "reem@she-store.com";
+const EMAIL_LAAURA= "laaura@she-store.com";
+
+async function requireAuth(){
+  const { data } = await sb.auth.getSession();
+  if(!data.session){
+    window.location.href="./login.html?next=homepickup.html";
+    return false;
+  }
+  return true;
+}
+
+async function guardHomePickupAccess(){
+  const ok = await requireAuth();
+  if(!ok) return;
+
+  const { data: u } = await sb.auth.getUser();
+  const email = (u?.user?.email || "").toLowerCase();
+
+  if(email === EMAIL_LAAURA){
+    window.location.replace("./pickuppoint.html");
+    return;
+  }
+
+  if(email !== EMAIL_RAHAF && email !== EMAIL_REEM){
+    window.location.replace("./login.html");
+  }
+}
+guardHomePickupAccess();
+
+document.getElementById("logoutBtn").onclick=async()=>{
+  await sb.auth.signOut();
+  window.location.href="./login.html";
+};
+
+const ordersListEl = document.getElementById("ordersList");
+const ordersEmptyEl = document.getElementById("ordersEmpty");
+const ordersCountEl = document.getElementById("ordersCount");
+const emptyEl = document.getElementById("empty");
+const mainEl = document.getElementById("main");
+const orderTitleEl = document.getElementById("orderTitle");
+const purchaseCountEl = document.getElementById("purchaseCount");
+const totalPriceEl = document.getElementById("totalPrice");
+const tbody = document.getElementById("tbody");
+const lb = document.getElementById("lightbox");
+const lbImg = lb.querySelector("img");
+
+let orders = [];
+let activeOrder = null;
+
+function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function escapeAttr(s=""){ return escapeHtml(s); }
+
+function showMain(on){
+  mainEl.style.display = on ? "" : "none";
+  emptyEl.style.display = on ? "none" : "";
+}
+
+function formatDateTime(iso){
+  if(!iso) return "—";
+  const d = new Date(iso);
+  const date = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+  const time = `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  return `${date} ${time}`;
+}
+
+function parsePrice(v){
+  if(v === null || v === undefined) return 0;
+  if(typeof v === "number") return isFinite(v) ? v : 0;
+  const s = String(v).replace(/[, ]/g, "").replace(/[₪]/g, "");
+  const m = s.match(/-?\d+(?:\.\d+)?/);
+  return m ? Number(m[0]) : 0;
+}
+
+function formatILS(n){
+  const x = Number(n || 0);
+  if(!isFinite(x)) return "0";
+  const fixed = x.toFixed(2);
+  return fixed.endsWith(".00") ? String(Math.round(x)) : fixed;
+}
+
+async function loadOrders(){
+  const { data, error } = await sb
+    .from("orders")
+    .select("*")
+    .order("created_at",{ascending:false});
+
+  if(error){ console.error(error); return; }
+
+  orders = data || [];
+  ordersCountEl.textContent = orders.length;
+  ordersListEl.innerHTML = "";
+  ordersEmptyEl.style.display = orders.length ? "none" : "";
+
+  orders.forEach(o=>{
+    const div = document.createElement("div");
+    div.className = "orderItem" + (activeOrder?.id === o.id ? " active" : "");
+    div.innerHTML = `<span>${escapeHtml(o.order_name || "")}</span><span class="pill">فتح</span>`;
+    div.onclick = () => selectOrder(o);
+    ordersListEl.appendChild(div);
+  });
+}
+
+async function selectOrder(order){
+  activeOrder = order;
+  orderTitleEl.textContent = order.order_name || "";
+
+  await loadOrders();
+
+  const { data, error } = await sb
+    .from("purchases")
+    .select("id, customer_name, price, picked_up, picked_up_at, pickup_point, purchase_images(storage_path)")
+    .eq("order_id", order.id)
+    .eq("pickup_point", HOME_PICKUP_VALUE)
+    .order("created_at", { ascending: true });
+
+  if(error){ console.error(error); return; }
+
+  const purchases = data || [];
+  purchaseCountEl.textContent = `عدد المشتريات: ${purchases.length}`;
+  const totalPrice = purchases.reduce((sum,p)=> sum + parsePrice(p.price), 0);
+  totalPriceEl.textContent = `مجموع الأسعار: ${formatILS(totalPrice)} ₪`;
+
+  tbody.innerHTML = "";
+  purchases.forEach(p=>{
+    const imgs = (p.purchase_images || []).map(img=>{
+      const url = sb.storage.from(BUCKET).getPublicUrl(img.storage_path).data.publicUrl;
+      return `<img src="${escapeAttr(url)}" alt="صورة">`;
+    }).join("");
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(p.customer_name || "")}</td>
+      <td>${escapeHtml(p.price ?? "")}</td>
+      <td class="thumbs">${imgs || "—"}</td>
+      <td><input class="chk" type="checkbox" data-pick="${p.id}" ${p.picked_up ? "checked" : ""}></td>
+      <td data-picked-at="${p.id}">${formatDateTime(p.picked_up_at)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll("input[data-pick]").forEach(chk=>{
+    chk.onchange = async ()=>{
+      const id = chk.dataset.pick;
+      const checked = chk.checked;
+      const payload = checked
+        ? { picked_up: true, picked_up_at: new Date().toISOString() }
+        : { picked_up: false, picked_up_at: null };
+
+      const { error: upErr } = await sb.from("purchases").update(payload).eq("id", id);
+      if(upErr){
+        console.error(upErr);
+        chk.checked = !checked;
+        return;
+      }
+      const cell = tbody.querySelector(`[data-picked-at="${id}"]`);
+      if(cell) cell.textContent = formatDateTime(payload.picked_up_at);
+    };
+  });
+
+  tbody.querySelectorAll(".thumbs img").forEach(img=>{
+    img.onclick = () => { lb.style.display = "flex"; lbImg.src = img.src; };
+  });
+
+  showMain(true);
+}
+
+lb.onclick = ()=> lb.style.display="none";
+
+(async function init(){
+  await guardHomePickupAccess();
+  await loadOrders();
+  if(orders.length) selectOrder(orders[0]);
+})();
+</script>
+</body>
+</html>
