@@ -32,7 +32,8 @@
     .sidebarHeader b{font-size:16px}
     .sidebar a,.sidebar button{
       width:100%;text-align:right;border:1px solid #e7e7e7;background:#fff;
-      padding:10px 12px;border-radius:10px;cursor:pointer;margin-top:8px;font-family:inherit
+      padding:10px 12px;border-radius:10px;cursor:pointer;margin-top:8px;font-family:inherit;
+      box-sizing:border-box
     }
     .sidebar a{color:#111;text-decoration:none;display:block}
     .sidebar .danger{border-color:#f2c2c2;color:#b00020}
@@ -176,12 +177,13 @@ async function loadMe(){
 async function getMyRole(){
   const { data: u } = await sb.auth.getUser();
   const email = (u?.user?.email || "").toLowerCase();
-  if(!email) return { email:"", role:"viewer" };
+  const userId = u?.user?.id || "";
+  if(!userId) return { email, role:"viewer" };
 
   const { data: r, error } = await sb
     .from("user_roles")
     .select("role")
-    .eq("email", email)
+    .eq("user_id", userId)
     .maybeSingle();
 
   if(error){
@@ -198,18 +200,11 @@ async function guardViewAccess(){
   const me = await getMyRole();
   myEmail = me.email;
 
-  // pickup role (La Aura) goes to pickup page
-  if(me.role === "pickup"){
+  if(myEmail === EMAIL_LAAURA){
     window.location.replace("./pickuppoint.html");
     return;
   }
 
-  // viewer + admin are allowed
-  if(me.role !== "viewer" && me.role !== "admin"){
-    window.location.replace("./login.html");
-    return;
-  }
-}
   if(myEmail !== EMAIL_RAHAF && myEmail !== EMAIL_REEM){
     window.location.replace("./login.html");
     return;
