@@ -344,6 +344,7 @@ async function loadOrders(){
   const { data, error } = await sb
     .from("orders")
     .select("*")
+    .eq("arrived", true)
     .order("created_at",{ascending:false});
 
   if(error){ console.error(error); return; }

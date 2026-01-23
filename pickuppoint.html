@@ -17,6 +17,27 @@
     .muted{color:#666;font-size:13px}
     input{padding:10px;border:1px solid #e7e7e7;border-radius:10px;font-family:inherit}
     .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px;color:#444}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+    .brand b{font-size:20px}
+    .menuBtn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
+    .sidebarOverlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:50}
+    .sidebar{
+      position:fixed;top:0;right:0;height:100vh;width:min(280px,82vw);
+      background:#fff;border-left:1px solid #eee;z-index:60;
+      transform:translateX(100%);transition:transform .2s ease;
+      display:flex;flex-direction:column;padding:14px;box-sizing:border-box
+    }
+    .sidebar.open{transform:translateX(0)}
+    .sidebarOverlay.open{display:block}
+    .sidebarHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+    .sidebarHeader b{font-size:16px}
+    .sidebar a,.sidebar button{
+      width:100%;text-align:right;border:1px solid #e7e7e7;background:#fff;
+      padding:10px 12px;border-radius:10px;cursor:pointer;margin-top:8px;font-family:inherit;
+      box-sizing:border-box
+    }
+    .sidebar a{color:#111;text-decoration:none;display:block}
+    .sidebar .danger{border-color:#f2c2c2;color:#b00020}
 
     .orderItem{border:1px solid #e7e7e7;border-radius:12px;padding:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
     .orderItem.active{border-color:#111}
@@ -38,14 +59,21 @@
 </head>
 <body>
 
+<div class="sidebarOverlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebarHeader">
+    <b>القائمة</b>
+    <button class="menuBtn" id="closeSidebarBtn" type="button">✕</button>
+  </div>
+  <div id="sidebarContent"></div>
+</aside>
+
 <div class="wrap">
-  <div class="row" style="margin-bottom:12px">
-    <div>
-      <b style="font-size:20px">نقطة الاستلام - La Aura</b>
+  <div class="topbar">
+    <div class="brand">
+      <b>نقطة الاستلام - La Aura</b>
     </div>
-    <div class="row">
-      <button class="btn" id="logoutBtn">تسجيل خروج</button>
-    </div>
+    <button class="menuBtn" id="openSidebarBtn" type="button">☰</button>
   </div>
 
   <div class="row" style="margin-bottom:12px">
@@ -134,12 +162,14 @@ async function getMyRole(){
   return { email, role: (r?.role || "viewer") };
 }
 
+let myEmail = "";
 async function guardPickupPage(){
   const ok = await requireAuth();
   if(!ok) return;
 
   const { email } = await getMyRole();
   const normalized = (email || "").toLowerCase();
+  myEmail = normalized;
   const allowed = [
     "rahaf@she-store.com",
     "reem@she-store.com",
@@ -150,13 +180,65 @@ async function guardPickupPage(){
     window.location.replace("./login.html");
   }
 }
-guardPickupPage();
 /* =================================== */
+/* ===== Sidebar ===== */
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("sidebarOverlay");
+const openBtn = document.getElementById("openSidebarBtn");
+const closeBtn = document.getElementById("closeSidebarBtn");
+const sidebarContent = document.getElementById("sidebarContent");
 
-document.getElementById("logoutBtn").onclick=async()=>{
-  await sb.auth.signOut();
-  window.location.href="./login.html";
-};
+function openSidebar(){
+  sidebar.classList.add("open");
+  overlay.classList.add("open");
+}
+function closeSidebar(){
+  sidebar.classList.remove("open");
+  overlay.classList.remove("open");
+}
+openBtn.onclick = openSidebar;
+closeBtn.onclick = closeSidebar;
+overlay.onclick = closeSidebar;
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeSidebar(); });
+
+function renderSidebar(){
+  sidebarContent.innerHTML = "";
+
+  const link = (text, href)=>{
+    const a = document.createElement("a");
+    a.href = href;
+    a.textContent = text;
+    a.onclick = ()=> closeSidebar();
+    sidebarContent.appendChild(a);
+  };
+  const btn = (text, cls, onClick)=>{
+    const b = document.createElement("button");
+    b.type="button";
+    b.className = cls || "";
+    b.textContent = text;
+    b.onclick = async ()=>{
+      await onClick();
+      closeSidebar();
+    };
+    sidebarContent.appendChild(b);
+  };
+
+  if(myEmail === "rahaf@she-store.com"){
+    link("إضافة طلبية", "./index.html");
+    link("عرض الطلبيات", "./view.html");
+    link("مستلمو البيت", "./homepickup.html");
+  }
+
+  if(myEmail === "reem@she-store.com"){
+    link("عرض الطلبيات", "./view.html");
+    link("مستلمو البيت", "./homepickup.html");
+  }
+
+  btn("تسجيل خروج", "danger", async ()=>{
+    await sb.auth.signOut();
+    window.location.href="./login.html";
+  });
+}
 
 const ordersListEl = document.getElementById("ordersList");
 const ordersEmptyEl = document.getElementById("ordersEmpty");
@@ -206,6 +288,7 @@ async function loadPickupOrders(){
     .from("orders")
     .select("id, placed_at_pickup_at, placed_at_pickup, created_at")
     .eq("placed_at_pickup", true)
+    .eq("arrived", true)
     .order("placed_at_pickup_at",{ascending:false});
 
   if(error){ console.error(error); return; }
@@ -386,6 +469,8 @@ async function runSearch(){
 
 /* ===== Init ===== */
 (async function init(){
+  await guardPickupPage();
+  renderSidebar();
   await loadUser();
   await loadPickupOrders();
   if(orders.length) selectOrder(orders[0]);
