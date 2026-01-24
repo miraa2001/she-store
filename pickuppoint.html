@@ -102,6 +102,7 @@
           </div>
           <div class="row">
             <span class="pill" id="purchaseCount">0</span>
+            <span class="pill" id="pickedTotal">مجموع المستلم: 0 ₪</span>
             <button class="btn" id="collectBtn" style="display:none">تم استلام تحصيل المستلمين</button>
           </div>
         </div>
@@ -252,6 +253,7 @@ const emptyEl = document.getElementById("empty");
 const mainEl = document.getElementById("main");
 const orderTitleEl = document.getElementById("orderTitle");
 const purchaseCountEl = document.getElementById("purchaseCount");
+const pickedTotalEl = document.getElementById("pickedTotal");
 const tbody = document.getElementById("tbody");
 const collectBtn = document.getElementById("collectBtn");
 
@@ -269,6 +271,21 @@ let purchasesByOrder = new Map();
 let highlightPurchaseId = null;
 
 function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+
+function parsePrice(v){
+  if(v === null || v === undefined) return 0;
+  if(typeof v === "number") return isFinite(v) ? v : 0;
+  const s = String(v).replace(/[, ]/g, "").replace(/[₪]/g, "");
+  const m = s.match(/-?\d+(?:\.\d+)?/);
+  return m ? Number(m[0]) : 0;
+}
+
+function formatILS(n){
+  const x = Number(n || 0);
+  if(!isFinite(x)) return "0";
+  const fixed = x.toFixed(2);
+  return fixed.endsWith(".00") ? String(Math.round(x)) : fixed;
+}
 
 async function loadUser(){
   const { data } = await sb.auth.getUser();
@@ -340,6 +357,10 @@ async function selectOrder(o){
   const visibleList = list.filter(item=>!item.collected);
   orderTitleEl.textContent = o.order_name || "طلبية";
   purchaseCountEl.textContent = `عدد المشتريات: ${visibleList.length}`;
+  const pickedTotal = visibleList
+    .filter(item=>item.picked_up)
+    .reduce((sum,item)=> sum + parsePrice(item.price), 0);
+  pickedTotalEl.textContent = `مجموع المستلم: ${formatILS(pickedTotal)} ₪`;
 
   if(collectBtn){
     collectBtn.style.display = isRahaf ? "" : "none";
