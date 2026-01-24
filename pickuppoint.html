@@ -287,6 +287,13 @@ function formatILS(n){
   return fixed.endsWith(".00") ? String(Math.round(x)) : fixed;
 }
 
+function updatePickedTotal(list){
+  const pickedTotal = list
+    .filter(item=>item.picked_up)
+    .reduce((sum,item)=> sum + parsePrice(item.price), 0);
+  pickedTotalEl.textContent = `مجموع المستلم: ${formatILS(pickedTotal)} ₪`;
+}
+
 async function loadUser(){
   const { data } = await sb.auth.getUser();
   userEmail = (data?.user?.email || "").toLowerCase();
@@ -357,10 +364,7 @@ async function selectOrder(o){
   const visibleList = list.filter(item=>!item.collected);
   orderTitleEl.textContent = o.order_name || "طلبية";
   purchaseCountEl.textContent = `عدد المشتريات: ${visibleList.length}`;
-  const pickedTotal = visibleList
-    .filter(item=>item.picked_up)
-    .reduce((sum,item)=> sum + parsePrice(item.price), 0);
-  pickedTotalEl.textContent = `مجموع المستلم: ${formatILS(pickedTotal)} ₪`;
+  updatePickedTotal(visibleList);
 
   if(collectBtn){
     collectBtn.style.display = isRahaf ? "" : "none";
@@ -390,7 +394,9 @@ if(collectBtn){
 
     const list = await loadPurchasesForOrder(activeOrder.id);
     purchasesByOrder.set(activeOrder.id, list);
-    renderTable(list.filter(item=>!item.collected));
+    const visibleList = list.filter(item=>!item.collected);
+    renderTable(visibleList);
+    updatePickedTotal(visibleList);
     collectBtn.disabled = false;
   };
 }
@@ -458,7 +464,10 @@ function renderTable(list){
       }
 
       if(isRahaf){
-        renderTable(purchasesByOrder.get(activeOrder.id) || []);
+        const list = purchasesByOrder.get(activeOrder.id) || [];
+        const visibleList = list.filter(entry=>!entry.collected);
+        renderTable(visibleList);
+        updatePickedTotal(visibleList);
       }
     };
   });
