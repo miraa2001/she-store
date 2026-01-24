@@ -146,11 +146,6 @@ async function guardCollectionsAccess(){
   }
 }
 
-document.getElementById("logoutBtn").onclick=async()=>{
-  await sb.auth.signOut();
-  window.location.href="./login.html";
-};
-
 const ordersListEl = document.getElementById("ordersList");
 const ordersEmptyEl = document.getElementById("ordersEmpty");
 const ordersCountEl = document.getElementById("ordersCount");
@@ -245,7 +240,7 @@ function showMain(on){
 async function loadOrders(){
   const { data, error } = await sb
     .from("orders")
-    .select("id, order_name, created_at, purchases!inner(pickup_point, picked_up, collected)")
+    .select("id, order_name, created_at, purchases!inner(pickup_point, collected)")
     .eq("arrived", true)
     .order("created_at",{ascending:false});
 
@@ -253,7 +248,7 @@ async function loadOrders(){
 
   orders = (data || []).filter(o=>{
     const list = o.purchases || [];
-    return list.some(p=>p.pickup_point === HOME_PICKUP_VALUE && p.picked_up) ||
+    return list.some(p=>p.pickup_point === HOME_PICKUP_VALUE && p.collected) ||
       list.some(p=>p.pickup_point === PICKUP_VALUE && p.collected);
   });
 
@@ -278,14 +273,14 @@ async function selectOrder(order){
 
   const { data, error } = await sb
     .from("purchases")
-    .select("id, customer_name, price, pickup_point, picked_up, collected")
+    .select("id, customer_name, price, pickup_point, collected")
     .eq("order_id", order.id)
     .order("created_at",{ascending:true});
 
   if(error){ console.error(error); return; }
 
   const list = data || [];
-  const homeList = list.filter(p=>p.pickup_point === HOME_PICKUP_VALUE && p.picked_up);
+  const homeList = list.filter(p=>p.pickup_point === HOME_PICKUP_VALUE && p.collected);
   const pickupList = list.filter(p=>p.pickup_point === PICKUP_VALUE && p.collected);
 
   purchaseCountEl.textContent = `عدد المشتريات: ${homeList.length + pickupList.length}`;
