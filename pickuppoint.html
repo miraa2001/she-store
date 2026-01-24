@@ -321,7 +321,7 @@ async function loadPickupOrders(){
 async function loadPurchasesForOrder(orderId){
   const { data, error } = await sb
     .from("purchases")
-    .select("id, order_id, customer_name, price, picked_up, picked_up_at, created_at, pickup_point")
+    .select("id, order_id, customer_name, price, picked_up, picked_up_at, created_at, pickup_point, collected")
     .eq("order_id", orderId)
     .eq("pickup_point", PICKUP_VALUE)
     .order("created_at",{ascending:true});
@@ -337,14 +337,15 @@ async function selectOrder(o){
   const list = await loadPurchasesForOrder(o.id);
   purchasesByOrder.set(o.id, list);
 
+  const visibleList = list.filter(item=>!item.collected);
   orderTitleEl.textContent = o.order_name || "طلبية";
-  purchaseCountEl.textContent = `عدد المشتريات: ${list.length}`;
+  purchaseCountEl.textContent = `عدد المشتريات: ${visibleList.length}`;
 
   if(collectBtn){
     collectBtn.style.display = isRahaf ? "" : "none";
   }
 
-  renderTable(list);
+  renderTable(visibleList);
   showMain(true);
 }
 
@@ -368,7 +369,7 @@ if(collectBtn){
 
     const list = await loadPurchasesForOrder(activeOrder.id);
     purchasesByOrder.set(activeOrder.id, list);
-    renderTable(list);
+    renderTable(list.filter(item=>!item.collected));
     collectBtn.disabled = false;
   };
 }

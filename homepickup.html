@@ -103,8 +103,11 @@
           <div>
             <b id="orderTitle"></b>
           </div>
-          <span class="pill" id="purchaseCount">0</span>
-          <span class="pill" id="totalPrice">مجموع أسعار المستلم: 0</span>
+          <div class="row">
+            <span class="pill" id="purchaseCount">0</span>
+            <span class="pill" id="totalPrice">مجموع أسعار المستلم: 0</span>
+            <button class="btn" id="collectHomeBtn" style="display:none">تم استلام تحصيل المستلمين</button>
+          </div>
         </div>
 
         <hr>
@@ -233,6 +236,7 @@ const totalPriceEl = document.getElementById("totalPrice");
 const tbody = document.getElementById("tbody");
 const lb = document.getElementById("lightbox");
 const lbImg = lb.querySelector("img");
+const collectHomeBtn = document.getElementById("collectHomeBtn");
 const searchInput = document.getElementById("searchInput");
 const searchResultsEl = document.getElementById("searchResults");
 const searchCountEl = document.getElementById("searchCount");
@@ -279,14 +283,15 @@ function renderPurchases(){
     return;
   }
 
-  purchaseCountEl.textContent = `عدد المشتريات: ${purchases.length}`;
-  const pickedTotal = purchases
+  const visible = purchases.filter(p=>!p.collected);
+  purchaseCountEl.textContent = `عدد المشتريات: ${visible.length}`;
+  const pickedTotal = visible
     .filter(p=>p.picked_up)
     .reduce((sum,p)=> sum + parsePrice(p.price), 0);
   totalPriceEl.textContent = `مجموع أسعار المستلم: ${formatILS(pickedTotal)} ₪`;
 
   tbody.innerHTML = "";
-  purchases.forEach(p=>{
+  visible.forEach(p=>{
     const imgs = (p.purchase_images || []).map(img=>{
       const url = sb.storage.from(BUCKET).getPublicUrl(img.storage_path).data.publicUrl;
       return `<img src="${escapeAttr(url)}" alt="صورة">`;
@@ -372,7 +377,7 @@ async function selectOrder(order){
 
   const { data, error } = await sb
     .from("purchases")
-    .select("id, customer_name, price, picked_up, picked_up_at, pickup_point, purchase_images(storage_path)")
+    .select("id, customer_name, price, picked_up, picked_up_at, pickup_point, purchase_images(storage_path), collected")
     .eq("order_id", order.id)
     .eq("pickup_point", HOME_PICKUP_VALUE)
     .order("created_at", { ascending: true });
@@ -380,10 +385,48 @@ async function selectOrder(order){
   if(error){ console.error(error); return; }
 
   purchases = data || [];
+  if(collectHomeBtn){
+    collectHomeBtn.style.display = myEmail === EMAIL_RAHAF ? "" : "none";
+  }
   renderPurchases();
 }
 
 lb.onclick = ()=> lb.style.display="none";
+
+if(collectHomeBtn){
+  collectHomeBtn.onclick = async ()=>{
+    if(!activeOrder || myEmail !== EMAIL_RAHAF) return;
+
+    collectHomeBtn.disabled = true;
+    const { error } = await sb
+      .from("purchases")
+      .update({ collected: true, collected_at: new Date().toISOString() })
+      .eq("order_id", activeOrder.id)
+      .eq("pickup_point", HOME_PICKUP_VALUE)
+      .eq("picked_up", true);
+
+    if(error){
+      console.error(error);
+      collectHomeBtn.disabled = false;
+      return;
+    }
+
+    const { data, error: reloadErr } = await sb
+      .from("purchases")
+      .select("id, customer_name, price, picked_up, picked_up_at, pickup_point, purchase_images(storage_path), collected")
+      .eq("order_id", activeOrder.id)
+      .eq("pickup_point", HOME_PICKUP_VALUE)
+      .order("created_at", { ascending: true });
+    if(reloadErr){
+      console.error(reloadErr);
+    } else {
+      purchases = data || [];
+      renderPurchases();
+    }
+
+    collectHomeBtn.disabled = false;
+  };
+}
 
 let searchTimer = null;
 searchInput.addEventListener("input", ()=>{
