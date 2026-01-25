@@ -134,6 +134,7 @@ const SUPABASE_ANON_KEY="sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 const PICKUP_VALUE = "من نقطة الاستلام";
+const NTFY_TOPIC = "she-store-rahaf-2001-2014";
 
 /* ========= Auth + Role Gate =========
    Allowed here: Rahaf + Reem + Laaura
@@ -288,6 +289,30 @@ function formatILS(n){
   return fixed.endsWith(".00") ? String(Math.round(x)) : fixed;
 }
 
+async function sendNtfy(message){
+  try{
+    await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+      method: "POST",
+      body: message
+    });
+  } catch (err){
+    console.error("NTFY ERROR:", err);
+  }
+}
+
+function buildPickupMessage({ picked, customerName, price, orderName, pickupLabel, pickedAt }){
+  const status = picked ? "✅ تم استلام الطلب" : "❌ تم إلغاء الاستلام";
+  const dateTxt = `تاريخ الاستلام: ${formatDateTime(pickedAt)}`;
+  return [
+    status,
+    `الزبون: ${customerName || "—"}`,
+    `السعر: ${formatILS(price)} ₪`,
+    `الاستلام: ${pickupLabel}`,
+    `الطلبية: ${orderName || "—"}`,
+    dateTxt
+  ].join("\n");
+}
+
 function updatePickedTotal(list){
   const pickedTotal = list
     .filter(item=>item.picked_up)
@@ -311,6 +336,14 @@ function formatDMY(iso){
   if(!iso) return "";
   const d = new Date(iso);
   return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+}
+
+function formatDateTime(iso){
+  if(!iso) return "—";
+  const d = new Date(iso);
+  const date = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+  const time = `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  return `${date} ${time}`;
 }
 
 async function loadPickupOrders(){
@@ -462,6 +495,17 @@ function renderTable(list){
           item.picked_up_at = item.picked_up ? item.picked_up_at : null;
         }
         return;
+      }
+
+      if(item){
+        await sendNtfy(buildPickupMessage({
+          picked: val,
+          customerName: item.customer_name,
+          price: item.price,
+          orderName: activeOrder?.order_name,
+          pickupLabel: PICKUP_VALUE,
+          pickedAt: pickedAt || new Date().toISOString()
+        }));
       }
 
       if(isRahaf){

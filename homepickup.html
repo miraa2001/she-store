@@ -140,6 +140,7 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const BUCKET="purchase-images";
 
 const HOME_PICKUP_VALUE = "من البيت";
+const NTFY_TOPIC = "she-store-rahaf-2001-2014";
 const EMAIL_RAHAF = "rahaf@she-store.com";
 const EMAIL_REEM  = "reem@she-store.com";
 const EMAIL_LAAURA= "laaura@she-store.com";
@@ -278,6 +279,30 @@ function formatILS(n){
   return fixed.endsWith(".00") ? String(Math.round(x)) : fixed;
 }
 
+async function sendNtfy(message){
+  try{
+    await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+      method: "POST",
+      body: message
+    });
+  } catch (err){
+    console.error("NTFY ERROR:", err);
+  }
+}
+
+function buildPickupMessage({ picked, customerName, price, orderName, pickupLabel, pickedAt }){
+  const status = picked ? "✅ تم استلام الطلب" : "❌ تم إلغاء الاستلام";
+  const dateTxt = `تاريخ الاستلام: ${formatDateTime(pickedAt)}`;
+  return [
+    status,
+    `الزبون: ${customerName || "—"}`,
+    `السعر: ${formatILS(price)} ₪`,
+    `الاستلام: ${pickupLabel}`,
+    `الطلبية: ${orderName || "—"}`,
+    dateTxt
+  ].join("\n");
+}
+
 function renderPurchases(){
   if(!activeOrder){
     showMain(false);
@@ -336,6 +361,18 @@ function renderPurchases(){
 
       const cell = tbody.querySelector(`[data-picked-at="${id}"]`);
       if(cell) cell.textContent = formatDateTime(payload.picked_up_at);
+
+      if(entry){
+        await sendNtfy(buildPickupMessage({
+          picked: payload.picked_up,
+          customerName: entry.customer_name,
+          price: entry.price,
+          orderName: activeOrder?.order_name,
+          pickupLabel: HOME_PICKUP_VALUE,
+          pickedAt: payload.picked_up_at || new Date().toISOString()
+        }));
+      }
+
       renderPurchases();
     };
   });
