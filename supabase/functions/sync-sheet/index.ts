@@ -164,7 +164,7 @@ async function ensureSheet(accessToken: string, title: string) {
 }
 
 function buildRows(order: OrderRecord) {
-  const baseHeader = [
+  const header = [
     "اسم الطلبية",
     "رقم المشترى",
     "اسم الزبون",
@@ -177,25 +177,14 @@ function buildRows(order: OrderRecord) {
     "تم التحصيل",
     "تاريخ التحصيل",
     "روابط",
+    "صور",
   ];
-
-  const maxImages = Math.max(
-    1,
-    ...(order.purchases || []).map((p) => p.purchase_images?.length ?? 0),
-  );
-
-  const imageHeaders = Array.from({ length: maxImages }, (_, idx) =>
-    maxImages === 1 ? "صور" : `صور ${idx + 1}`,
-  );
-
-  const header = [...baseHeader, ...imageHeaders];
 
   const rows = (order.purchases || []).map((p) => {
     const links = (p.purchase_links || []).map((l) => l.url).join("\n");
-    const imageCells = Array.from({ length: maxImages }, (_, idx) => {
-      const image = p.purchase_images?.[idx];
-      return image ? `=IMAGE("${publicImageUrl(image.storage_path)}")` : "";
-    });
+    const images = (p.purchase_images || [])
+      .map((img) => publicImageUrl(img.storage_path))
+      .join("\n");
 
     return [
       order.order_name || "",
@@ -210,7 +199,7 @@ function buildRows(order: OrderRecord) {
       p.collected ? "نعم" : "لا",
       p.collected_at || "",
       links,
-      ...imageCells,
+      images,
     ];
   });
 
@@ -267,7 +256,7 @@ async function formatSheet(
           endIndex: rowCount,
         },
         properties: {
-          pixelSize: 230,
+          pixelSize: 25,
         },
         fields: "pixelSize",
       },
