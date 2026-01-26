@@ -176,15 +176,23 @@ function buildRows(order: OrderRecord) {
     "تاريخ الاستلام",
     "تم التحصيل",
     "تاريخ التحصيل",
-    "روابط",
-    "صور",
   ];
 
+  const maxLinks = 10;
+  const maxImages = 10;
+  const linkHeaders = Array.from({ length: maxLinks }, (_, idx) => `رابط ${idx + 1}`);
+  const imageHeaders = Array.from({ length: maxImages }, (_, idx) => `صورة ${idx + 1}`);
+  const fullHeader = [...header, ...linkHeaders, ...imageHeaders];
+
   const rows = (order.purchases || []).map((p) => {
-    const links = (p.purchase_links || []).map((l) => l.url).join("\n");
-    const images = (p.purchase_images || [])
-      .map((img) => publicImageUrl(img.storage_path))
-      .join("\n");
+    const linkCells = Array.from({ length: maxLinks }, (_, idx) => {
+      const link = p.purchase_links?.[idx];
+      return link ? link.url : "";
+    });
+    const imageCells = Array.from({ length: maxImages }, (_, idx) => {
+      const image = p.purchase_images?.[idx];
+      return image ? publicImageUrl(image.storage_path) : "";
+    });
 
     return [
       order.order_name || "",
@@ -198,12 +206,12 @@ function buildRows(order: OrderRecord) {
       p.picked_up_at || "",
       p.collected ? "نعم" : "لا",
       p.collected_at || "",
-      links,
-      images,
+      ...linkCells,
+      ...imageCells,
     ];
   });
 
-  return { rows: [header, ...rows], columnCount: header.length };
+  return { rows: [fullHeader, ...rows], columnCount: fullHeader.length };
 }
 
 async function updateSheet(accessToken: string, title: string, rows: string[][]) {
@@ -245,6 +253,23 @@ async function formatSheet(
           rightToLeft: true,
         },
         fields: "rightToLeft",
+      },
+    },
+    {
+      repeatCell: {
+        range: {
+          sheetId,
+          startRowIndex: 0,
+          endRowIndex: rowCount,
+          startColumnIndex: 0,
+          endColumnIndex: columnCount,
+        },
+        cell: {
+          userEnteredFormat: {
+            textFormat: { fontFamily: "Noto Sans Arabic" },
+          },
+        },
+        fields: "userEnteredFormat.textFormat.fontFamily",
       },
     },
     {
@@ -337,6 +362,81 @@ async function formatSheet(
           showCustomUi: true,
           strict: true,
         },
+      },
+    },
+    {
+      addConditionalFormatRule: {
+        rule: {
+          ranges: [
+            {
+              sheetId,
+              startRowIndex: 1,
+              endRowIndex: rowCount,
+              startColumnIndex: pickupColumnIndex,
+              endColumnIndex: pickupColumnIndex + 1,
+            },
+          ],
+          booleanRule: {
+            condition: {
+              type: "TEXT_EQ",
+              values: [{ userEnteredValue: "من البيت" }],
+            },
+            format: {
+              backgroundColor: { red: 0.97, green: 0.78, blue: 0.76 },
+            },
+          },
+        },
+        index: 0,
+      },
+    },
+    {
+      addConditionalFormatRule: {
+        rule: {
+          ranges: [
+            {
+              sheetId,
+              startRowIndex: 1,
+              endRowIndex: rowCount,
+              startColumnIndex: pickupColumnIndex,
+              endColumnIndex: pickupColumnIndex + 1,
+            },
+          ],
+          booleanRule: {
+            condition: {
+              type: "TEXT_EQ",
+              values: [{ userEnteredValue: "من نقطة الاستلام" }],
+            },
+            format: {
+              backgroundColor: { red: 0.98, green: 0.88, blue: 0.55 },
+            },
+          },
+        },
+        index: 0,
+      },
+    },
+    {
+      addConditionalFormatRule: {
+        rule: {
+          ranges: [
+            {
+              sheetId,
+              startRowIndex: 1,
+              endRowIndex: rowCount,
+              startColumnIndex: pickupColumnIndex,
+              endColumnIndex: pickupColumnIndex + 1,
+            },
+          ],
+          booleanRule: {
+            condition: {
+              type: "TEXT_EQ",
+              values: [{ userEnteredValue: "توصيل" }],
+            },
+            format: {
+              backgroundColor: { red: 0.88, green: 0.77, blue: 0.95 },
+            },
+          },
+        },
+        index: 0,
       },
     },
     {
