@@ -250,6 +250,29 @@ async function formatSheet(
 
   const requests = [
     {
+      updateSheetProperties: {
+        properties: {
+          sheetId,
+          rightToLeft: true,
+        },
+        fields: "rightToLeft",
+      },
+    },
+    {
+      updateDimensionProperties: {
+        range: {
+          sheetId,
+          dimension: "ROWS",
+          startIndex: 0,
+          endIndex: rowCount,
+        },
+        properties: {
+          pixelSize: 230,
+        },
+        fields: "pixelSize",
+      },
+    },
+    {
       repeatCell: {
         range: {
           sheetId,
@@ -261,9 +284,30 @@ async function formatSheet(
         cell: {
           userEnteredFormat: {
             textFormat: { bold: true },
+            horizontalAlignment: "CENTER",
+            verticalAlignment: "MIDDLE",
           },
         },
-        fields: "userEnteredFormat.textFormat.bold",
+        fields:
+          "userEnteredFormat.textFormat.bold,userEnteredFormat.horizontalAlignment,userEnteredFormat.verticalAlignment",
+      },
+    },
+    {
+      repeatCell: {
+        range: {
+          sheetId,
+          startRowIndex: 1,
+          endRowIndex: rowCount,
+          startColumnIndex: 0,
+          endColumnIndex: columnCount,
+        },
+        cell: {
+          userEnteredFormat: {
+            horizontalAlignment: "CENTER",
+            verticalAlignment: "MIDDLE",
+          },
+        },
+        fields: "userEnteredFormat.horizontalAlignment,userEnteredFormat.verticalAlignment",
       },
     },
     {
