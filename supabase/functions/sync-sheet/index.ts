@@ -178,7 +178,7 @@ function buildRows(order: OrderRecord) {
     "تاريخ التحصيل",
   ];
 
-  const maxLinks = 10;
+  const maxLinks = 5;
   const maxImages = 10;
   const linkHeaders = Array.from({ length: maxLinks }, (_, idx) => `رابط ${idx + 1}`);
   const imageHeaders = Array.from({ length: maxImages }, (_, idx) => `صورة ${idx + 1}`);
@@ -211,7 +211,14 @@ function buildRows(order: OrderRecord) {
     ];
   });
 
-  return { rows: [fullHeader, ...rows], columnCount: fullHeader.length };
+  return {
+    rows: [fullHeader, ...rows],
+    columnCount: fullHeader.length,
+    linkStartIndex: header.length,
+    linkCount: maxLinks,
+    imageStartIndex: header.length + maxLinks,
+    imageCount: maxImages,
+  };
 }
 
 async function updateSheet(accessToken: string, title: string, rows: string[][]) {
@@ -240,6 +247,10 @@ async function formatSheet(
   sheetId: number,
   rowCount: number,
   columnCount: number,
+  linkStartIndex: number,
+  linkCount: number,
+  imageStartIndex: number,
+  imageCount: number,
 ) {
   const pickupColumnIndex = 5;
   const pickedUpAtColumnIndex = 8;
@@ -509,6 +520,26 @@ async function formatSheet(
         fields: "userEnteredFormat.numberFormat",
       },
     },
+    {
+      autoResizeDimensions: {
+        dimensions: {
+          sheetId,
+          dimension: "COLUMNS",
+          startIndex: linkStartIndex,
+          endIndex: linkStartIndex + linkCount,
+        },
+      },
+    },
+    {
+      autoResizeDimensions: {
+        dimensions: {
+          sheetId,
+          dimension: "COLUMNS",
+          startIndex: imageStartIndex,
+          endIndex: imageStartIndex + imageCount,
+        },
+      },
+    },
   ];
 
   const res = await fetch(
@@ -550,9 +581,19 @@ serve(async (req) => {
     const sheetTitle = sanitizeSheetTitle(order.order_name || order.id);
 
     const sheetId = await ensureSheet(accessToken, sheetTitle);
-    const { rows, columnCount } = buildRows(order);
+    const { rows, columnCount, linkStartIndex, linkCount, imageStartIndex, imageCount } =
+      buildRows(order);
     await updateSheet(accessToken, sheetTitle, rows);
-    await formatSheet(accessToken, sheetId, rows.length, columnCount);
+    await formatSheet(
+      accessToken,
+      sheetId,
+      rows.length,
+      columnCount,
+      linkStartIndex,
+      linkCount,
+      imageStartIndex,
+      imageCount,
+    );
 
     return new Response(JSON.stringify({ ok: true }), {
       headers: { "Content-Type": "application/json" },
