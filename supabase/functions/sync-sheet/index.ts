@@ -253,7 +253,10 @@ async function formatSheet(
   imageCount: number,
 ) {
   const pickupColumnIndex = 5;
+  const noteColumnIndex = 6;
+  const pickedUpColumnIndex = 7;
   const pickedUpAtColumnIndex = 8;
+  const collectedColumnIndex = 9;
   const collectedAtColumnIndex = 10;
 
   const requests = [
@@ -353,6 +356,26 @@ async function formatSheet(
       },
     },
     {
+      autoResizeDimensions: {
+        dimensions: {
+          sheetId,
+          dimension: "COLUMNS",
+          startIndex: pickupColumnIndex,
+          endIndex: pickupColumnIndex + 1,
+        },
+      },
+    },
+    {
+      autoResizeDimensions: {
+        dimensions: {
+          sheetId,
+          dimension: "COLUMNS",
+          startIndex: noteColumnIndex,
+          endIndex: noteColumnIndex + 1,
+        },
+      },
+    },
+    {
       setDataValidation: {
         range: {
           sheetId,
@@ -369,6 +392,44 @@ async function formatSheet(
               { userEnteredValue: "من نقطة الاستلام" },
               { userEnteredValue: "توصيل" },
             ],
+          },
+          showCustomUi: true,
+          strict: true,
+        },
+      },
+    },
+    {
+      setDataValidation: {
+        range: {
+          sheetId,
+          startRowIndex: 1,
+          endRowIndex: rowCount,
+          startColumnIndex: pickedUpColumnIndex,
+          endColumnIndex: pickedUpColumnIndex + 1,
+        },
+        rule: {
+          condition: {
+            type: "ONE_OF_LIST",
+            values: [{ userEnteredValue: "نعم" }, { userEnteredValue: "لا" }],
+          },
+          showCustomUi: true,
+          strict: true,
+        },
+      },
+    },
+    {
+      setDataValidation: {
+        range: {
+          sheetId,
+          startRowIndex: 1,
+          endRowIndex: rowCount,
+          startColumnIndex: collectedColumnIndex,
+          endColumnIndex: collectedColumnIndex + 1,
+        },
+        rule: {
+          condition: {
+            type: "ONE_OF_LIST",
+            values: [{ userEnteredValue: "نعم" }, { userEnteredValue: "لا" }],
           },
           showCustomUi: true,
           strict: true,
@@ -394,6 +455,106 @@ async function formatSheet(
             },
             format: {
               backgroundColor: { red: 0.97, green: 0.78, blue: 0.76 },
+            },
+          },
+        },
+        index: 0,
+      },
+    },
+    {
+      addConditionalFormatRule: {
+        rule: {
+          ranges: [
+            {
+              sheetId,
+              startRowIndex: 1,
+              endRowIndex: rowCount,
+              startColumnIndex: pickedUpColumnIndex,
+              endColumnIndex: pickedUpColumnIndex + 1,
+            },
+          ],
+          booleanRule: {
+            condition: {
+              type: "TEXT_EQ",
+              values: [{ userEnteredValue: "نعم" }],
+            },
+            format: {
+              backgroundColor: { red: 0.82, green: 0.94, blue: 0.82 },
+            },
+          },
+        },
+        index: 0,
+      },
+    },
+    {
+      addConditionalFormatRule: {
+        rule: {
+          ranges: [
+            {
+              sheetId,
+              startRowIndex: 1,
+              endRowIndex: rowCount,
+              startColumnIndex: pickedUpColumnIndex,
+              endColumnIndex: pickedUpColumnIndex + 1,
+            },
+          ],
+          booleanRule: {
+            condition: {
+              type: "TEXT_EQ",
+              values: [{ userEnteredValue: "لا" }],
+            },
+            format: {
+              backgroundColor: { red: 0.97, green: 0.82, blue: 0.82 },
+            },
+          },
+        },
+        index: 0,
+      },
+    },
+    {
+      addConditionalFormatRule: {
+        rule: {
+          ranges: [
+            {
+              sheetId,
+              startRowIndex: 1,
+              endRowIndex: rowCount,
+              startColumnIndex: collectedColumnIndex,
+              endColumnIndex: collectedColumnIndex + 1,
+            },
+          ],
+          booleanRule: {
+            condition: {
+              type: "TEXT_EQ",
+              values: [{ userEnteredValue: "نعم" }],
+            },
+            format: {
+              backgroundColor: { red: 0.82, green: 0.94, blue: 0.82 },
+            },
+          },
+        },
+        index: 0,
+      },
+    },
+    {
+      addConditionalFormatRule: {
+        rule: {
+          ranges: [
+            {
+              sheetId,
+              startRowIndex: 1,
+              endRowIndex: rowCount,
+              startColumnIndex: collectedColumnIndex,
+              endColumnIndex: collectedColumnIndex + 1,
+            },
+          ],
+          booleanRule: {
+            condition: {
+              type: "TEXT_EQ",
+              values: [{ userEnteredValue: "لا" }],
+            },
+            format: {
+              backgroundColor: { red: 0.97, green: 0.82, blue: 0.82 },
             },
           },
         },
