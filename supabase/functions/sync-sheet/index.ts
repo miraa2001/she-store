@@ -214,10 +214,6 @@ function buildRows(order: OrderRecord) {
   return {
     rows: [fullHeader, ...rows],
     columnCount: fullHeader.length,
-    linkStartIndex: header.length,
-    linkCount: maxLinks,
-    imageStartIndex: header.length + maxLinks,
-    imageCount: maxImages,
   };
 }
 
@@ -247,10 +243,6 @@ async function formatSheet(
   sheetId: number,
   rowCount: number,
   columnCount: number,
-  linkStartIndex: number,
-  linkCount: number,
-  imageStartIndex: number,
-  imageCount: number,
 ) {
   const pickupColumnIndex = 5;
   const noteColumnIndex = 6;
@@ -353,26 +345,6 @@ async function formatSheet(
         right: { style: "SOLID", width: 1, color: { red: 0, green: 0, blue: 0 } },
         innerHorizontal: { style: "SOLID", width: 1, color: { red: 0, green: 0, blue: 0 } },
         innerVertical: { style: "SOLID", width: 1, color: { red: 0, green: 0, blue: 0 } },
-      },
-    },
-    {
-      autoResizeDimensions: {
-        dimensions: {
-          sheetId,
-          dimension: "COLUMNS",
-          startIndex: pickupColumnIndex,
-          endIndex: pickupColumnIndex + 1,
-        },
-      },
-    },
-    {
-      autoResizeDimensions: {
-        dimensions: {
-          sheetId,
-          dimension: "COLUMNS",
-          startIndex: noteColumnIndex,
-          endIndex: noteColumnIndex + 1,
-        },
       },
     },
     {
@@ -686,18 +658,8 @@ async function formatSheet(
         dimensions: {
           sheetId,
           dimension: "COLUMNS",
-          startIndex: linkStartIndex,
-          endIndex: linkStartIndex + linkCount,
-        },
-      },
-    },
-    {
-      autoResizeDimensions: {
-        dimensions: {
-          sheetId,
-          dimension: "COLUMNS",
-          startIndex: imageStartIndex,
-          endIndex: imageStartIndex + imageCount,
+          startIndex: 0,
+          endIndex: columnCount,
         },
       },
     },
@@ -742,19 +704,9 @@ serve(async (req) => {
     const sheetTitle = sanitizeSheetTitle(order.order_name || order.id);
 
     const sheetId = await ensureSheet(accessToken, sheetTitle);
-    const { rows, columnCount, linkStartIndex, linkCount, imageStartIndex, imageCount } =
-      buildRows(order);
+    const { rows, columnCount } = buildRows(order);
     await updateSheet(accessToken, sheetTitle, rows);
-    await formatSheet(
-      accessToken,
-      sheetId,
-      rows.length,
-      columnCount,
-      linkStartIndex,
-      linkCount,
-      imageStartIndex,
-      imageCount,
-    );
+    await formatSheet(accessToken, sheetId, rows.length, columnCount);
 
     return new Response(JSON.stringify({ ok: true }), {
       headers: { "Content-Type": "application/json" },
