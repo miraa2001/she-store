@@ -9,6 +9,7 @@ const GOOGLE_SHEET_ID =
 const GOOGLE_CLIENT_EMAIL = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_EMAIL") ?? "";
 const GOOGLE_PRIVATE_KEY = (Deno.env.get("GOOGLE_PRIVATE_KEY") ?? "").replace(/\\n/g, "\n");
 const BUCKET = "purchase-images";
+const ADDRESS_BOOK_SHEET_ID = 1822763095;
 
 const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -40,6 +41,10 @@ function sanitizeSheetTitle(title: string) {
 
 function publicImageUrl(path: string) {
   return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
+}
+
+function escapeFormulaString(value: string) {
+  return value.replace(/"/g, '""');
 }
 
 async function getAccessToken() {
@@ -132,7 +137,7 @@ async function ensureSheet(accessToken: string, title: string) {
   );
 
   if (existing) {
-    return existing.properties.sheetId as number;
+    return { sheetId: existing.properties.sheetId as number, created: false };
   }
 
   const createRes = await fetch(
@@ -160,7 +165,90 @@ async function ensureSheet(accessToken: string, title: string) {
     throw new Error("Failed to read created sheet ID.");
   }
 
-  return createdSheet.sheetId as number;
+  return { sheetId: createdSheet.sheetId as number, created: true };
+}
+
+async function addToAddressBook(
+  accessToken: string,
+  sheetTitle: string,
+  sheetId: number,
+) {
+  const sheetUrl = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/edit#gid=${sheetId}`;
+  const safeTitle = escapeFormulaString(sheetTitle);
+  const requests = [
+    {
+      updateCells: {
+        range: {
+          sheetId: ADDRESS_BOOK_SHEET_ID,
+          startRowIndex: 0,
+          endRowIndex: 1,
+          startColumnIndex: 0,
+          endColumnIndex: 2,
+        },
+        rows: [
+          {
+            values: [
+              {
+                userEnteredValue: { stringValue: "اسم الشيت" },
+                userEnteredFormat: {
+                  textFormat: { bold: true },
+                  horizontalAlignment: "CENTER",
+                  verticalAlignment: "MIDDLE",
+                },
+              },
+              {
+                userEnteredValue: { stringValue: "عنوانها" },
+                userEnteredFormat: {
+                  textFormat: { bold: true },
+                  horizontalAlignment: "CENTER",
+                  verticalAlignment: "MIDDLE",
+                },
+              },
+            ],
+          },
+        ],
+        fields:
+          "userEnteredValue,userEnteredFormat.textFormat.bold,userEnteredFormat.horizontalAlignment,userEnteredFormat.verticalAlignment",
+      },
+    },
+    {
+      appendCells: {
+        sheetId: ADDRESS_BOOK_SHEET_ID,
+        rows: [
+          {
+            values: [
+              {
+                userEnteredValue: { stringValue: sheetTitle },
+              },
+              {
+                userEnteredValue: {
+                  formulaValue: `=HYPERLINK("${sheetUrl}","${safeTitle}")`,
+                },
+              },
+            ],
+          },
+        ],
+        fields: "userEnteredValue",
+      },
+    },
+  ];
+
+  const res = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}:batchUpdate`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ requests }),
+    },
+  );
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to update address book: ${err}`);
+  }
 }
 
 function buildRows(order: OrderRecord) {
@@ -703,10 +791,13 @@ serve(async (req) => {
     const accessToken = await getAccessToken();
     const sheetTitle = sanitizeSheetTitle(order.order_name || order.id);
 
-    const sheetId = await ensureSheet(accessToken, sheetTitle);
+    const { sheetId, created } = await ensureSheet(accessToken, sheetTitle);
     const { rows, columnCount } = buildRows(order);
     await updateSheet(accessToken, sheetTitle, rows);
     await formatSheet(accessToken, sheetId, rows.length, columnCount);
+    if (created) {
+      await addToAddressBook(accessToken, sheetTitle, sheetId);
+    }
 
     return new Response(JSON.stringify({ ok: true }), {
       headers: { "Content-Type": "application/json" },
