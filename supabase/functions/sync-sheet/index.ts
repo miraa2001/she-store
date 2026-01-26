@@ -131,7 +131,9 @@ async function ensureSheet(accessToken: string, title: string) {
     (sheet: { properties: { title: string } }) => sheet.properties.title === title,
   );
 
-  if (existing) return;
+  if (existing) {
+    return existing.properties.sheetId as number;
+  }
 
   const createRes = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}:batchUpdate`,
@@ -151,10 +153,18 @@ async function ensureSheet(accessToken: string, title: string) {
     const err = await createRes.text();
     throw new Error(`Failed to create sheet: ${err}`);
   }
+
+  const createData = await createRes.json();
+  const createdSheet = createData.replies?.[0]?.addSheet?.properties;
+  if (!createdSheet?.sheetId) {
+    throw new Error("Failed to read created sheet ID.");
+  }
+
+  return createdSheet.sheetId as number;
 }
 
 function buildRows(order: OrderRecord) {
-  const header = [
+  const baseHeader = [
     "اسم الطلبية",
     "رقم المشترى",
     "اسم الزبون",
@@ -167,14 +177,25 @@ function buildRows(order: OrderRecord) {
     "تم التحصيل",
     "تاريخ التحصيل",
     "روابط",
-    "صور",
   ];
+
+  const maxImages = Math.max(
+    1,
+    ...(order.purchases || []).map((p) => p.purchase_images?.length ?? 0),
+  );
+
+  const imageHeaders = Array.from({ length: maxImages }, (_, idx) =>
+    maxImages === 1 ? "صور" : `صور ${idx + 1}`,
+  );
+
+  const header = [...baseHeader, ...imageHeaders];
 
   const rows = (order.purchases || []).map((p) => {
     const links = (p.purchase_links || []).map((l) => l.url).join("\n");
-    const images = (p.purchase_images || [])
-      .map((img) => publicImageUrl(img.storage_path))
-      .join("\n");
+    const imageCells = Array.from({ length: maxImages }, (_, idx) => {
+      const image = p.purchase_images?.[idx];
+      return image ? `=IMAGE("${publicImageUrl(image.storage_path)}")` : "";
+    });
 
     return [
       order.order_name || "",
@@ -189,18 +210,18 @@ function buildRows(order: OrderRecord) {
       p.collected ? "نعم" : "لا",
       p.collected_at || "",
       links,
-      images,
+      ...imageCells,
     ];
   });
 
-  return [header, ...rows];
+  return { rows: [header, ...rows], columnCount: header.length };
 }
 
 async function updateSheet(accessToken: string, title: string, rows: string[][]) {
   const res = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}/values/${encodeURIComponent(
       `${title}!A1`,
-    )}?valueInputOption=RAW`,
+    )}?valueInputOption=USER_ENTERED`,
     {
       method: "PUT",
       headers: {
@@ -214,6 +235,164 @@ async function updateSheet(accessToken: string, title: string, rows: string[][])
   if (!res.ok) {
     const err = await res.text();
     throw new Error(`Failed to update sheet: ${err}`);
+  }
+}
+
+async function formatSheet(
+  accessToken: string,
+  sheetId: number,
+  rowCount: number,
+  columnCount: number,
+) {
+  const pickupColumnIndex = 5;
+  const pickedUpAtColumnIndex = 8;
+  const collectedAtColumnIndex = 10;
+
+  const requests = [
+    {
+      repeatCell: {
+        range: {
+          sheetId,
+          startRowIndex: 0,
+          endRowIndex: 1,
+          startColumnIndex: 0,
+          endColumnIndex: columnCount,
+        },
+        cell: {
+          userEnteredFormat: {
+            textFormat: { bold: true },
+          },
+        },
+        fields: "userEnteredFormat.textFormat.bold",
+      },
+    },
+    {
+      updateBorders: {
+        range: {
+          sheetId,
+          startRowIndex: 0,
+          endRowIndex: rowCount,
+          startColumnIndex: 0,
+          endColumnIndex: columnCount,
+        },
+        top: { style: "SOLID", width: 1, color: { red: 0, green: 0, blue: 0 } },
+        bottom: { style: "SOLID", width: 1, color: { red: 0, green: 0, blue: 0 } },
+        left: { style: "SOLID", width: 1, color: { red: 0, green: 0, blue: 0 } },
+        right: { style: "SOLID", width: 1, color: { red: 0, green: 0, blue: 0 } },
+        innerHorizontal: { style: "SOLID", width: 1, color: { red: 0, green: 0, blue: 0 } },
+        innerVertical: { style: "SOLID", width: 1, color: { red: 0, green: 0, blue: 0 } },
+      },
+    },
+    {
+      setDataValidation: {
+        range: {
+          sheetId,
+          startRowIndex: 1,
+          endRowIndex: rowCount,
+          startColumnIndex: pickupColumnIndex,
+          endColumnIndex: pickupColumnIndex + 1,
+        },
+        rule: {
+          condition: {
+            type: "ONE_OF_LIST",
+            values: [
+              { userEnteredValue: "من البيت" },
+              { userEnteredValue: "من نقطة الاستلام" },
+              { userEnteredValue: "توصيل" },
+            ],
+          },
+          showCustomUi: true,
+          strict: true,
+        },
+      },
+    },
+    {
+      setDataValidation: {
+        range: {
+          sheetId,
+          startRowIndex: 1,
+          endRowIndex: rowCount,
+          startColumnIndex: pickedUpAtColumnIndex,
+          endColumnIndex: pickedUpAtColumnIndex + 1,
+        },
+        rule: {
+          condition: {
+            type: "DATE_IS_VALID",
+          },
+          showCustomUi: true,
+          strict: false,
+        },
+      },
+    },
+    {
+      setDataValidation: {
+        range: {
+          sheetId,
+          startRowIndex: 1,
+          endRowIndex: rowCount,
+          startColumnIndex: collectedAtColumnIndex,
+          endColumnIndex: collectedAtColumnIndex + 1,
+        },
+        rule: {
+          condition: {
+            type: "DATE_IS_VALID",
+          },
+          showCustomUi: true,
+          strict: false,
+        },
+      },
+    },
+    {
+      repeatCell: {
+        range: {
+          sheetId,
+          startRowIndex: 1,
+          endRowIndex: rowCount,
+          startColumnIndex: pickedUpAtColumnIndex,
+          endColumnIndex: pickedUpAtColumnIndex + 1,
+        },
+        cell: {
+          userEnteredFormat: {
+            numberFormat: { type: "DATE_TIME", pattern: "yyyy-mm-dd hh:mm" },
+          },
+        },
+        fields: "userEnteredFormat.numberFormat",
+      },
+    },
+    {
+      repeatCell: {
+        range: {
+          sheetId,
+          startRowIndex: 1,
+          endRowIndex: rowCount,
+          startColumnIndex: collectedAtColumnIndex,
+          endColumnIndex: collectedAtColumnIndex + 1,
+        },
+        cell: {
+          userEnteredFormat: {
+            numberFormat: { type: "DATE_TIME", pattern: "yyyy-mm-dd hh:mm" },
+          },
+        },
+        fields: "userEnteredFormat.numberFormat",
+      },
+    },
+  ];
+
+  const res = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}:batchUpdate`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ requests }),
+    },
+  );
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to format sheet: ${err}`);
   }
 }
 
@@ -237,8 +416,10 @@ serve(async (req) => {
     const accessToken = await getAccessToken();
     const sheetTitle = sanitizeSheetTitle(order.order_name || order.id);
 
-    await ensureSheet(accessToken, sheetTitle);
-    await updateSheet(accessToken, sheetTitle, buildRows(order));
+    const sheetId = await ensureSheet(accessToken, sheetTitle);
+    const { rows, columnCount } = buildRows(order);
+    await updateSheet(accessToken, sheetTitle, rows);
+    await formatSheet(accessToken, sheetId, rows.length, columnCount);
 
     return new Response(JSON.stringify({ ok: true }), {
       headers: { "Content-Type": "application/json" },
