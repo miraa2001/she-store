@@ -116,6 +116,7 @@
               <th>#</th>
               <th>الزبون</th>
               <th>السعر</th>
+              <th>حجم الكيس</th>
               <th>تم الاستلام</th>
               <th id="pickedAtHeader" style="display:none">تاريخ الاستلام</th>
             </tr>
@@ -337,6 +338,13 @@ function formatDMY(iso){
   const d = new Date(iso);
   return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
 }
+function formatOrderLabel(order){
+  if(userEmail === "laaura@she-store.com"){
+    const dateLabel = formatDMY(order.order_date || order.placed_at_pickup_at || order.created_at);
+    return `طلبية ${dateLabel || ""}`.trim();
+  }
+  return order.order_name || "طلبية";
+}
 
 function formatDateTime(iso){
   if(!iso) return "—";
@@ -349,7 +357,7 @@ function formatDateTime(iso){
 async function loadPickupOrders(){
   const { data, error } = await sb
     .from("orders")
-    .select("id, order_name, created_at, purchases!inner(pickup_point)")
+    .select("id, order_name, order_date, created_at, purchases!inner(pickup_point)")
     .eq("arrived", true)
     .eq("placed_at_pickup", true)
     .eq("purchases.pickup_point", PICKUP_VALUE)
@@ -365,7 +373,7 @@ async function loadPickupOrders(){
 
   orders.forEach(o=>{
     const div = document.createElement("div");
-    const label = o.order_name || "طلبية";
+    const label = formatOrderLabel(o);
     div.className = "orderItem" + (activeOrder?.id === o.id ? " active" : "");
     div.innerHTML = `
       <div><b>${escapeHtml(label)}</b></div>
@@ -379,7 +387,7 @@ async function loadPickupOrders(){
 async function loadPurchasesForOrder(orderId){
   const { data, error } = await sb
     .from("purchases")
-    .select("id, order_id, customer_name, price, picked_up, picked_up_at, created_at, pickup_point, collected")
+    .select("id, order_id, customer_name, price, bag_size, picked_up, picked_up_at, created_at, pickup_point, collected")
     .eq("order_id", orderId)
     .eq("pickup_point", PICKUP_VALUE)
     .order("created_at",{ascending:true});
@@ -396,7 +404,7 @@ async function selectOrder(o){
   purchasesByOrder.set(o.id, list);
 
   const visibleList = list.filter(item=>!item.collected);
-  orderTitleEl.textContent = o.order_name || "طلبية";
+  orderTitleEl.textContent = formatOrderLabel(o);
   purchaseCountEl.textContent = `عدد المشتريات: ${visibleList.length}`;
   updatePickedTotal(visibleList);
 
@@ -447,7 +455,7 @@ function renderTable(list){
   tbody.innerHTML = "";
 
   if(!list.length){
-    tbody.innerHTML = `<tr><td colspan="${isRahaf?5:4}" class="muted">لا يوجد مشتريات</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${isRahaf?6:5}" class="muted">لا يوجد مشتريات</td></tr>`;
     return;
   }
 
@@ -462,6 +470,7 @@ function renderTable(list){
       <td>${i+1}</td>
       <td>${escapeHtml(p.customer_name || "")}</td>
       <td>${escapeHtml(p.price ?? "")}</td>
+      <td>${escapeHtml(p.bag_size || "—")}</td>
       <td><input class="chk" type="checkbox" data-id="${p.id}" ${checked}></td>
       ${isRahaf ? `<td>${escapeHtml(pickedAt)}</td>` : ``}
     `;
@@ -561,7 +570,7 @@ async function runSearch(){
 
   results.forEach(r=>{
     const ord = orders.find(o=>o.id === r.order_id);
-    const label = ord ? `طلبية ${formatDMY(ord.placed_at_pickup_at)}` : "طلبية";
+    const label = ord ? formatOrderLabel(ord) : "طلبية";
 
     const btn = document.createElement("button");
     btn.innerHTML = `

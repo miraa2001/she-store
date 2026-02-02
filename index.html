@@ -69,8 +69,31 @@
     .orderItem.active{border-color:#111}
     .thumbs img{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid #eee;cursor:pointer}
     .editThumb img{cursor:pointer}
-    #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;padding:16px;z-index:1000}
+    #lightbox{
+      position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;
+      padding:16px;z-index:1000;gap:16px
+    }
     #lightbox img{max-width:92vw;max-height:92vh;border-radius:16px}
+    .lightboxBtn{
+      position:absolute;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer;
+      width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;
+      font-size:24px;line-height:1
+    }
+    .lightboxCount{
+      position:absolute;top:20px;left:20px;background:rgba(0,0,0,.55);color:#fff;
+      padding:6px 10px;border-radius:999px;font-size:13px
+    }
+    .lightboxClose{top:20px;right:20px}
+    .lightboxNav{top:50%;transform:translateY(-50%)}
+    .lightboxPrev{left:20px}
+    .lightboxNext{right:20px}
+    @media(max-width:700px){
+      .lightboxBtn{width:38px;height:38px;font-size:20px}
+      .lightboxPrev{left:10px}
+      .lightboxNext{right:10px}
+      .lightboxClose{top:12px;right:12px}
+      .lightboxCount{top:12px;left:12px;font-size:12px}
+    }
 
     .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px}
 
@@ -178,6 +201,14 @@
 
         <div class="row" id="links" style="margin-top:8px"></div>
 
+        <div class="row" style="margin-top:8px">
+          <label class="muted" for="bagSize">حجم الكيس</label>
+          <select id="bagSize">
+            <option value="كيس كبير">كيس كبير</option>
+            <option value="كيس صغير" selected>كيس صغير</option>
+          </select>
+        </div>
+
         <div class="row" style="margin-top:10px">
           <label class="muted" for="pickupPoint">مكان الاستلام</label>
           <select id="pickupPoint">
@@ -226,6 +257,7 @@
               <th>الزبون</th>
               <th>العدد</th>
               <th>السعر</th>
+              <th>حجم الكيس</th>
               <th>روابط</th>
               <th>مكان الاستلام</th>
               <th>صور</th>
@@ -241,7 +273,13 @@
 </div>
 
 
-<div id="lightbox" aria-hidden="true"><img id="lightboxImg" alt="صورة"></div>
+<div id="lightbox" aria-hidden="true">
+  <button type="button" class="lightboxBtn lightboxClose" id="lightboxClose" aria-label="إغلاق">✕</button>
+  <div class="lightboxCount" id="lightboxCount" aria-live="polite"></div>
+  <button type="button" class="lightboxBtn lightboxNav lightboxPrev" id="lightboxPrev" aria-label="السابق">‹</button>
+  <img id="lightboxImg" alt="صورة">
+  <button type="button" class="lightboxBtn lightboxNav lightboxNext" id="lightboxNext" aria-label="التالي">›</button>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -405,6 +443,7 @@ const customer = document.getElementById("customer");
 const price = document.getElementById("price");
 const qty = document.getElementById("qty");
 const pickupPoint = document.getElementById("pickupPoint");
+const bagSize = document.getElementById("bagSize");
 const note = document.getElementById("note");
 const images = document.getElementById("images");
 const linksWrap = document.getElementById("links");
@@ -428,10 +467,38 @@ const orderNameInput = document.getElementById("orderNameInput");
 /* ===== Lightbox (click image to enlarge) ===== */
 const lightbox = document.getElementById("lightbox");
 const lightboxImg = document.getElementById("lightboxImg");
+const lightboxClose = document.getElementById("lightboxClose");
+const lightboxPrev = document.getElementById("lightboxPrev");
+const lightboxNext = document.getElementById("lightboxNext");
+const lightboxCount = document.getElementById("lightboxCount");
+let lightboxImages = [];
+let lightboxIndex = 0;
+let touchStartX = 0;
+let touchStartY = 0;
 
-function openLightbox(src){
-  if(!src || !lightbox || !lightboxImg) return;
-  lightboxImg.src = src;
+function updateLightboxNav(){
+  const hasMultiple = lightboxImages.length > 1;
+  if(lightboxPrev) lightboxPrev.style.display = hasMultiple ? "flex" : "none";
+  if(lightboxNext) lightboxNext.style.display = hasMultiple ? "flex" : "none";
+  if(lightboxCount){
+    const total = lightboxImages.length;
+    lightboxCount.textContent = total ? `${lightboxIndex + 1}/${total}` : "";
+    lightboxCount.style.display = total > 1 ? "inline-flex" : "none";
+  }
+}
+function setLightboxIndex(nextIndex){
+  if(!lightboxImages.length) return;
+  const total = lightboxImages.length;
+  lightboxIndex = (nextIndex + total) % total;
+  if(lightboxImg) lightboxImg.src = lightboxImages[lightboxIndex];
+  updateLightboxNav();
+}
+function openLightbox(images, index){
+  if(!lightbox || !lightboxImg) return;
+  lightboxImages = images && images.length ? images : [];
+  lightboxIndex = Math.max(0, Math.min(index || 0, lightboxImages.length - 1));
+  lightboxImg.src = lightboxImages[lightboxIndex] || "";
+  updateLightboxNav();
   lightbox.style.display = "flex";
   lightbox.setAttribute("aria-hidden","false");
 }
@@ -439,12 +506,51 @@ function closeLightbox(){
   if(!lightbox || !lightboxImg) return;
   lightbox.style.display = "none";
   lightboxImg.src = "";
+  lightboxImages = [];
+  lightboxIndex = 0;
   lightbox.setAttribute("aria-hidden","true");
 }
-if(lightbox){
-  lightbox.addEventListener("click", closeLightbox);
+function isLightboxOpen(){
+  return lightbox && lightbox.style.display === "flex";
 }
-document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") closeLightbox(); });
+function getGalleryImages(img){
+  const container = img.closest(".thumbs, .editImgsRow, .preview, .miniPreview, .listThumbs");
+  if(!container) return { images:[img.src], index:0 };
+  const imgs = Array.from(container.querySelectorAll("img"));
+  const images = imgs.map((item)=>item.src);
+  const index = Math.max(0, imgs.indexOf(img));
+  return { images, index };
+}
+if(lightbox){
+  lightbox.addEventListener("click", (e)=>{
+    if(e.target === lightbox) closeLightbox();
+  });
+  lightbox.addEventListener("touchstart", (e)=>{
+    if(!e.touches || !e.touches.length) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive:true });
+  lightbox.addEventListener("touchend", (e)=>{
+    if(!isLightboxOpen() || lightboxImages.length < 2) return;
+    const touch = e.changedTouches && e.changedTouches[0];
+    if(!touch) return;
+    const dx = touch.clientX - touchStartX;
+    const dy = touch.clientY - touchStartY;
+    if(Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)){
+      if(dx < 0) setLightboxIndex(lightboxIndex + 1);
+      else setLightboxIndex(lightboxIndex - 1);
+    }
+  });
+}
+if(lightboxClose) lightboxClose.addEventListener("click", (e)=>{ e.stopPropagation(); closeLightbox(); });
+if(lightboxPrev) lightboxPrev.addEventListener("click", (e)=>{ e.stopPropagation(); setLightboxIndex(lightboxIndex - 1); });
+if(lightboxNext) lightboxNext.addEventListener("click", (e)=>{ e.stopPropagation(); setLightboxIndex(lightboxIndex + 1); });
+document.addEventListener("keydown", (e)=>{
+  if(e.key === "Escape") closeLightbox();
+  if(!isLightboxOpen()) return;
+  if(e.key === "ArrowLeft") setLightboxIndex(lightboxIndex - 1);
+  if(e.key === "ArrowRight") setLightboxIndex(lightboxIndex + 1);
+});
 
 // Event delegation: thumbnails in lists/edit/new preview
 document.addEventListener("click", (e)=>{
@@ -460,7 +566,8 @@ document.addEventListener("click", (e)=>{
     img.closest(".miniPreview") ||
     img.closest(".thumb")
   ){
-    openLightbox(img.src);
+    const { images, index } = getGalleryImages(img);
+    openLightbox(images, index);
   }
 });
 
@@ -745,6 +852,7 @@ async function saveInlineEdit(purchaseId){
   const name = row.querySelector(`[data-f="name"]`).value.trim();
   const qtyVal = Number(row.querySelector(`[data-f="qty"]`).value);
   const priceVal = Number(row.querySelector(`[data-f="price"]`).value);
+  const bagVal = row.querySelector(`[data-f="bag"]`).value;
   const pickupVal = row.querySelector(`[data-f="pickup"]`).value;
   const noteVal = row.querySelector(`[data-f="note"]`).value.trim();
 
@@ -764,6 +872,7 @@ async function saveInlineEdit(purchaseId){
       customer_name:name,
       qty:qtyVal,
       price:priceVal,
+      bag_size: bagVal,
       pickup_point: pickupVal,
       note: noteVal
     })
@@ -839,6 +948,7 @@ async function loadPurchases(){
     }).join("");
 
     const pickupTxt = p.pickup_point || "من نقطة الاستلام";
+    const bagTxt = p.bag_size || "—";
     const noteTxt = p.note || "";
 
     const tr=document.createElement("tr");
@@ -846,6 +956,7 @@ async function loadPurchases(){
       <td>${escapeHtml(p.customer_name || "")}</td>
       <td>${escapeHtml(p.qty ?? "")}</td>
       <td>${escapeHtml(p.price ?? "")}</td>
+      <td>${escapeHtml(bagTxt)}</td>
       <td>${(p.purchase_links||[]).map((l,i)=>`<a href="${escapeAttr(l.url)}" target="_blank" rel="noopener">رابط ${i+1}</a>`).join("<br>") || "—"}</td>
       <td>${escapeHtml(pickupTxt)}</td>
       <td class="thumbs">${imgs}</td>
@@ -877,7 +988,7 @@ async function loadPurchases(){
     const sel = (v, x) => (v===x ? "selected" : "");
 
     editTr.innerHTML=`
-      <td colspan="8">
+      <td colspan="9">
         <div class="inlineEditBox">
           <div class="row" style="justify-content:space-between">
             <b>تعديل المشترى</b>
@@ -888,6 +999,14 @@ async function loadPurchases(){
             <input data-f="name" placeholder="اسم الزبون" value="${escapeAttr(p.customer_name || "")}">
             <input data-f="qty" type="number" step="1" min="1" placeholder="العدد" value="${escapeAttr(p.qty ?? 1)}">
             <input data-f="price" type="number" step="0.01" min="0" placeholder="السعر" value="${escapeAttr(p.price ?? "")}">
+          </div>
+
+          <div class="row" style="margin-top:10px">
+            <span class="muted">حجم الكيس</span>
+            <select data-f="bag">
+              <option value="كيس كبير" ${sel(p.bag_size || "كيس صغير","كيس كبير")}>كيس كبير</option>
+              <option value="كيس صغير" ${sel(p.bag_size || "كيس صغير","كيس صغير")}>كيس صغير</option>
+            </select>
           </div>
 
           <div class="row" style="margin-top:10px">
@@ -1040,6 +1159,7 @@ addBtn.onclick = async ()=>{
       customer_name: customer.value,
       qty: Number(qty.value),
       price: Number(price.value),
+      bag_size: bagSize.value,
       pickup_point: pickupPoint.value,
       note: note.value.trim()
     })
@@ -1063,6 +1183,7 @@ addBtn.onclick = async ()=>{
 
   customer.value=""; price.value=""; qty.value=1;
   pickupPoint.value="من نقطة الاستلام";
+  bagSize.value="كيس صغير";
   note.value="";
   images.value="";
   linksWrap.querySelectorAll("input").forEach(i=>i.value="");

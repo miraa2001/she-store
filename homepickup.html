@@ -56,8 +56,31 @@
     .chk{width:18px;height:18px}
     .thumbs{display:flex;gap:8px;flex-wrap:wrap}
     .thumbs img{width:72px;height:72px;object-fit:cover;border-radius:10px;border:1px solid #eee;cursor:pointer}
-    #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;padding:16px;z-index:100}
+    #lightbox{
+      position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;
+      padding:16px;z-index:100;gap:16px
+    }
     #lightbox img{max-width:92vw;max-height:92vh;border-radius:16px}
+    .lightboxBtn{
+      position:absolute;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer;
+      width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;
+      font-size:24px;line-height:1
+    }
+    .lightboxCount{
+      position:absolute;top:20px;left:20px;background:rgba(0,0,0,.55);color:#fff;
+      padding:6px 10px;border-radius:999px;font-size:13px
+    }
+    .lightboxClose{top:20px;right:20px}
+    .lightboxNav{top:50%;transform:translateY(-50%)}
+    .lightboxPrev{left:20px}
+    .lightboxNext{right:20px}
+    @media(max-width:700px){
+      .lightboxBtn{width:38px;height:38px;font-size:20px}
+      .lightboxPrev{left:10px}
+      .lightboxNext{right:10px}
+      .lightboxClose{top:12px;right:12px}
+      .lightboxCount{top:12px;left:12px;font-size:12px}
+    }
   </style>
 </head>
 <body>
@@ -130,7 +153,13 @@
   </div>
 </div>
 
-<div id="lightbox"><img alt="صورة كبيرة"></div>
+<div id="lightbox">
+  <button type="button" class="lightboxBtn lightboxClose" id="lightboxClose" aria-label="إغلاق">✕</button>
+  <div class="lightboxCount" id="lightboxCount" aria-live="polite"></div>
+  <button type="button" class="lightboxBtn lightboxNav lightboxPrev" id="lightboxPrev" aria-label="السابق">‹</button>
+  <img alt="صورة كبيرة">
+  <button type="button" class="lightboxBtn lightboxNav lightboxNext" id="lightboxNext" aria-label="التالي">›</button>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -237,7 +266,89 @@ const purchaseCountEl = document.getElementById("purchaseCount");
 const totalPriceEl = document.getElementById("totalPrice");
 const tbody = document.getElementById("tbody");
 const lb = document.getElementById("lightbox");
-const lbImg = lb.querySelector("img");
+const lbImg = lb ? lb.querySelector("img") : null;
+const lbClose = document.getElementById("lightboxClose");
+const lbPrev = document.getElementById("lightboxPrev");
+const lbNext = document.getElementById("lightboxNext");
+const lbCount = document.getElementById("lightboxCount");
+let lightboxImages = [];
+let lightboxIndex = 0;
+let touchStartX = 0;
+let touchStartY = 0;
+
+function updateLightboxNav(){
+  const hasMultiple = lightboxImages.length > 1;
+  if(lbPrev) lbPrev.style.display = hasMultiple ? "flex" : "none";
+  if(lbNext) lbNext.style.display = hasMultiple ? "flex" : "none";
+  if(lbCount){
+    const total = lightboxImages.length;
+    lbCount.textContent = total ? `${lightboxIndex + 1}/${total}` : "";
+    lbCount.style.display = total > 1 ? "inline-flex" : "none";
+  }
+}
+function setLightboxIndex(nextIndex){
+  if(!lightboxImages.length) return;
+  const total = lightboxImages.length;
+  lightboxIndex = (nextIndex + total) % total;
+  if(lbImg) lbImg.src = lightboxImages[lightboxIndex];
+  updateLightboxNav();
+}
+function openLightbox(images, index){
+  if(!lb || !lbImg) return;
+  lightboxImages = images && images.length ? images : [];
+  lightboxIndex = Math.max(0, Math.min(index || 0, lightboxImages.length - 1));
+  lbImg.src = lightboxImages[lightboxIndex] || "";
+  updateLightboxNav();
+  lb.style.display = "flex";
+}
+function closeLightbox(){
+  if(!lb || !lbImg) return;
+  lb.style.display = "none";
+  lbImg.src = "";
+  lightboxImages = [];
+  lightboxIndex = 0;
+}
+function isLightboxOpen(){
+  return lb && lb.style.display === "flex";
+}
+function getGalleryImages(img){
+  const container = img.closest(".thumbs");
+  if(!container) return { images:[img.src], index:0 };
+  const imgs = Array.from(container.querySelectorAll("img"));
+  const images = imgs.map((item)=>item.src);
+  const index = Math.max(0, imgs.indexOf(img));
+  return { images, index };
+}
+if(lb){
+  lb.addEventListener("click", (e)=>{
+    if(e.target === lb) closeLightbox();
+  });
+  lb.addEventListener("touchstart", (e)=>{
+    if(!e.touches || !e.touches.length) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive:true });
+  lb.addEventListener("touchend", (e)=>{
+    if(!isLightboxOpen() || lightboxImages.length < 2) return;
+    const touch = e.changedTouches && e.changedTouches[0];
+    if(!touch) return;
+    const dx = touch.clientX - touchStartX;
+    const dy = touch.clientY - touchStartY;
+    if(Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)){
+      if(dx < 0) setLightboxIndex(lightboxIndex + 1);
+      else setLightboxIndex(lightboxIndex - 1);
+    }
+  });
+}
+if(lbClose) lbClose.addEventListener("click", (e)=>{ e.stopPropagation(); closeLightbox(); });
+if(lbPrev) lbPrev.addEventListener("click", (e)=>{ e.stopPropagation(); setLightboxIndex(lightboxIndex - 1); });
+if(lbNext) lbNext.addEventListener("click", (e)=>{ e.stopPropagation(); setLightboxIndex(lightboxIndex + 1); });
+document.addEventListener("keydown", (e)=>{
+  if(e.key === "Escape") closeLightbox();
+  if(!isLightboxOpen()) return;
+  if(e.key === "ArrowLeft") setLightboxIndex(lightboxIndex - 1);
+  if(e.key === "ArrowRight") setLightboxIndex(lightboxIndex + 1);
+});
 const collectHomeBtn = document.getElementById("collectHomeBtn");
 const searchInput = document.getElementById("searchInput");
 const searchResultsEl = document.getElementById("searchResults");
@@ -378,7 +489,10 @@ function renderPurchases(){
   });
 
   tbody.querySelectorAll(".thumbs img").forEach(img=>{
-    img.onclick = () => { lb.style.display = "flex"; lbImg.src = img.src; };
+    img.onclick = () => {
+      const { images, index } = getGalleryImages(img);
+      openLightbox(images, index);
+    };
   });
 
   showMain(true);
@@ -429,7 +543,7 @@ async function selectOrder(order){
   renderPurchases();
 }
 
-lb.onclick = ()=> lb.style.display="none";
+// lightbox close handled by overlay/close button
 
 if(collectHomeBtn){
   collectHomeBtn.onclick = async ()=>{
