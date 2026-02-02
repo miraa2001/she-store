@@ -43,6 +43,7 @@
     .orderItem{border:1px solid #e7e7e7;border-radius:12px;padding:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
     .orderItem.active{border-color:#111}
     .orderItem small{color:#666}
+    .orderGroupMeta{display:flex;gap:8px;align-items:center}
 
     table{width:100%;border-collapse:collapse}
     th,td{border-bottom:1px solid #eee;padding:10px;text-align:right;vertical-align:top}
@@ -267,6 +268,7 @@ const pickedAtHeader = document.getElementById("pickedAtHeader");
 
 let userEmail = "";
 let isRahaf = false;
+let isLaaura = false;
 
 let orders = [];
 let activeOrder = null;
@@ -325,6 +327,7 @@ async function loadUser(){
   const { data } = await sb.auth.getUser();
   userEmail = (data?.user?.email || "").toLowerCase();
   isRahaf = userEmail === "rahaf@she-store.com";
+  isLaaura = userEmail === "laaura@she-store.com";
   pickedAtHeader.style.display = isRahaf ? "" : "none";
 }
 
@@ -339,11 +342,37 @@ function formatDMY(iso){
   return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
 }
 function formatOrderLabel(order){
+  if(order?.isGroup || order?.orderIds){
+    return order.label || "طلبية";
+  }
   if(userEmail === "laaura@she-store.com"){
     const dateLabel = formatDMY(order.order_date || order.placed_at_pickup_at || order.created_at);
     return `طلبية ${dateLabel || ""}`.trim();
   }
   return order.order_name || "طلبية";
+}
+
+function buildOrderGroups(list){
+  const groups = [];
+  const map = new Map();
+
+  list.forEach(order=>{
+    const dateKey = formatDMY(order.order_date || order.placed_at_pickup_at || order.created_at);
+    const label = `طلبية ${dateKey || ""}`.trim();
+    if(!map.has(dateKey)){
+      const group = {
+        id: `group-${dateKey || "unknown"}`,
+        label,
+        order_name: label,
+        orderIds: []
+      };
+      map.set(dateKey, group);
+      groups.push(group);
+    }
+    map.get(dateKey).orderIds.push(order.id);
+  });
+
+  return groups;
 }
 
 function formatDateTime(iso){
@@ -357,7 +386,7 @@ function formatDateTime(iso){
 async function loadPickupOrders(){
   const { data, error } = await sb
     .from("orders")
-    .select("id, order_name, order_date, created_at, purchases!inner(pickup_point)")
+    .select("id, order_name, order_date, placed_at_pickup_at, created_at, purchases!inner(pickup_point)")
     .eq("arrived", true)
     .eq("placed_at_pickup", true)
     .eq("purchases.pickup_point", PICKUP_VALUE)
@@ -366,18 +395,22 @@ async function loadPickupOrders(){
   if(error){ console.error(error); return; }
 
   orders = data || [];
-  ordersCountEl.textContent = orders.length;
+  const listItems = isLaaura ? buildOrderGroups(orders) : orders;
+  ordersCountEl.textContent = listItems.length;
 
   ordersListEl.innerHTML = "";
-  ordersEmptyEl.style.display = orders.length ? "none" : "";
+  ordersEmptyEl.style.display = listItems.length ? "none" : "";
 
-  orders.forEach(o=>{
+  listItems.forEach(o=>{
     const div = document.createElement("div");
     const label = formatOrderLabel(o);
     div.className = "orderItem" + (activeOrder?.id === o.id ? " active" : "");
     div.innerHTML = `
       <div><b>${escapeHtml(label)}</b></div>
-      <span class="pill">فتح</span>
+      <div class="orderGroupMeta">
+        ${o.orderIds ? `<span class="pill">${o.orderIds.length}</span>` : ""}
+        <span class="pill">فتح</span>
+      </div>
     `;
     div.onclick = ()=>selectOrder(o);
     ordersListEl.appendChild(div);
@@ -396,11 +429,24 @@ async function loadPurchasesForOrder(orderId){
   return data || [];
 }
 
+async function loadPurchasesForOrders(orderIds){
+  if(!orderIds.length) return [];
+  const { data, error } = await sb
+    .from("purchases")
+    .select("id, order_id, customer_name, price, bag_size, picked_up, picked_up_at, created_at, pickup_point, collected")
+    .in("order_id", orderIds)
+    .eq("pickup_point", PICKUP_VALUE)
+    .order("created_at",{ascending:true});
+
+  if(error){ console.error(error); return []; }
+  return data || [];
+}
+
 async function selectOrder(o){
   activeOrder = o;
   await loadPickupOrders();
 
-  const list = await loadPurchasesForOrder(o.id);
+  const list = o.orderIds ? await loadPurchasesForOrders(o.orderIds) : await loadPurchasesForOrder(o.id);
   purchasesByOrder.set(o.id, list);
 
   const visibleList = list.filter(item=>!item.collected);
