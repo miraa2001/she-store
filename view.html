@@ -96,7 +96,8 @@
     .iconBtn{width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center}
     .iconBtn img{width:22px;height:22px;display:block}
     .priceRow{display:flex;align-items:center;justify-content:space-between;gap:8px}
-    .waBtn{border:none;background:transparent;cursor:pointer;padding:0;display:inline-flex;font-size:20px;line-height:1}
+    .waBtn{font-family:inherit}
+    .waBtn:hover{border-color:#111}
 
     /* ===== Search ===== */
     .searchBox{width:100%;max-width:420px}
@@ -802,19 +803,20 @@ function render(){
     : "";
 
   const whatsappBtn = canShowWhatsapp()
-    ? `<button class="waBtn" type="button" data-wa="${p.id}" aria-label="إرسال تنبيه">🔔</button>`
+    ? `<button class="btn waBtn" type="button" data-wa="${p.id}" aria-label="إرسال رسالة واتساب">ارسل رسالة واتساب</button>`
     : "";
 
   content.innerHTML = `
     ${highlight}
     <div><b>الزبون:</b> ${escapeHtml(p.customer_name || "")}</div>
     <div><b>العدد:</b> ${escapeHtml(p.qty ?? "")}</div>
-    <div class="priceRow"><div><b>السعر:</b> ${escapeHtml(p.price ?? "")}</div>${whatsappBtn}</div>
+    <div class="priceRow"><div><b>السعر:</b> ${escapeHtml(p.price ?? "")}</div></div>
     <div><b>حجم الكيس:</b> ${bagMarkup}</div>
     <div style="margin-top:8px"><b>روابط:</b><br>${links}</div>
     <div style="margin-top:10px"><b>مكان الاستلام:</b> ${escapeHtml(pickup)}</div>
     <div class="thumbs">${imgs || ""}</div>
     <div style="margin-top:10px"><b>ملاحظة:</b> ${note ? escapeHtml(note) : "—"}</div>
+    ${whatsappBtn ? `<div style="margin-top:10px">${whatsappBtn}</div>` : ""}
   `;
 
   content.querySelectorAll("button[data-wa]").forEach(btn=>{
@@ -849,18 +851,17 @@ function renderList(){
     const bagValue = p.bag_size || "كيس صغير";
     const bagMarkup = canEditBagSize() ? bagSizeEditor(p) : escapeHtml(bagValue);
     const highlightClass = (highlightPurchaseId && highlightPurchaseId === p.id) ? "highlight" : "";
-    const whatsappMarkup = whatsappButtonMarkup(p.id, activeOrder) || "—";
-
     const waBtn = canShowWhatsapp()
-      ? `<button class="waBtn" type="button" data-wa="${p.id}" aria-label="إرسال تنبيه">🔔</button>`
+      ? `<button class="btn waBtn" type="button" data-wa="${p.id}" aria-label="إرسال رسالة واتساب">ارسل رسالة واتساب</button>`
       : "";
+    const whatsappMarkup = waBtn || "—";
 
     return `
       <tr class="${highlightClass}">
         <td>${i + 1}</td>
         <td>${escapeHtml(p.customer_name || "")}</td>
         <td>${escapeHtml(p.qty ?? "")}</td>
-        <td><div class="priceRow">${escapeHtml(p.price ?? "")}${waBtn}</div></td>
+        <td><div class="priceRow">${escapeHtml(p.price ?? "")}</div></td>
         <td>${escapeHtml(pickup)}</td>
         <td>${bagMarkup}</td>
         <td>${links}</td>

@@ -627,7 +627,6 @@ function setCustomerSelection(inputEl, clearBtn, customerData, opts={}){
   inputEl.value = customerData?.name || "";
   inputEl.dataset.customerId = customerData?.id || "";
   inputEl.dataset.customerName = customerData?.name || "";
-  inputEl.readOnly = true;
   if(clearBtn) clearBtn.style.display = "";
   if(opts.applyPickup && customerData?.usual_pickup_point){
     pickupPoint.value = customerData.usual_pickup_point;
@@ -638,7 +637,6 @@ function clearCustomerSelection(inputEl, clearBtn){
   inputEl.value = "";
   inputEl.dataset.customerId = "";
   inputEl.dataset.customerName = "";
-  inputEl.readOnly = false;
   if(clearBtn) clearBtn.style.display = "none";
 }
 
@@ -676,7 +674,6 @@ function setupCustomerAutocomplete(inputEl, listEl, clearBtn, opts={}){
 
   inputEl.addEventListener("input", ()=>{
     clearDuplicateWarning();
-    if(inputEl.readOnly) return;
     clearTimeout(customerSearchTimer);
     customerSearchTimer = setTimeout(async ()=>{
       const results = await searchCustomers(inputEl.value);
@@ -686,7 +683,6 @@ function setupCustomerAutocomplete(inputEl, listEl, clearBtn, opts={}){
   });
 
   inputEl.addEventListener("focus", async ()=>{
-    if(inputEl.readOnly) return;
     if(inputEl.value.trim().length < 2) return;
     const results = await searchCustomers(inputEl.value);
     renderCustomerSuggestions(listEl, results, inputEl, clearBtn, opts);
@@ -1199,7 +1195,6 @@ async function loadPurchases(){
     const editClearBtn = editTr.querySelector(`[data-customer-clear="${p.id}"]`);
     if(editNameInput){
       editNameInput.dataset.customerId = p.customer_id || "";
-      editNameInput.readOnly = Boolean(editNameInput.dataset.customerId);
       if(editClearBtn){
         editClearBtn.style.display = editNameInput.dataset.customerId ? "" : "none";
       }
