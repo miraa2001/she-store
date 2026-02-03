@@ -625,7 +625,14 @@ async function searchCustomers(term){
 
 function setCustomerSelection(inputEl, clearBtn, customerData, opts={}){
   inputEl.value = customerData?.name || "";
-  inputEl.dataset.customerId = customerData?.id || "";
+  if(opts.lockCustomerId){
+    const lockedId = (typeof opts.fixedCustomerId === "string")
+      ? opts.fixedCustomerId
+      : (inputEl.dataset.customerId || "");
+    inputEl.dataset.customerId = lockedId;
+  } else {
+    inputEl.dataset.customerId = customerData?.id || "";
+  }
   inputEl.dataset.customerName = customerData?.name || "";
   if(clearBtn) clearBtn.style.display = "";
   if(opts.applyPickup && customerData?.usual_pickup_point){
@@ -633,11 +640,15 @@ function setCustomerSelection(inputEl, clearBtn, customerData, opts={}){
   }
 }
 
-function clearCustomerSelection(inputEl, clearBtn){
+function clearCustomerSelection(inputEl, clearBtn, opts={}){
   inputEl.value = "";
-  inputEl.dataset.customerId = "";
   inputEl.dataset.customerName = "";
-  if(clearBtn) clearBtn.style.display = "none";
+  if(!opts.keepCustomerId){
+    inputEl.dataset.customerId = "";
+    if(clearBtn) clearBtn.style.display = "none";
+  } else {
+    if(clearBtn) clearBtn.style.display = "";
+  }
 }
 
 function renderCustomerSuggestions(listEl, customers, inputEl, clearBtn, opts={}){
@@ -697,7 +708,7 @@ function setupCustomerAutocomplete(inputEl, listEl, clearBtn, opts={}){
 
   if(clearBtn){
     clearBtn.onclick = () => {
-      clearCustomerSelection(inputEl, clearBtn);
+      clearCustomerSelection(inputEl, clearBtn, { keepCustomerId: !!opts.lockCustomerId });
       listEl.style.display = "none";
       inputEl.focus();
     };
@@ -968,14 +979,14 @@ async function saveInlineEdit(purchaseId){
 
   const nameInput = row.querySelector(`[data-f="name"]`);
   const name = nameInput.value.trim();
-  const customerId = nameInput.dataset.customerId;
+  const lockedCustomerId = nameInput.dataset.originalCustomerId || nameInput.dataset.customerId;
   const qtyVal = Number(row.querySelector(`[data-f="qty"]`).value);
   const priceVal = Number(row.querySelector(`[data-f="price"]`).value);
   const bagVal = row.querySelector(`[data-f="bag"]`).value;
   const pickupVal = row.querySelector(`[data-f="pickup"]`).value;
   const noteVal = row.querySelector(`[data-f="note"]`).value.trim();
 
-  if(!customerId){ msgEl.textContent="اختاري الزبون من القائمة."; return; }
+  if(!lockedCustomerId){ msgEl.textContent="هذا الشراء غير مرتبط بعميل."; return; }
   if(!name){ msgEl.textContent="اسم الزبون مطلوب."; return; }
   if(!Number.isFinite(qtyVal) || qtyVal<1){ msgEl.textContent="العدد غير صحيح."; return; }
   if(!Number.isFinite(priceVal) || priceVal<0){ msgEl.textContent="السعر غير صحيح."; return; }
@@ -989,7 +1000,7 @@ async function saveInlineEdit(purchaseId){
   const { error: upErr } = await sb
     .from("purchases")
     .update({
-      customer_id: customerId,
+      customer_id: lockedCustomerId,
       customer_name:name,
       qty:qtyVal,
       price:priceVal,
@@ -1195,10 +1206,15 @@ async function loadPurchases(){
     const editClearBtn = editTr.querySelector(`[data-customer-clear="${p.id}"]`);
     if(editNameInput){
       editNameInput.dataset.customerId = p.customer_id || "";
+      editNameInput.dataset.originalCustomerId = p.customer_id || "";
       if(editClearBtn){
         editClearBtn.style.display = editNameInput.dataset.customerId ? "" : "none";
       }
-      setupCustomerAutocomplete(editNameInput, editListEl, editClearBtn, { applyPickup: false });
+      setupCustomerAutocomplete(editNameInput, editListEl, editClearBtn, {
+        applyPickup: false,
+        lockCustomerId: true,
+        fixedCustomerId: editNameInput.dataset.originalCustomerId
+      });
     }
 
     getOrCreateEditState(p.id, (p.purchase_images||[]).length);
