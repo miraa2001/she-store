@@ -235,6 +235,7 @@ function renderSidebar(){
     link("إضافة طلبية", "./index.html");
     link("عرض الطلبيات", "./view.html");
     link("مستلمو البيت", "./homepickup.html");
+    link("العملاء", "./customers.html");
     link("تحصيل المبالغ", "./collections.html");
   }
 
@@ -373,6 +374,19 @@ function buildOrderGroups(list){
   });
 
   return groups;
+}
+
+function findGroupForOrder(order){
+  const dateKey = formatDMY(order.order_date || order.placed_at_pickup_at || order.created_at);
+  return {
+    id: `group-${dateKey || "unknown"}`,
+    label: `طلبية ${dateKey || ""}`.trim(),
+    order_name: `طلبية ${dateKey || ""}`.trim(),
+    orderIds: orders.filter(o=>{
+      const oKey = formatDMY(o.order_date || o.placed_at_pickup_at || o.created_at);
+      return oKey === dateKey;
+    }).map(o=>o.id)
+  };
 }
 
 function formatDateTime(iso){
@@ -626,7 +640,10 @@ async function runSearch(){
     btn.onclick = async ()=>{
       highlightPurchaseId = r.id;
       searchResultsEl.style.display = "none";
-      if(ord) await selectOrder(ord);
+      if(ord){
+        const target = isLaaura ? findGroupForOrder(ord) : ord;
+        await selectOrder(target);
+      }
       setTimeout(()=>{ highlightPurchaseId = null; }, 2500);
     };
     searchResultsEl.appendChild(btn);
@@ -639,7 +656,7 @@ async function runSearch(){
   renderSidebar();
   await loadUser();
   await loadPickupOrders();
-  if(orders.length) selectOrder(orders[0]);
+  if(orders.length && !isLaaura) selectOrder(orders[0]);
 })();
 </script>
 </body>

@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>العملاء</title>
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/3665/3665980.png" />
+  <style>
+    body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa;color:#111}
+    .wrap{max-width:900px;margin:auto;padding:16px}
+    .card{background:#fff;border:1px solid #e7e7e7;border-radius:14px;padding:12px}
+    .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .btn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
+    .btn.primary{background:#111;color:#fff;border-color:#111}
+    .muted{color:#666;font-size:13px}
+    input,select{padding:10px;border:1px solid #e7e7e7;border-radius:10px;font-family:inherit}
+    label{font-size:13px;color:#666}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+    .brand b{font-size:20px}
+    .menuBtn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
+    .sidebarOverlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:50}
+    .sidebar{
+      position:fixed;top:0;right:0;height:100vh;width:min(280px,82vw);
+      background:#fff;border-left:1px solid #eee;z-index:60;
+      transform:translateX(100%);transition:transform .2s ease;
+      display:flex;flex-direction:column;padding:14px;box-sizing:border-box
+    }
+    .sidebar.open{transform:translateX(0)}
+    .sidebarOverlay.open{display:block}
+    .sidebarHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+    .sidebarHeader b{font-size:16px}
+    .sidebar a,.sidebar button{
+      width:100%;text-align:right;border:1px solid #e7e7e7;background:#fff;
+      padding:10px 12px;border-radius:10px;cursor:pointer;margin-top:8px;font-family:inherit;
+      box-sizing:border-box
+    }
+    .sidebar a{color:#111;text-decoration:none;display:block}
+    .sidebar .danger{border-color:#f2c2c2;color:#b00020}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{border-bottom:1px solid #eee;padding:10px;text-align:right;vertical-align:top}
+    th{color:#666;font-size:13px}
+    .editRow{background:#fcfcfc}
+    .iconBtn{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center}
+  </style>
+</head>
+<body>
+
+<div class="sidebarOverlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebarHeader">
+    <b>القائمة</b>
+    <button class="menuBtn" id="closeSidebarBtn" type="button">✕</button>
+  </div>
+  <div id="sidebarContent"></div>
+</aside>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <b>العملاء</b>
+      <div class="muted">إضافة عميل جديد</div>
+    </div>
+    <button class="menuBtn" id="openSidebarBtn" type="button">☰</button>
+  </div>
+
+  <div class="card">
+    <div class="row" style="margin-bottom:10px">
+      <div>
+        <b>إضافة عميل</b>
+        <div class="muted">رقم الهاتف يجب أن يبدأ بـ 970 أو 972</div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <div style="flex:1;min-width:220px">
+        <label for="customerName">الاسم</label>
+        <input id="customerName" placeholder="اسم العميل">
+      </div>
+      <div style="flex:1;min-width:220px">
+        <label for="customerPhone">رقم الهاتف</label>
+        <input id="customerPhone" placeholder="970xxxxxxxxx أو 972xxxxxxxxx">
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <div style="flex:1;min-width:220px">
+        <label for="customerCity">المدينة</label>
+        <select id="customerCity">
+          <option value="">اختر المدينة</option>
+          <option value="طولكرم" selected>طولكرم</option>
+          <option value="نابلس">نابلس</option>
+          <option value="جنين">جنين</option>
+          <option value="رام الله">رام الله</option>
+          <option value="سلفيت">سلفيت</option>
+          <option value="قلقيلية">قلقيلية</option>
+          <option value="أريحا">أريحا</option>
+          <option value="بيت لحم">بيت لحم</option>
+          <option value="القدس">القدس</option>
+          <option value="الداخل">الداخل</option>
+        </select>
+      </div>
+      <div style="flex:1;min-width:220px">
+        <label for="customerPickup">نقطة الاستلام المعتادة</label>
+        <select id="customerPickup">
+          <option value="من البيت">من البيت</option>
+          <option value="توصيل">توصيل</option>
+          <option value="من نقطة الاستلام">من نقطة الاستلام</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:14px">
+      <button class="btn primary" id="saveCustomerBtn">حفظ العميل</button>
+      <span class="muted" id="customerMsg"></span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <div class="row" style="margin-bottom:10px">
+      <div>
+        <b>قائمة العملاء</b>
+        <div class="muted">تعديل معلومات العملاء</div>
+      </div>
+      <span class="muted" id="customersCount">0</span>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>الاسم</th>
+          <th>رقم الهاتف</th>
+          <th>المدينة</th>
+          <th>نقطة الاستلام المعتادة</th>
+          <th>تعديل</th>
+        </tr>
+      </thead>
+      <tbody id="customersTableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://maucjvxhrnkdeybltjco.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+const EMAIL_RAHAF = "rahaf@she-store.com";
+
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("sidebarOverlay");
+const openSidebarBtn = document.getElementById("openSidebarBtn");
+const closeSidebarBtn = document.getElementById("closeSidebarBtn");
+
+function openSidebar(){ sidebar.classList.add("open"); overlay.classList.add("open"); }
+function closeSidebar(){ sidebar.classList.remove("open"); overlay.classList.remove("open"); }
+openSidebarBtn.onclick = openSidebar;
+closeSidebarBtn.onclick = closeSidebar;
+overlay.onclick = closeSidebar;
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeSidebar(); });
+
+function renderSidebar(){
+  const wrap = document.getElementById("sidebarContent");
+  wrap.innerHTML = "";
+
+  const link = (text, href)=>{
+    const a = document.createElement("a");
+    a.href = href;
+    a.textContent = text;
+    a.onclick = ()=> closeSidebar();
+    wrap.appendChild(a);
+  };
+  const btn = (text, cls, onClick)=>{
+    const b = document.createElement("button");
+    b.type="button";
+    if(cls) b.className = cls;
+    b.textContent = text;
+    b.onclick = async ()=>{
+      await onClick();
+      closeSidebar();
+    };
+    wrap.appendChild(b);
+  };
+
+  link("إضافة طلبية", "./index.html");
+  link("عرض الطلبيات", "./view.html");
+  link("La Aura", "./pickuppoint.html");
+  link("مستلمو البيت", "./homepickup.html");
+  link("تحصيل المبالغ", "./collections.html");
+
+  btn("تسجيل خروج", "danger", async ()=>{
+    await sb.auth.signOut();
+    window.location.href="./login.html";
+  });
+}
+
+async function guardCustomersAccess(){
+  const { data } = await sb.auth.getUser();
+  const email = (data?.user?.email || "").toLowerCase();
+  if(email !== EMAIL_RAHAF){
+    window.location.href = "./login.html?next=customers.html";
+    return false;
+  }
+  return true;
+}
+
+const customerName = document.getElementById("customerName");
+const customerPhone = document.getElementById("customerPhone");
+const customerCity = document.getElementById("customerCity");
+const customerPickup = document.getElementById("customerPickup");
+const saveCustomerBtn = document.getElementById("saveCustomerBtn");
+const customerMsg = document.getElementById("customerMsg");
+const customersTableBody = document.getElementById("customersTableBody");
+const customersCount = document.getElementById("customersCount");
+
+function normalizePhone(value){
+  return (value || "").replace(/\s+/g, "");
+}
+
+function isValidPhone(value){
+  const phone = normalizePhone(value);
+  return /^(\+?970|\+?972)\d{7,9}$/.test(phone);
+}
+
+function escapeHtml(value=""){
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function cityOptions(selected){
+  const cities = [
+    "طولكرم","نابلس","جنين","رام الله","سلفيت","قلقيلية","أريحا","بيت لحم","القدس","الداخل"
+  ];
+  return cities.map(city=>`<option value="${city}" ${selected===city?"selected":""}>${city}</option>`).join("");
+}
+
+function pickupOptions(selected){
+  const options = ["من البيت","توصيل","من نقطة الاستلام"];
+  return options.map(opt=>`<option value="${opt}" ${selected===opt?"selected":""}>${opt}</option>`).join("");
+}
+
+function renderCustomers(list){
+  customersTableBody.innerHTML = "";
+  customersCount.textContent = list.length;
+
+  if(!list.length){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="5" class="muted">لا يوجد عملاء بعد</td>`;
+    customersTableBody.appendChild(tr);
+    return;
+  }
+
+  list.forEach(c=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(c.name || "")}</td>
+      <td>${escapeHtml(c.phone || "")}</td>
+      <td>${escapeHtml(c.city || "")}</td>
+      <td>${escapeHtml(c.usual_pickup_point || "")}</td>
+      <td><button class="btn iconBtn" data-edit="${c.id}" title="تعديل">✏️</button></td>
+    `;
+
+    const editTr = document.createElement("tr");
+    editTr.className = "editRow";
+    editTr.dataset.editRow = c.id;
+    editTr.style.display = "none";
+    editTr.innerHTML = `
+      <td colspan="5">
+        <div class="row" style="margin-bottom:8px">
+          <div style="flex:1;min-width:200px">
+            <label>الاسم</label>
+            <input data-f="name" value="${escapeHtml(c.name || "")}">
+          </div>
+          <div style="flex:1;min-width:200px">
+            <label>رقم الهاتف</label>
+            <input data-f="phone" value="${escapeHtml(c.phone || "")}">
+          </div>
+        </div>
+        <div class="row" style="margin-bottom:8px">
+          <div style="flex:1;min-width:200px">
+            <label>المدينة</label>
+            <select data-f="city">${cityOptions(c.city)}</select>
+          </div>
+          <div style="flex:1;min-width:200px">
+            <label>نقطة الاستلام المعتادة</label>
+            <select data-f="pickup">${pickupOptions(c.usual_pickup_point)}</select>
+          </div>
+        </div>
+        <div class="row" style="justify-content:space-between">
+          <div class="row">
+            <button class="btn primary" type="button" data-save="${c.id}">حفظ</button>
+            <button class="btn" type="button" data-cancel="${c.id}">إلغاء</button>
+          </div>
+          <span class="muted" data-msg="${c.id}"></span>
+        </div>
+      </td>
+    `;
+
+    customersTableBody.appendChild(tr);
+    customersTableBody.appendChild(editTr);
+  });
+
+  customersTableBody.querySelectorAll("button[data-edit]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const id = btn.dataset.edit;
+      customersTableBody.querySelectorAll("tr[data-edit-row]").forEach(row=>{
+        row.style.display = row.dataset.editRow === id ? "" : "none";
+      });
+    };
+  });
+
+  customersTableBody.querySelectorAll("button[data-cancel]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const row = customersTableBody.querySelector(`tr[data-edit-row="${btn.dataset.cancel}"]`);
+      if(row) row.style.display = "none";
+    };
+  });
+
+  customersTableBody.querySelectorAll("button[data-save]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      const id = btn.dataset.save;
+      const row = customersTableBody.querySelector(`tr[data-edit-row="${id}"]`);
+      if(!row) return;
+      const msgEl = row.querySelector(`[data-msg="${id}"]`);
+      const name = row.querySelector(`[data-f="name"]`).value.trim();
+      const phone = normalizePhone(row.querySelector(`[data-f="phone"]`).value);
+      const city = row.querySelector(`[data-f="city"]`).value;
+      const pickup = row.querySelector(`[data-f="pickup"]`).value;
+
+      if(!name){ msgEl.textContent = "الاسم مطلوب."; return; }
+      if(!phone){ msgEl.textContent = "رقم الهاتف مطلوب."; return; }
+      if(!isValidPhone(phone)){ msgEl.textContent = "رقم الهاتف يجب أن يبدأ بـ 970 أو 972."; return; }
+      if(!city){ msgEl.textContent = "اختاري المدينة."; return; }
+
+      msgEl.textContent = "جاري الحفظ...";
+      const { error } = await sb.from("customers").update({
+        name,
+        phone,
+        city,
+        usual_pickup_point: pickup
+      }).eq("id", id);
+
+      if(error){
+        console.error(error);
+        msgEl.textContent = error.message || "فشل التعديل.";
+        return;
+      }
+
+      msgEl.textContent = "تم ✅";
+      await loadCustomers();
+    };
+  });
+}
+
+async function loadCustomers(){
+  const { data, error } = await sb
+    .from("customers")
+    .select("id,name,phone,city,usual_pickup_point")
+    .order("created_at", { ascending: false });
+  if(error){ console.error(error); return; }
+  renderCustomers(data || []);
+}
+
+saveCustomerBtn.onclick = async ()=>{
+  const name = (customerName.value || "").trim();
+  const phone = normalizePhone(customerPhone.value);
+  const city = customerCity.value;
+  const pickup = customerPickup.value;
+
+  if(!name){ customerMsg.textContent = "الاسم مطلوب."; return; }
+  if(!phone){ customerMsg.textContent = "رقم الهاتف مطلوب."; return; }
+  if(!isValidPhone(phone)){ customerMsg.textContent = "رقم الهاتف يجب أن يبدأ بـ 970 أو 972."; return; }
+  if(!city){ customerMsg.textContent = "اختاري المدينة."; return; }
+
+  customerMsg.textContent = "جاري الحفظ...";
+
+  const { error } = await sb.from("customers").insert({
+    name,
+    phone,
+    city,
+    usual_pickup_point: pickup
+  });
+
+  if(error){
+    console.error(error);
+    customerMsg.textContent = error.message || "فشل إضافة العميل.";
+    return;
+  }
+
+  customerMsg.textContent = "تم ✅";
+  customerName.value = "";
+  customerPhone.value = "";
+  customerCity.value = "طولكرم";
+  customerPickup.value = "من نقطة الاستلام";
+  await loadCustomers();
+};
+
+(async function init(){
+  const ok = await guardCustomersAccess();
+  if(!ok) return;
+  renderSidebar();
+  await loadCustomers();
+})();
+</script>
+</body>
+</html>
