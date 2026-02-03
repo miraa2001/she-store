@@ -97,6 +97,16 @@
     }
 
     .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px}
+    .searchBox{width:100%;max-width:420px}
+    .searchResults{margin-top:8px;border:1px solid #eee;border-radius:12px;overflow:hidden}
+    .searchResults button{
+      width:100%;text-align:right;background:#fff;border:none;padding:10px;cursor:pointer;border-bottom:1px solid #eee;
+      font-family:inherit
+    }
+    .searchResults button:last-child{border-bottom:none}
+    .searchResults button:hover{background:#fafafa}
+    .highlight{background:#fff8d6;padding:6px 8px;border-radius:10px}
+    tr.highlight td{background:#fff8d6}
 
     .dropZone{
       border:2px dashed #d8d8d8;border-radius:14px;padding:12px;background:#fff;outline:none;
@@ -163,6 +173,12 @@
     </div>
     <button class="menuBtn" id="openSidebarBtn" type="button">☰</button>
   </div>
+
+  <div class="row" style="margin-bottom:12px">
+    <input id="searchInput" class="searchBox" placeholder="بحث باسم الزبون...">
+    <span class="pill" id="searchCount" style="display:none"></span>
+  </div>
+  <div id="searchResults" class="searchResults" style="display:none"></div>
 
   <div class="grid">
     <aside class="card">
@@ -482,6 +498,9 @@ const editOrderInput = document.getElementById("editOrderInput");
 const saveOrderBtn = document.getElementById("saveOrderBtn");
 const cancelOrderBtn = document.getElementById("cancelOrderBtn");
 const orderNameInput = document.getElementById("orderNameInput");
+const searchInput = document.getElementById("searchInput");
+const searchResultsEl = document.getElementById("searchResults");
+const searchCountEl = document.getElementById("searchCount");
 
 
 /* ===== Lightbox (click image to enlarge) ===== */
@@ -594,6 +613,9 @@ document.addEventListener("click", (e)=>{
 
 let activeOrder = null;
 let activePurchases = [];
+let orders = [];
+let highlightPurchaseId = null;
+let highlightTimer = null;
 
 function normalizeName(value){
   return (value || "").trim().toLowerCase();
@@ -715,6 +737,78 @@ function setupCustomerAutocomplete(inputEl, listEl, clearBtn, opts={}){
   }
 }
 
+/* ===== Search by customer name (across all orders) ===== */
+let searchTimer = null;
+
+function clearSearchUI(){
+  if(searchResultsEl) searchResultsEl.style.display = "none";
+  if(searchCountEl) searchCountEl.style.display = "none";
+  if(searchResultsEl) searchResultsEl.innerHTML = "";
+}
+
+async function runSearch(){
+  if(!searchInput) return;
+  const q = (searchInput.value || "").trim();
+  if(q.length < 2){ clearSearchUI(); return; }
+
+  const { data, error } = await sb
+    .from("purchases")
+    .select("id, order_id, customer_name, price, qty, created_at")
+    .ilike("customer_name", `%${q}%`)
+    .order("created_at",{ascending:false})
+    .limit(50);
+
+  if(error){ console.error(error); return; }
+
+  const results = data || [];
+  if(searchCountEl){
+    searchCountEl.textContent = `${results.length} نتيجة`;
+    searchCountEl.style.display = "";
+  }
+  if(searchResultsEl){
+    searchResultsEl.style.display = "";
+    searchResultsEl.innerHTML = "";
+  }
+
+  results.forEach(r=>{
+    const ord = orders.find(o=>o.id === r.order_id);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.innerHTML = `
+      <b>${escapeHtml(r.customer_name || "")}</b>
+      <div class="muted">${escapeHtml(ord?.order_name || "طلبية")} — العدد: ${escapeHtml(r.qty ?? "")} — السعر: ${escapeHtml(r.price ?? "")}</div>
+    `;
+    btn.onclick = async ()=>{
+      if(searchResultsEl) searchResultsEl.style.display="none";
+      highlightPurchaseId = r.id;
+
+      let targetOrder = ord;
+      if(!targetOrder){
+        const { data: ordData, error: ordErr } = await sb
+          .from("orders")
+          .select("*")
+          .eq("id", r.order_id)
+          .maybeSingle();
+        if(ordErr || !ordData){
+          alert("تعذر فتح الطلبية.");
+          return;
+        }
+        targetOrder = ordData;
+      }
+
+      await selectOrder(targetOrder);
+    };
+    if(searchResultsEl) searchResultsEl.appendChild(btn);
+  });
+}
+
+if(searchInput){
+  searchInput.addEventListener("input", ()=>{
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(runSearch, 250);
+  });
+}
+
 /* ===== Order name edit ===== */
 editOrderBtn.onclick = () => {
   if(!activeOrder) return;
@@ -791,8 +885,9 @@ async function loadOrders(){
   const { data, error } = await sb.from("orders").select("*").order("created_at",{ascending:false});
   if(error){ console.error(error); return; }
 
+  orders = data || [];
   ordersList.innerHTML="";
-  (data||[]).forEach(o=>{
+  orders.forEach(o=>{
     const div=document.createElement("div");
     div.className="orderItem"+(activeOrder?.id===o.id?" active":"");
     div.innerHTML = `<span>${escapeHtml(o.order_name || "")}</span><span class="pill">فتح</span>`;
@@ -1084,6 +1179,10 @@ async function loadPurchases(){
     const noteTxt = p.note || "";
 
     const tr=document.createElement("tr");
+    tr.dataset.purchaseId = p.id;
+    if(highlightPurchaseId && String(p.id) === String(highlightPurchaseId)){
+      tr.classList.add("highlight");
+    }
     tr.innerHTML=`
       <td>${escapeHtml(p.customer_name || "")}</td>
       <td>${escapeHtml(p.qty ?? "")}</td>
@@ -1271,6 +1370,18 @@ async function loadPurchases(){
   });
 
   (data||[]).forEach(p=>updateEditCounts(p.id));
+
+  if(highlightPurchaseId){
+    const row = tbody.querySelector(`tr[data-purchase-id="${highlightPurchaseId}"]`);
+    if(row){
+      row.scrollIntoView({ behavior:"smooth", block:"center" });
+      if(highlightTimer) clearTimeout(highlightTimer);
+      highlightTimer = setTimeout(()=>{
+        row.classList.remove("highlight");
+        highlightPurchaseId = null;
+      }, 2500);
+    }
+  }
 }
 
 document.addEventListener("paste",(e)=>{
