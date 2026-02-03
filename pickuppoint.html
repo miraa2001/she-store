@@ -305,15 +305,28 @@ async function sendNtfy(message){
 }
 
 function buildPickupMessage({ picked, customerName, price, orderName, pickupLabel, pickedAt }){
-  const status = picked ? "✅ تم استلام الطلب" : "❌ تم إلغاء الاستلام";
-  const dateTxt = `تاريخ الاستلام: ${formatDateTime(pickedAt)}`;
+  const priceText = formatILS(price);
+  if(pickupLabel === "من نقطة الاستلام"){
+    return [
+      "🔔 مرحبا حبيبتي💖",
+      "طلبك جاهز بنقطة الاستلام",
+      "📍كافيه la aura سوق الذهب",
+      "⏰ بفتحوا من ال٨ صباحاً لل١٠ مساءً",
+      `📦 حسابك: ${priceText} شيكل`
+    ].join("\n");
+  }
+  if(pickupLabel === "من البيت"){
+    return [
+      "🔔 مرحبا حبيبتي💖",
+      "طلبك جاهز عندي بالبيت",
+      "خبريني قبل بوقت وينتا رح تستلمي💌",
+      `📦 حسابك: ${priceText} شيكل`
+    ].join("\n");
+  }
   return [
-    status,
-    `الزبون: ${customerName || "—"}`,
-    `السعر: ${formatILS(price)} ₪`,
-    `الاستلام: ${pickupLabel}`,
-    `الطلبية: ${orderName || "—"}`,
-    dateTxt
+    "🔔 مرحبا حبيبتي💖",
+    `طلبك جاهز للاستلام (${pickupLabel})`,
+    `📦 حسابك: ${priceText} شيكل`
   ].join("\n");
 }
 

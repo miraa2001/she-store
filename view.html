@@ -95,6 +95,8 @@
     .toggleRow input{width:18px;height:18px}
     .iconBtn{width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center}
     .iconBtn img{width:22px;height:22px;display:block}
+    .priceRow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .waBtn{border:none;background:transparent;cursor:pointer;padding:0;display:inline-flex;font-size:20px;line-height:1}
 
     /* ===== Search ===== */
     .searchBox{width:100%;max-width:420px}
@@ -112,11 +114,6 @@
     .bagEditor{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
     .bagActions{display:flex;gap:8px;align-items:center}
     .bagMsg{font-size:13px;color:#2e7d32}
-
-    .purchaseLine{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:nowrap}
-    .priceLabel{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
-    .whatsappBtn{border:none;background:transparent;padding:0;display:inline-flex;align-items:center;cursor:pointer}
-    .whatsappBtn img{width:32px;height:32px;display:block}
   </style>
 </head>
 <body>
@@ -218,6 +215,20 @@ const WHATSAPP_ICON = "https://cdn-icons-png.flaticon.com/512/3670/3670051.png";
 function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 function escapeAttr(s=""){ return escapeHtml(s); }
 function isMobile(){ return window.matchMedia("(max-width: 900px)").matches; }
+
+function parsePrice(v){
+  if(v === null || v === undefined) return 0;
+  if(typeof v === "number") return isFinite(v) ? v : 0;
+  const s = String(v).replace(/[, ]/g, "").replace(/[₪]/g, "");
+  const m = s.match(/-?\d+(?:\.\d+)?/);
+  return m ? Number(m[0]) : 0;
+}
+function formatILS(n){
+  const x = Number(parsePrice(n));
+  if(!isFinite(x)) return "0";
+  const fixed = x.toFixed(2);
+  return fixed.endsWith(".00") ? String(Math.round(x)) : fixed;
+}
 
 /* ===== Auth + gate ===== */
 async function requireAuth(){
@@ -570,100 +581,102 @@ function setViewMode(mode){
   closeSidebar();
 }
 
+function canShowWhatsapp(){
+  return myEmail === EMAIL_RAHAF && !!activeOrder?.arrived && !!activeOrder?.placed_at_pickup;
+}
+
 function normalizePhone(value){
-  return (value || "").replace(/\s+/g, "").replace(/^\+/, "");
+  return String(value || "").replace(/\s+/g, "").replace(/^\+/, "");
 }
 
-function toE164(phone){
-  const cleaned = normalizePhone(phone);
-  if(!/^(970|972)\d{7,9}$/.test(cleaned)) return null;
-  return cleaned;
+function isValidPhone(value){
+  return /^(970|972)\d{7,9}$/.test(value);
 }
 
-function canShowWhatsApp(order){
-  return myEmail === EMAIL_RAHAF && !!order?.arrived && !!order?.placed_at_pickup;
+function buildWhatsappMessage(pickupPoint, price){
+  const priceText = formatILS(price);
+  if(pickupPoint === "من نقطة الاستلام"){
+    return [
+      "مرحبا حبيبتي💖",
+      "طلبك جاهز بنقطة الاستلام",
+      "📍كافيه la aura سوق الذهب",
+      "⏰ بفتحوا من ال٨ صباحاً لل١٠ مساءً",
+      `📦 حسابك: ${priceText} شيكل`
+    ].join("\n");
+  }
+  if(pickupPoint === "من البيت"){
+    return [
+      "مرحبا حبيبتي💖",
+      "طلبك جاهز عندي بالبيت",
+      "خبريني قبل بوقت وينتا رح تستلمي💌",
+      `📦حسابك: ${priceText} شيكل`
+    ].join("\n");
+  }
+  return [
+    "مرحبا حبيبتي💖",
+    `طلبك جاهز للاستلام (${pickupPoint || "—"})`,
+    `📦 حسابك: ${priceText} شيكل`
+  ].join("\n");
 }
 
-function whatsappButtonMarkup(purchaseId, order){
-  if(!canShowWhatsApp(order)) return "";
-  return `
-    <button class="whatsappBtn" type="button" data-whatsapp-id="${purchaseId}" aria-label="واتساب">
-      <img class="whatsappIcon" src="${WHATSAPP_ICON}" alt="واتساب">
-    </button>
-  `;
-}
+async function openWhatsappForPurchase(purchaseId){
+  try{
+    const { data: purchase, error: purchaseErr } = await sb
+      .from("purchases")
+      .select("id, order_id, price, pickup_point, customer_id")
+      .eq("id", purchaseId)
+      .maybeSingle();
 
-async function handleWhatsAppClick(purchaseId){
-  if(!purchaseId) return;
-  if(myEmail !== EMAIL_RAHAF){
-    alert("هذا الخيار متاح لرحاف فقط.");
-    return;
+    if(purchaseErr || !purchase){
+      alert("تعذر جلب بيانات الزبون.");
+      return;
+    }
+
+    const { data: order, error: orderErr } = await sb
+      .from("orders")
+      .select("id, arrived, placed_at_pickup")
+      .eq("id", purchase.order_id)
+      .maybeSingle();
+
+    if(orderErr || !order){
+      alert("تعذر جلب بيانات الطلبية.");
+      return;
+    }
+
+    if(!order.arrived || !order.placed_at_pickup){
+      alert("يجب أن تكون الطلبية واصلة وتم وضعها بنقطة الاستلام أولاً.");
+      return;
+    }
+
+    if(!purchase.customer_id){
+      alert("لا يوجد رقم هاتف لهذا الزبون.");
+      return;
+    }
+
+    const { data: customer, error: customerErr } = await sb
+      .from("customers")
+      .select("phone")
+      .eq("id", purchase.customer_id)
+      .maybeSingle();
+
+    if(customerErr || !customer?.phone){
+      alert("لا يوجد رقم هاتف لهذا الزبون.");
+      return;
+    }
+
+    const phone = normalizePhone(customer.phone);
+    if(!isValidPhone(phone)){
+      alert("رقم الهاتف غير صالح.");
+      return;
+    }
+
+    const message = buildWhatsappMessage(purchase.pickup_point, purchase.price);
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
+  } catch (err){
+    console.error(err);
+    alert("حصل خطأ أثناء فتح واتساب.");
   }
-
-  const { data: purchase, error: purchaseError } = await sb
-    .from("purchases")
-    .select("id, price, customer_id, order_id")
-    .eq("id", purchaseId)
-    .maybeSingle();
-
-  if(purchaseError || !purchase){
-    console.error(purchaseError);
-    alert("تعذر جلب بيانات الطلب.");
-    return;
-  }
-
-  const { data: order, error: orderError } = await sb
-    .from("orders")
-    .select("id, arrived")
-    .eq("id", purchase.order_id)
-    .maybeSingle();
-
-  if(orderError || !order){
-    console.error(orderError);
-    alert("تعذر جلب بيانات الطلب.");
-    return;
-  }
-
-  if(!order.arrived){
-    alert("الطلب لم يصل بعد.");
-    return;
-  }
-
-  if(!purchase.customer_id){
-    alert("لا يوجد عميل مرتبط بهذا الطلب.");
-    return;
-  }
-
-  const { data: customer, error: customerError } = await sb
-    .from("customers")
-    .select("phone")
-    .eq("id", purchase.customer_id)
-    .maybeSingle();
-
-  if(customerError || !customer){
-    console.error(customerError);
-    alert("تعذر جلب رقم الهاتف.");
-    return;
-  }
-
-  const phone = toE164(customer.phone);
-  if(!phone){
-    alert("رقم الهاتف غير صالح أو مفقود.");
-    return;
-  }
-
-  const priceValue = purchase.price ?? "";
-  const message = `مرحبا! طلبك وصل و موجود في نقطة الاستلام\nنقطة الاستلام: كافيه لا اورا في سوق الذهب\nالسعر: ${priceValue} شيكل`;
-  const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-  window.open(url, "_blank", "noopener");
-}
-
-function wireWhatsAppButtons(scope){
-  if(!scope) return;
-  scope.querySelectorAll("[data-whatsapp-id]").forEach(btn=>{
-    const purchaseId = btn.dataset.whatsappId;
-    btn.onclick = () => handleWhatsAppClick(purchaseId);
-  });
 }
 
 /* ===== Load orders ===== */
@@ -783,20 +796,20 @@ function render(){
   const note = (p.note || "").trim();
   const bagValue = p.bag_size || "كيس صغير";
   const bagMarkup = canEditBagSize() ? bagSizeEditor(p) : escapeHtml(bagValue);
-  const whatsappMarkup = whatsappButtonMarkup(p.id, activeOrder);
 
   const highlight = (highlightPurchaseId && highlightPurchaseId === p.id)
     ? `<div class="highlight" style="margin-bottom:10px">✅ هذا هو البحث</div>`
+    : "";
+
+  const whatsappBtn = canShowWhatsapp()
+    ? `<button class="waBtn" type="button" data-wa="${p.id}" aria-label="إرسال تنبيه">🔔</button>`
     : "";
 
   content.innerHTML = `
     ${highlight}
     <div><b>الزبون:</b> ${escapeHtml(p.customer_name || "")}</div>
     <div><b>العدد:</b> ${escapeHtml(p.qty ?? "")}</div>
-    <div class="purchaseLine">
-      <div class="priceLabel"><b>السعر:</b> ${escapeHtml(p.price ?? "")}</div>
-      ${whatsappMarkup}
-    </div>
+    <div class="priceRow"><div><b>السعر:</b> ${escapeHtml(p.price ?? "")}</div>${whatsappBtn}</div>
     <div><b>حجم الكيس:</b> ${bagMarkup}</div>
     <div style="margin-top:8px"><b>روابط:</b><br>${links}</div>
     <div style="margin-top:10px"><b>مكان الاستلام:</b> ${escapeHtml(pickup)}</div>
@@ -804,14 +817,18 @@ function render(){
     <div style="margin-top:10px"><b>ملاحظة:</b> ${note ? escapeHtml(note) : "—"}</div>
   `;
 
-  content.querySelectorAll("img:not(.whatsappIcon)").forEach(img=>{
+  content.querySelectorAll("button[data-wa]").forEach(btn=>{
+    btn.onclick = () => openWhatsappForPurchase(btn.dataset.wa);
+  });
+
+  content.querySelectorAll("img").forEach(img=>{
+    if(img.classList.contains("waIcon")) return;
     img.onclick = () => {
       const { images, index } = getGalleryImages(img);
       openLightbox(images, index);
     };
   });
   if(canEditBagSize()) wireBagSizeEditors(content);
-  wireWhatsAppButtons(content);
 
   renderList();
 }
@@ -834,12 +851,16 @@ function renderList(){
     const highlightClass = (highlightPurchaseId && highlightPurchaseId === p.id) ? "highlight" : "";
     const whatsappMarkup = whatsappButtonMarkup(p.id, activeOrder) || "—";
 
+    const waBtn = canShowWhatsapp()
+      ? `<button class="waBtn" type="button" data-wa="${p.id}" aria-label="إرسال تنبيه">🔔</button>`
+      : "";
+
     return `
       <tr class="${highlightClass}">
         <td>${i + 1}</td>
         <td>${escapeHtml(p.customer_name || "")}</td>
         <td>${escapeHtml(p.qty ?? "")}</td>
-        <td>${escapeHtml(p.price ?? "")}</td>
+        <td><div class="priceRow">${escapeHtml(p.price ?? "")}${waBtn}</div></td>
         <td>${escapeHtml(pickup)}</td>
         <td>${bagMarkup}</td>
         <td>${links}</td>
@@ -870,14 +891,18 @@ function renderList(){
     </table>
   `;
 
-  listView.querySelectorAll("img:not(.whatsappIcon)").forEach(img=>{
+  listView.querySelectorAll("button[data-wa]").forEach(btn=>{
+    btn.onclick = () => openWhatsappForPurchase(btn.dataset.wa);
+  });
+
+  listView.querySelectorAll("img").forEach(img=>{
+    if(img.classList.contains("waIcon")) return;
     img.onclick = () => {
       const { images, index } = getGalleryImages(img);
       openLightbox(images, index);
     };
   });
   if(canEditBagSize()) wireBagSizeEditors(listView);
-  wireWhatsAppButtons(listView);
 }
 
 prev.onclick = ()=>{
