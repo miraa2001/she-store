@@ -9,8 +9,23 @@
   <style>
     body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa;color:#111}
     .wrap{max-width:1100px;margin:auto;padding:16px}
-    .grid{display:grid;grid-template-columns:320px 1fr;gap:12px}
-    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+    .grid{
+      display:grid;
+      grid-template-columns:320px 1fr;
+      grid-template-areas:
+        "orders summary"
+        "orders main";
+      gap:12px
+    }
+    @media(max-width:900px){
+      .grid{
+        grid-template-columns:1fr;
+        grid-template-areas:
+          "orders"
+          "summary"
+          "main";
+      }
+    }
     .card{background:#fff;border:1px solid #e7e7e7;border-radius:14px;padding:12px}
     .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
     .btn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
@@ -68,6 +83,16 @@
       display:inline-flex;align-items:center;justify-content:center;
       padding:6px 10px;line-height:1;height:32px
     }
+    .ordersCol{grid-area:orders}
+    .summaryCol{grid-area:summary}
+    .mainCol{grid-area:main}
+    .globalSummary{
+      background:#f4f7ff;
+      border:1px solid #dfe6ff;
+      border-radius:14px;
+      padding:10px 12px;
+      margin-bottom:14px
+    }
     body.embed .topbar,
     body.embed .sidebar,
     body.embed .sidebarOverlay{display:none !important}
@@ -100,7 +125,7 @@
   <div id="searchResults" class="searchResults" style="display:none"></div>
 
   <div class="grid">
-    <aside class="card">
+    <aside class="card ordersCol">
       <div class="row" style="justify-content:space-between">
         <b>الطلبيات</b>
         <span class="pill" id="ordersCount">0</span>
@@ -109,13 +134,15 @@
       <div id="ordersEmpty" class="muted" style="margin-top:10px;display:none">لا يوجد طلبيات</div>
     </aside>
 
-    <main class="card">
-      <div id="empty" class="muted">اختاري طلبية من القائمة</div>
-
-      <div id="allOrdersTotalWrap" class="row" style="margin-bottom:10px;display:none">
+    <div class="globalSummary summaryCol" style="display:none" id="allOrdersTotalWrap">
+      <div class="row">
         <span class="pill" id="allOrdersTotal">إجمالي التحصيل المطلوب: 0 ₪</span>
         <button class="btn" id="collectAllBtn" style="display:none">تم استلام تحصيل الكل</button>
       </div>
+    </div>
+
+    <main class="card mainCol">
+      <div id="empty" class="muted">اختاري طلبية من القائمة</div>
 
       <div id="main" style="display:none">
         <div class="row" style="justify-content:space-between;align-items:center">
