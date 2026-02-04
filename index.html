@@ -20,6 +20,44 @@
     .menuBtn{
       border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer
     }
+    .tabs{
+      display:flex;gap:6px;background:#111;padding:6px;border-radius:12px;margin:8px 0 14px
+    }
+    .tabLink{
+      border:none;background:#222;color:#eaeaea;padding:10px 16px;border-radius:10px;
+      cursor:pointer;font-weight:600;font-family:inherit;text-decoration:none;display:inline-block
+    }
+    .tabLink.active{background:#fff;color:#111}
+    .tabPanel{display:block}
+
+    /* ===== View panel ===== */
+    .viewNav{display:flex;justify-content:space-between;align-items:center;margin:12px 0;gap:10px}
+    .viewPanel .thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .viewPanel .thumbs img{width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid #eee;cursor:pointer}
+    .viewContent{font-size:18px;line-height:1.7}
+    .viewContent b{font-size:19px}
+    .listTable{width:100%;border-collapse:collapse;margin-top:12px}
+    .listTable th,.listTable td{border-bottom:1px solid #eee;padding:10px;text-align:right;vertical-align:top}
+    .listTable th{color:#666;font-size:13px}
+    .listThumbs{display:flex;gap:6px;flex-wrap:wrap}
+    .listThumbs img{width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid #eee;cursor:pointer}
+    #viewListView{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+    #viewListView .listTable{min-width:720px}
+    .toggleRow{display:flex;gap:10px;align-items:center;margin-top:8px}
+    .toggleRow input{width:18px;height:18px}
+    .iconBtn{width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center}
+    .iconBtn img{width:22px;height:22px;display:block}
+    .priceRow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .waBtn{font-family:inherit}
+    .waBtn:hover{border-color:#111}
+    .bagField{display:inline-flex;flex-direction:column;gap:6px}
+    .bagDisplay{display:flex;align-items:center;gap:8px}
+    .bagValue{display:inline-flex;align-items:center;border:1px solid #e7e7e7;border-radius:10px;padding:8px 10px;background:#fff;font-size:14px}
+    .bagEditor{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+    .bagActions{display:flex;gap:8px;align-items:center}
+    .bagMsg{font-size:13px;color:#2e7d32}
+    .editRow{background:#fcfcfc}
+    #customersPanel table{min-width:0;width:100%}
     .sidebarOverlay{
       position:fixed;inset:0;background:rgba(0,0,0,.35);
       display:none;z-index:50;pointer-events:none
@@ -36,6 +74,12 @@
     .sidebarOverlay.open{display:block;pointer-events:auto}
     .sidebarHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
     .sidebarHeader b{font-size:16px}
+    .sidebarHeader{position:relative;justify-content:center;text-align:center}
+    .sidebarHeader b{margin:0 auto}
+    .sidebarHeader .menuBtn{
+      position:absolute;left:0;padding:6px 8px;width:32px;height:32px;
+      display:flex;align-items:center;justify-content:center;color:#b00020;border-color:#f2c2c2
+    }
     .sidebar a,.sidebar button{
       width:100%;
       max-width:100%;
@@ -177,12 +221,19 @@
 <div class="wrap">
   <div class="topbar">
     <div class="brand">
-      <b>إدارة الطلبيات</b>
+      <b>إدارة الطلبات</b>
       <div class="muted">إضافة / حذف / تعديل</div>
     </div>
     <button class="menuBtn" id="openSidebarBtn" type="button">☰</button>
   </div>
 
+  <div class="tabs" id="navTabs" style="display:none">
+    <button class="tabLink active" type="button" data-tab="orders">إدارة الطلبات</button>
+    <button class="tabLink" type="button" data-tab="view">عرض الطلبيات</button>
+    <button class="tabLink" type="button" data-tab="customers">العملاء</button>
+  </div>
+
+  <div id="ordersPanel" class="tabPanel">
   <div class="row" style="margin-bottom:12px">
     <input id="searchInput" class="searchBox" placeholder="بحث باسم الزبون...">
     <span class="pill" id="searchCount" style="display:none"></span>
@@ -316,6 +367,139 @@
       </div>
     </main>
   </div>
+  </div>
+
+  <div id="viewPanel" class="tabPanel viewPanel" style="display:none">
+    <div class="row" style="margin-bottom:12px">
+      <input id="viewSearchInput" class="searchBox" placeholder="بحث باسم الزبون...">
+      <span class="pill" id="viewSearchCount" style="display:none"></span>
+    </div>
+    <div id="viewSearchResults" class="searchResults" style="display:none"></div>
+
+    <div class="grid">
+      <aside class="card">
+        <div class="row" style="justify-content:space-between">
+          <b>الطلبيات</b>
+          <span class="pill" id="viewOrdersCount">0</span>
+        </div>
+        <div id="viewOrdersList" style="margin-top:10px"></div>
+        <div id="viewOrdersEmpty" class="muted" style="margin-top:10px;display:none">لا يوجد طلبيات</div>
+      </aside>
+
+      <main class="card">
+        <div id="viewViewerEmpty" class="muted">اختاري طلبية من القائمة</div>
+
+        <div id="viewViewer" style="display:none">
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <div>
+              <b id="viewTitle"></b>
+
+              <div id="viewPlacedToggleWrap" class="toggleRow" style="display:none">
+                <label class="toggleRow" style="cursor:pointer">
+                  <input type="checkbox" id="viewPlacedAtPickupToggle">
+                  <span>تم وضع الطلب في نقطة الاستلام</span>
+                </label>
+                <span id="viewPlacedToggleMsg" class="muted"></span>
+              </div>
+            </div>
+
+            <div class="row">
+              <span class="pill" id="viewPurchaseCount">0</span>
+              <button class="btn iconBtn" id="viewToggleBtn" type="button" aria-label="عرض القائمة">
+                <img src="https://cdn-icons-png.flaticon.com/512/8616/8616159.png" alt="">
+              </button>
+            </div>
+          </div>
+
+          <div class="viewNav" id="viewCardNav">
+            <button class="btn" id="viewPrev">→</button>
+            <span id="viewCounter" class="pill"></span>
+            <button class="btn" id="viewNext">←</button>
+          </div>
+
+          <div id="viewContent" class="viewContent"></div>
+          <div id="viewListView" style="display:none"></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="customersPanel" class="tabPanel" style="display:none">
+    <div class="card">
+      <div class="row" style="margin-bottom:10px">
+        <div>
+          <b>إضافة عميل</b>
+          <div class="muted">رقم الهاتف يجب أن يبدأ بـ 970 أو 972</div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <div style="flex:1;min-width:220px">
+          <label for="custName">الاسم</label>
+          <input id="custName" placeholder="اسم العميل">
+        </div>
+        <div style="flex:1;min-width:220px">
+          <label for="custPhone">رقم الهاتف</label>
+          <input id="custPhone" placeholder="970xxxxxxxxx أو 972xxxxxxxxx">
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <div style="flex:1;min-width:220px">
+          <label for="custCity">المدينة</label>
+          <select id="custCity">
+            <option value="">اختر المدينة</option>
+            <option value="طولكرم" selected>طولكرم</option>
+            <option value="نابلس">نابلس</option>
+            <option value="جنين">جنين</option>
+            <option value="رام الله">رام الله</option>
+            <option value="سلفيت">سلفيت</option>
+            <option value="قلقيلية">قلقيلية</option>
+            <option value="أريحا">أريحا</option>
+            <option value="بيت لحم">بيت لحم</option>
+            <option value="القدس">القدس</option>
+            <option value="الداخل">الداخل</option>
+          </select>
+        </div>
+        <div style="flex:1;min-width:220px">
+          <label for="custPickup">نقطة الاستلام المعتادة</label>
+          <select id="custPickup">
+            <option value="من البيت">من البيت</option>
+            <option value="توصيل">توصيل</option>
+            <option value="من نقطة الاستلام">من نقطة الاستلام</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:14px">
+        <button class="btn primary" id="custSaveBtn">حفظ العميل</button>
+        <span class="muted" id="custMsg"></span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="row" style="margin-bottom:10px">
+        <div>
+          <b>قائمة العملاء</b>
+          <div class="muted">تعديل معلومات العملاء</div>
+        </div>
+        <span class="muted" id="custCount">0</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>الاسم</th>
+            <th>رقم الهاتف</th>
+            <th>المدينة</th>
+            <th>نقطة الاستلام المعتادة</th>
+            <th>تعديل</th>
+          </tr>
+        </thead>
+        <tbody id="custTableBody"></tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 
@@ -405,11 +589,11 @@ async function guardIndexAccess(){
 
   // Index allowed: Rahaf only
   if(myEmail === EMAIL_RAHAF){
-    return;
+    if(navTabs) navTabs.style.display = "flex";
+    return "rahaf";
   }
   if(myEmail === EMAIL_REEM){
-    window.location.replace("./view.html");
-    return;
+    return "reem";
   }
   if(myEmail === EMAIL_LAAURA){
     window.location.replace("./pickuppoint.html");
@@ -495,11 +679,13 @@ function renderSidebar(){
   };
 
   if(myEmail === EMAIL_RAHAF){
-    link("عرض الطلبيات", "./view.html");
-    link("La Aura", "./pickuppoint.html");
-    link("مستلمو البيت", "./homepickup.html");
-    link("العملاء", "./customers.html");
-    link("تحصيل المبالغ", "./collections.html");
+    link("إدارة الطلبات", "./index.html?tab=orders");
+    link("الاستلام والتحصيل", "./pickup-dashboard.html");
+    link("المالية", "./finance.html");
+  }
+  if(myEmail === EMAIL_REEM){
+    link("عرض الطلبيات", "./index.html?tab=view");
+    link("الاستلام والتحصيل", "./pickup-dashboard.html");
   }
 
   btn("تسجيل خروج", "danger", async ()=>{
@@ -509,6 +695,39 @@ function renderSidebar(){
 }
 
 /* ===== DOM ===== */
+const navTabs = document.getElementById("navTabs");
+const tabButtons = Array.from(document.querySelectorAll(".tabLink"));
+const ordersPanel = document.getElementById("ordersPanel");
+const viewPanel = document.getElementById("viewPanel");
+const customersPanel = document.getElementById("customersPanel");
+
+function showTab(tab){
+  const isOrders = tab === "orders";
+  const isView = tab === "view";
+  const isCustomers = tab === "customers";
+  if(ordersPanel) ordersPanel.style.display = isOrders ? "" : "none";
+  if(viewPanel) viewPanel.style.display = isView ? "" : "none";
+  if(customersPanel) customersPanel.style.display = isCustomers ? "" : "none";
+  tabButtons.forEach(btn=>{
+    btn.classList.toggle("active", btn.dataset.tab === tab);
+  });
+}
+
+function setupTabs(role){
+  if(role === "reem"){
+    if(navTabs) navTabs.style.display = "none";
+    showTab("view");
+    return;
+  }
+  if(navTabs) navTabs.style.display = "flex";
+  const param = new URLSearchParams(window.location.search).get("tab");
+  const initial = ["orders","view","customers"].includes(param) ? param : "orders";
+  showTab(initial);
+}
+
+tabButtons.forEach(btn=>{
+  btn.addEventListener("click", ()=> showTab(btn.dataset.tab));
+});
 const ordersList = document.getElementById("ordersList");
 const newOrderBtn = document.getElementById("newOrderBtn");
 const main = document.getElementById("main");
@@ -553,6 +772,38 @@ const orderNameInput = document.getElementById("orderNameInput");
 const searchInput = document.getElementById("searchInput");
 const searchResultsEl = document.getElementById("searchResults");
 const searchCountEl = document.getElementById("searchCount");
+
+/* ===== View panel DOM ===== */
+const viewOrdersListEl = document.getElementById("viewOrdersList");
+const viewOrdersEmptyEl = document.getElementById("viewOrdersEmpty");
+const viewOrdersCountEl = document.getElementById("viewOrdersCount");
+const viewViewerEmpty = document.getElementById("viewViewerEmpty");
+const viewViewer = document.getElementById("viewViewer");
+const viewTitle = document.getElementById("viewTitle");
+const viewContent = document.getElementById("viewContent");
+const viewListView = document.getElementById("viewListView");
+const viewCounter = document.getElementById("viewCounter");
+const viewPrev = document.getElementById("viewPrev");
+const viewNext = document.getElementById("viewNext");
+const viewPurchaseCount = document.getElementById("viewPurchaseCount");
+const viewToggleBtn = document.getElementById("viewToggleBtn");
+const viewCardNav = document.getElementById("viewCardNav");
+const viewPlacedToggleWrap = document.getElementById("viewPlacedToggleWrap");
+const viewPlacedAtPickupToggle = document.getElementById("viewPlacedAtPickupToggle");
+const viewPlacedToggleMsg = document.getElementById("viewPlacedToggleMsg");
+const viewSearchInput = document.getElementById("viewSearchInput");
+const viewSearchResultsEl = document.getElementById("viewSearchResults");
+const viewSearchCountEl = document.getElementById("viewSearchCount");
+
+/* ===== Customers panel DOM ===== */
+const custName = document.getElementById("custName");
+const custPhone = document.getElementById("custPhone");
+const custCity = document.getElementById("custCity");
+const custPickup = document.getElementById("custPickup");
+const custSaveBtn = document.getElementById("custSaveBtn");
+const custMsg = document.getElementById("custMsg");
+const custTableBody = document.getElementById("custTableBody");
+const custCount = document.getElementById("custCount");
 if(ordersList){
   ordersList.addEventListener("click", ()=>{ if(isMobile()) closeSidebar(); });
 }
@@ -1396,6 +1647,32 @@ function toggleEditRow(purchaseId){
   const willOpen = row.style.display === "none";
   row.style.display = willOpen ? "" : "none";
   activeEditPasteTarget = willOpen ? purchaseId : null;
+  if(willOpen){
+    const paidInput = row.querySelector(`[data-f="paid"]`);
+    if(paidInput) paidInput.dataset.manual = "";
+    setupPaidPriceSync(purchaseId);
+  }
+}
+
+function setupPaidPriceSync(purchaseId){
+  const row = tbody.querySelector(`tr[data-edit-row="${purchaseId}"]`);
+  if(!row || row.dataset.paidSync === "1") return;
+  const priceInput = row.querySelector(`[data-f="price"]`);
+  const paidInput = row.querySelector(`[data-f="paid"]`);
+  if(!priceInput || !paidInput) return;
+
+  paidInput.addEventListener("input", ()=>{
+    paidInput.dataset.manual = "1";
+  });
+  priceInput.addEventListener("input", ()=>{
+    if(paidInput.dataset.manual === "1") return;
+    paidInput.value = priceInput.value;
+  });
+
+  if(!paidInput.value && priceInput.value){
+    paidInput.value = priceInput.value;
+  }
+  row.dataset.paidSync = "1";
 }
 
 function closeEditRow(purchaseId){
@@ -1417,7 +1694,7 @@ async function saveInlineEdit(purchaseId){
   const qtyVal = Number(row.querySelector(`[data-f="qty"]`).value);
   const priceVal = Number(row.querySelector(`[data-f="price"]`).value);
   const paidRaw = row.querySelector(`[data-f="paid"]`).value.trim();
-  const paidVal = paidRaw === "" ? null : Number(paidRaw);
+  const paidVal = paidRaw === "" ? priceVal : Number(paidRaw);
   const bagVal = row.querySelector(`[data-f="bag"]`).value;
   const pickupVal = row.querySelector(`[data-f="pickup"]`).value;
   const noteVal = row.querySelector(`[data-f="note"]`).value.trim();
@@ -1426,7 +1703,7 @@ async function saveInlineEdit(purchaseId){
   if(!name){ msgEl.textContent="اسم الزبون مطلوب."; return; }
   if(!Number.isFinite(qtyVal) || qtyVal<1){ msgEl.textContent="العدد غير صحيح."; return; }
   if(!Number.isFinite(priceVal) || priceVal<0){ msgEl.textContent="السعر غير صحيح."; return; }
-  if(paidRaw !== "" && (!Number.isFinite(paidVal) || paidVal<0)){ msgEl.textContent="السعر المدفوع غير صحيح."; return; }
+  if(!Number.isFinite(paidVal) || paidVal<0){ msgEl.textContent="السعر المدفوع غير صحيح."; return; }
 
   const links=[];
   for(let i=1;i<=5;i++){
@@ -1592,7 +1869,7 @@ async function loadPurchases(){
 
             <div class="row" style="align-items:center; gap:8px">
               <span class="muted" style="min-width:90px">المدفوع</span>
-              <input data-f="paid" type="number" step="0.01" min="0" placeholder="المدفوع" value="${escapeAttr(p.paid_price ?? "")}" style="flex:1">
+              <input data-f="paid" type="number" step="0.01" min="0" placeholder="المدفوع" value="${escapeAttr(p.paid_price ?? p.price ?? "")}" style="flex:1">
             </div>
           </div>
 
@@ -1789,6 +2066,7 @@ addBtn.onclick = async ()=>{
       customer_name: customer.value,
       qty: Number(qty.value),
       price: Number(price.value),
+      paid_price: Number(price.value),
       bag_size: bagSize.value,
       pickup_point: pickupPoint.value,
       note: note.value.trim()
@@ -1824,11 +2102,736 @@ addBtn.onclick = async ()=>{
   await loadPurchases();
 };
 
+/* ===== View panel ===== */
+let viewOrders = [];
+let viewActiveOrder = null;
+let viewPurchases = [];
+let viewIdx = 0;
+let viewHighlightPurchaseId = null;
+let viewMode = "card";
+let viewSearchTimer = null;
+
+const canEditViewBagSize = () => myEmail === EMAIL_RAHAF || myEmail === EMAIL_REEM;
+
+function viewBagSizeEditor(p){
+  const current = p.bag_size || "كيس صغير";
+  return `
+    <div class="bagField" data-bag-field="${p.id}" data-bag-value="${escapeAttr(current)}">
+      <div class="bagDisplay" data-bag-display="${p.id}">
+        <span class="bagValue">${escapeHtml(current)}</span>
+        <button class="btn" type="button" data-bag-edit="${p.id}" aria-label="تعديل حجم الكيس">✏️</button>
+      </div>
+      <span class="bagMsg" data-bag-msg="${p.id}" aria-live="polite"></span>
+      <div class="bagEditor" data-bag-editor="${p.id}" style="display:none">
+        <select data-bag-select="${p.id}">
+          <option value="كيس كبير" ${current === "كيس كبير" ? "selected" : ""}>كيس كبير</option>
+          <option value="كيس صغير" ${current === "كيس صغير" ? "selected" : ""}>كيس صغير</option>
+        </select>
+        <div class="bagActions">
+          <button class="btn primary" type="button" data-bag-save="${p.id}">حفظ</button>
+          <button class="btn" type="button" data-bag-cancel="${p.id}">إلغاء</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function viewUpdateBagSize(purchaseId, nextValue){
+  const { error } = await sb.from("purchases").update({ bag_size: nextValue }).eq("id", purchaseId);
+  if(error){
+    console.error(error);
+    alert("فشل تحديث حجم الكيس");
+    return false;
+  }
+  const target = viewPurchases.find((item)=>String(item.id) === String(purchaseId));
+  if(target) target.bag_size = nextValue;
+  return true;
+}
+
+function viewSetBagFieldValue(fieldEl, value){
+  fieldEl.dataset.bagValue = value;
+  const valueEl = fieldEl.querySelector(".bagValue");
+  if(valueEl) valueEl.textContent = value;
+  const selectEl = fieldEl.querySelector("select[data-bag-select]");
+  if(selectEl) selectEl.value = value;
+}
+
+function viewSetBagMessage(fieldEl, message){
+  const msgEl = fieldEl.querySelector("[data-bag-msg]");
+  if(msgEl) msgEl.textContent = message;
+}
+
+function viewToggleBagEditor(fieldEl, isEditing){
+  const displayEl = fieldEl.querySelector("[data-bag-display]");
+  const editorEl = fieldEl.querySelector("[data-bag-editor]");
+  if(displayEl) displayEl.style.display = isEditing ? "none" : "flex";
+  if(editorEl) editorEl.style.display = isEditing ? "flex" : "none";
+  if(isEditing){
+    viewSetBagMessage(fieldEl, "");
+  }
+  if(!isEditing){
+    const selectEl = fieldEl.querySelector("select[data-bag-select]");
+    if(selectEl){
+      selectEl.value = fieldEl.dataset.bagValue || selectEl.value;
+    }
+  }
+}
+
+function viewWireBagSizeEditors(scope){
+  if(!scope) return;
+  scope.querySelectorAll("[data-bag-field]").forEach(fieldEl=>{
+    const purchaseId = fieldEl.dataset.bagField;
+    const editBtn = fieldEl.querySelector(`[data-bag-edit="${purchaseId}"]`);
+    const saveBtn = fieldEl.querySelector(`[data-bag-save="${purchaseId}"]`);
+    const cancelBtn = fieldEl.querySelector(`[data-bag-cancel="${purchaseId}"]`);
+    const selectEl = fieldEl.querySelector(`select[data-bag-select="${purchaseId}"]`);
+
+    if(editBtn){
+      editBtn.onclick = () => viewToggleBagEditor(fieldEl, true);
+    }
+    if(cancelBtn){
+      cancelBtn.onclick = () => {
+        viewSetBagMessage(fieldEl, "");
+        viewToggleBagEditor(fieldEl, false);
+      };
+    }
+    if(saveBtn && selectEl){
+      saveBtn.onclick = async () => {
+        const nextValue = selectEl.value;
+        const ok = await viewUpdateBagSize(purchaseId, nextValue);
+        if(ok){
+          viewSetBagFieldValue(fieldEl, nextValue);
+          viewToggleBagEditor(fieldEl, false);
+          viewSetBagMessage(fieldEl, "✅تم");
+        }
+      };
+    }
+  });
+}
+
+function showViewViewer(on){
+  if(viewViewer) viewViewer.style.display = on ? "" : "none";
+  if(viewViewerEmpty) viewViewerEmpty.style.display = on ? "none" : "";
+}
+
+function setViewMode(mode){
+  viewMode = mode;
+  const isCard = viewMode === "card";
+  if(viewToggleBtn){
+    viewToggleBtn.setAttribute("aria-label", isCard ? "عرض القائمة" : "عرض البطاقات");
+    const icon = isCard
+      ? "https://cdn-icons-png.flaticon.com/512/1950/1950630.png"
+      : "https://cdn-icons-png.flaticon.com/512/8616/8616159.png";
+    viewToggleBtn.innerHTML = `<img src="${icon}" alt="">`;
+  }
+  if(viewCardNav) viewCardNav.style.display = isCard ? "" : "none";
+  if(viewContent) viewContent.style.display = isCard ? "" : "none";
+  if(viewListView) viewListView.style.display = isCard ? "none" : "";
+  closeSidebar();
+}
+
+function viewCanShowWhatsapp(){
+  return myEmail === EMAIL_RAHAF && !!viewActiveOrder?.arrived && !!viewActiveOrder?.placed_at_pickup;
+}
+
+function viewNormalizePhone(value){
+  return String(value || "").replace(/\\s+/g, "").replace(/^\\+/, "");
+}
+
+function viewIsValidPhone(value){
+  return /^(970|972)\\d{7,9}$/.test(value);
+}
+
+function viewBuildWhatsappMessage(pickupPoint, price){
+  const priceText = formatILS(price);
+  if(pickupPoint === "من نقطة الاستلام"){
+    return [
+      "مرحبا حبيبتي💖",
+      "طلبك جاهز بنقطة الاستلام",
+      "📍كافيه la aura سوق الذهب",
+      "⏰ بفتحوا من ال٨ صباحاً لل١٠ مساءً",
+      `📦 حسابك: ${priceText} شيكل`
+    ].join("\\n");
+  }
+  if(pickupPoint === "من البيت"){
+    return [
+      "مرحبا حبيبتي💖",
+      "طلبك جاهز عندي بالبيت",
+      "خبريني قبل بوقت وينتا رح تستلمي💌",
+      `📦حسابك: ${priceText} شيكل`
+    ].join("\\n");
+  }
+  return [
+    "مرحبا حبيبتي💖",
+    `طلبك جاهز للاستلام (${pickupPoint || "—"})`,
+    `📦 حسابك: ${priceText} شيكل`
+  ].join("\\n");
+}
+
+async function openViewWhatsappForPurchase(purchaseId){
+  try{
+    const { data: purchase, error: purchaseErr } = await sb
+      .from("purchases")
+      .select("id, order_id, price, pickup_point, customer_id")
+      .eq("id", purchaseId)
+      .maybeSingle();
+
+    if(purchaseErr || !purchase){
+      alert("تعذر جلب بيانات الزبون.");
+      return;
+    }
+
+    const { data: order, error: orderErr } = await sb
+      .from("orders")
+      .select("id, arrived, placed_at_pickup")
+      .eq("id", purchase.order_id)
+      .maybeSingle();
+
+    if(orderErr || !order){
+      alert("تعذر جلب بيانات الطلبية.");
+      return;
+    }
+
+    if(!order.arrived || !order.placed_at_pickup){
+      alert("يجب أن تكون الطلبية واصلة وتم وضعها بنقطة الاستلام أولاً.");
+      return;
+    }
+
+    if(!purchase.customer_id){
+      alert("لا يوجد رقم هاتف لهذا الزبون.");
+      return;
+    }
+
+    const { data: customer, error: customerErr } = await sb
+      .from("customers")
+      .select("phone")
+      .eq("id", purchase.customer_id)
+      .maybeSingle();
+
+    if(customerErr || !customer?.phone){
+      alert("لا يوجد رقم هاتف لهذا الزبون.");
+      return;
+    }
+
+    const phone = viewNormalizePhone(customer.phone);
+    if(!viewIsValidPhone(phone)){
+      alert("رقم الهاتف غير صالح.");
+      return;
+    }
+
+    const message = viewBuildWhatsappMessage(purchase.pickup_point, purchase.price);
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
+  } catch (err){
+    console.error(err);
+    alert("حصل خطأ أثناء فتح واتساب.");
+  }
+}
+
+async function loadViewOrders(){
+  const { data, error } = await sb
+    .from("orders")
+    .select("*")
+    .eq("arrived", true)
+    .order("created_at",{ascending:false});
+
+  if(error){ console.error(error); return; }
+
+  viewOrders = data || [];
+  if(viewOrdersCountEl) viewOrdersCountEl.textContent = viewOrders.length;
+
+  if(viewOrdersListEl) viewOrdersListEl.innerHTML = "";
+  if(viewOrdersEmptyEl) viewOrdersEmptyEl.style.display = viewOrders.length ? "none" : "";
+
+  viewOrders.forEach(o=>{
+    const div = document.createElement("div");
+    div.className = "orderItem" + (viewActiveOrder?.id === o.id ? " active" : "");
+    div.innerHTML = `<span>${escapeHtml(o.order_name || "")}</span><span class="pill">عرض</span>`;
+    div.onclick = () => selectViewOrder(o);
+    viewOrdersListEl.appendChild(div);
+  });
+}
+
+async function setViewPlacedToggleUI(order){
+  if(myEmail !== EMAIL_RAHAF){
+    if(viewPlacedToggleWrap) viewPlacedToggleWrap.style.display = "none";
+    return;
+  }
+
+  if(viewPlacedToggleWrap) viewPlacedToggleWrap.style.display = "";
+  if(viewPlacedAtPickupToggle) viewPlacedAtPickupToggle.checked = !!order.placed_at_pickup;
+  if(viewPlacedToggleMsg) viewPlacedToggleMsg.textContent = "";
+
+  if(viewPlacedAtPickupToggle){
+    viewPlacedAtPickupToggle.onchange = async ()=>{
+      if(!viewActiveOrder) return;
+      if(viewPlacedToggleMsg) viewPlacedToggleMsg.textContent = "جاري الحفظ...";
+
+      const val = viewPlacedAtPickupToggle.checked;
+      const payload = val
+        ? { placed_at_pickup: true, placed_at_pickup_at: new Date().toISOString() }
+        : { placed_at_pickup: false, placed_at_pickup_at: null };
+
+      const { error } = await sb.from("orders").update(payload).eq("id", viewActiveOrder.id);
+
+      if(error){
+        console.error(error);
+        if(viewPlacedToggleMsg) viewPlacedToggleMsg.textContent = "فشل الحفظ.";
+        viewPlacedAtPickupToggle.checked = !val;
+        return;
+      }
+
+      if(viewPlacedToggleMsg) viewPlacedToggleMsg.textContent = "تم ✅";
+      viewActiveOrder.placed_at_pickup = payload.placed_at_pickup;
+      viewActiveOrder.placed_at_pickup_at = payload.placed_at_pickup_at;
+      await loadViewOrders();
+    };
+  }
+}
+
+async function selectViewOrder(o){
+  viewActiveOrder = o;
+  viewIdx = 0;
+
+  if(isMobile()) closeSidebar();
+
+  await loadViewOrders();
+
+  const { data, error } = await sb
+    .from("purchases")
+    .select("*,purchase_links(url),purchase_images(storage_path)")
+    .eq("order_id", o.id)
+    .order("created_at",{ascending:false});
+
+  if(error){ console.error(error); return; }
+
+  viewPurchases = data || [];
+  if(viewTitle) viewTitle.textContent = o.order_name || "";
+
+  const totalItems = viewPurchases.reduce((sum,p)=> sum + Number(p.qty || 0), 0);
+  if(viewPurchaseCount) viewPurchaseCount.textContent = `عدد المشتريات: ${viewPurchases.length} — مجموع القطع: ${totalItems}`;
+
+  await setViewPlacedToggleUI(o);
+
+  showViewViewer(true);
+  setViewMode(viewMode);
+  renderView();
+}
+
+function renderView(){
+  if(!viewPurchases.length){
+    if(viewCounter) viewCounter.textContent = "0/0";
+    if(viewContent) viewContent.innerHTML = `<div class="muted">لا يوجد مشتريات في هذه الطلبية</div>`;
+    if(viewListView) viewListView.innerHTML = `<div class="muted">لا يوجد مشتريات في هذه الطلبية</div>`;
+    return;
+  }
+
+  const p = viewPurchases[viewIdx];
+  if(viewCounter) viewCounter.textContent = `${viewIdx+1}/${viewPurchases.length}`;
+
+  const imgs = (p.purchase_images||[]).map(i=>{
+    const url = sb.storage.from(BUCKET).getPublicUrl(i.storage_path).data.publicUrl;
+    return `<img src="${escapeAttr(url)}" alt="صورة">`;
+  }).join("");
+
+  const links = (p.purchase_links||[])
+    .map((l,i)=>`<a href="${escapeAttr(l.url)}" target="_blank" rel="noopener">رابط ${i+1}</a>`)
+    .join("<br>") || "—";
+
+  const pickup = p.pickup_point || "—";
+  const note = (p.note || "").trim();
+  const bagValue = p.bag_size || "كيس صغير";
+  const bagMarkup = canEditViewBagSize() ? viewBagSizeEditor(p) : escapeHtml(bagValue);
+
+  const highlight = (viewHighlightPurchaseId && viewHighlightPurchaseId === p.id)
+    ? `<div class="highlight" style="margin-bottom:10px">✅ هذا هو البحث</div>`
+    : "";
+
+  const whatsappBtn = viewCanShowWhatsapp()
+    ? `<button class="btn waBtn" type="button" data-wa="${p.id}" aria-label="إرسال رسالة واتساب">ارسل رسالة واتساب</button>`
+    : "";
+
+  if(viewContent){
+    viewContent.innerHTML = `
+      ${highlight}
+      <div><b>الزبون:</b> ${escapeHtml(p.customer_name || "")}</div>
+      <div><b>العدد:</b> ${escapeHtml(p.qty ?? "")}</div>
+      <div class="priceRow"><div><b>السعر:</b> ${escapeHtml(p.price ?? "")}</div></div>
+      <div><b>حجم الكيس:</b> ${bagMarkup}</div>
+      <div style="margin-top:8px"><b>روابط:</b><br>${links}</div>
+      <div style="margin-top:10px"><b>مكان الاستلام:</b> ${escapeHtml(pickup)}</div>
+      <div class="thumbs">${imgs || ""}</div>
+      <div style="margin-top:10px"><b>ملاحظة:</b> ${note ? escapeHtml(note) : "—"}</div>
+      ${whatsappBtn ? `<div style="margin-top:10px">${whatsappBtn}</div>` : ""}
+    `;
+
+    viewContent.querySelectorAll("button[data-wa]").forEach(btn=>{
+      btn.onclick = () => openViewWhatsappForPurchase(btn.dataset.wa);
+    });
+
+    if(canEditViewBagSize()) viewWireBagSizeEditors(viewContent);
+  }
+
+  renderViewList();
+}
+
+function renderViewList(){
+  const rows = viewPurchases.map((p, i)=>{
+    const imgs = (p.purchase_images||[]).map(img=>{
+      const url = sb.storage.from(BUCKET).getPublicUrl(img.storage_path).data.publicUrl;
+      return `<img src="${escapeAttr(url)}" alt="صورة">`;
+    }).join("");
+
+    const links = (p.purchase_links||[])
+      .map((l, idx)=>`<a href="${escapeAttr(l.url)}" target="_blank" rel="noopener">رابط ${idx+1}</a>`)
+      .join("<br>") || "—";
+
+    const pickup = p.pickup_point || "—";
+    const note = (p.note || "").trim();
+    const bagValue = p.bag_size || "كيس صغير";
+    const bagMarkup = canEditViewBagSize() ? viewBagSizeEditor(p) : escapeHtml(bagValue);
+    const highlightClass = (viewHighlightPurchaseId && viewHighlightPurchaseId === p.id) ? "highlight" : "";
+    const waBtn = viewCanShowWhatsapp()
+      ? `<button class="btn waBtn" type="button" data-wa="${p.id}" aria-label="إرسال رسالة واتساب">ارسل رسالة واتساب</button>`
+      : "";
+    const whatsappMarkup = waBtn || "—";
+
+    return `
+      <tr class="${highlightClass}">
+        <td>${i + 1}</td>
+        <td>${escapeHtml(p.customer_name || "")}</td>
+        <td>${escapeHtml(p.qty ?? "")}</td>
+        <td><div class="priceRow">${escapeHtml(p.price ?? "")}</div></td>
+        <td>${escapeHtml(pickup)}</td>
+        <td>${bagMarkup}</td>
+        <td>${links}</td>
+        <td><div class="listThumbs">${imgs || ""}</div></td>
+        <td>${note ? escapeHtml(note) : "—"}</td>
+        <td>${whatsappMarkup}</td>
+      </tr>
+    `;
+  }).join("");
+
+  if(viewListView){
+    viewListView.innerHTML = `
+      <table class="listTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>الزبون</th>
+            <th>العدد</th>
+            <th>السعر</th>
+            <th>مكان الاستلام</th>
+            <th>حجم الكيس</th>
+            <th>روابط</th>
+            <th>صور</th>
+            <th>ملاحظة</th>
+            <th>واتساب</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+
+    viewListView.querySelectorAll("button[data-wa]").forEach(btn=>{
+      btn.onclick = () => openViewWhatsappForPurchase(btn.dataset.wa);
+    });
+
+    if(canEditViewBagSize()) viewWireBagSizeEditors(viewListView);
+  }
+}
+
+if(viewPrev){
+  viewPrev.onclick = ()=>{
+    if(!viewPurchases.length) return;
+    viewIdx = (viewIdx - 1 + viewPurchases.length) % viewPurchases.length;
+    viewHighlightPurchaseId = null;
+    renderView();
+  };
+}
+if(viewNext){
+  viewNext.onclick = ()=>{
+    if(!viewPurchases.length) return;
+    viewIdx = (viewIdx + 1) % viewPurchases.length;
+    viewHighlightPurchaseId = null;
+    renderView();
+  };
+}
+
+if(viewToggleBtn){
+  viewToggleBtn.onclick = ()=>{
+    viewMode = viewMode === "card" ? "list" : "card";
+    setViewMode(viewMode);
+    renderView();
+  };
+}
+
+function clearViewSearchUI(){
+  if(viewSearchResultsEl) viewSearchResultsEl.style.display = "none";
+  if(viewSearchCountEl) viewSearchCountEl.style.display = "none";
+  if(viewSearchResultsEl) viewSearchResultsEl.innerHTML = "";
+}
+
+async function runViewSearch(){
+  const q = (viewSearchInput?.value || "").trim();
+  if(q.length < 2){ clearViewSearchUI(); return; }
+
+  const { data, error } = await sb
+    .from("purchases")
+    .select("id, order_id, customer_name, price, qty, created_at")
+    .ilike("customer_name", `%${q}%`)
+    .order("created_at",{ascending:false})
+    .limit(50);
+
+  if(error){ console.error(error); return; }
+
+  const results = data || [];
+  if(viewSearchCountEl){
+    viewSearchCountEl.textContent = `${results.length} نتيجة`;
+    viewSearchCountEl.style.display = "";
+  }
+  if(viewSearchResultsEl){
+    viewSearchResultsEl.style.display = "";
+    viewSearchResultsEl.innerHTML = "";
+  }
+
+  results.forEach(r=>{
+    const ord = viewOrders.find(o=>o.id === r.order_id);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.innerHTML = `
+      <b>${escapeHtml(r.customer_name || "")}</b>
+      <div class="muted">${escapeHtml(ord?.order_name || "طلبية")} — العدد: ${escapeHtml(r.qty ?? "")} — السعر: ${escapeHtml(r.price ?? "")}</div>
+    `;
+    btn.onclick = async ()=>{
+      if(viewSearchResultsEl) viewSearchResultsEl.style.display="none";
+      viewHighlightPurchaseId = r.id;
+
+      if(ord) await selectViewOrder(ord);
+
+      const pos = viewPurchases.findIndex(p=>String(p.id)===String(r.id));
+      if(pos >= 0){
+        viewIdx = pos;
+        renderView();
+      }
+
+      setTimeout(()=>{ viewHighlightPurchaseId = null; }, 2500);
+    };
+    if(viewSearchResultsEl) viewSearchResultsEl.appendChild(btn);
+  });
+}
+
+if(viewSearchInput){
+  viewSearchInput.addEventListener("input", ()=>{
+    clearTimeout(viewSearchTimer);
+    viewSearchTimer = setTimeout(runViewSearch, 250);
+  });
+}
+
+async function initViewPanel(){
+  if(!viewOrdersListEl) return;
+  await loadViewOrders();
+  if(viewOrders.length) selectViewOrder(viewOrders[0]);
+}
+
+/* ===== Customers panel ===== */
+function custNormalizePhone(value){
+  return (value || "").replace(/\\s+/g, "");
+}
+
+function custIsValidPhone(value){
+  const phone = custNormalizePhone(value);
+  return /^(\\+?970|\\+?972)\\d{7,9}$/.test(phone);
+}
+
+function custCityOptions(selected){
+  const cities = [
+    "طولكرم","نابلس","جنين","رام الله","سلفيت","قلقيلية","أريحا","بيت لحم","القدس","الداخل"
+  ];
+  return cities.map(city=>`<option value="${city}" ${selected===city?"selected":""}>${city}</option>`).join("");
+}
+
+function custPickupOptions(selected){
+  const options = ["من البيت","توصيل","من نقطة الاستلام"];
+  return options.map(opt=>`<option value="${opt}" ${selected===opt?"selected":""}>${opt}</option>`).join("");
+}
+
+function renderCustList(list){
+  if(!custTableBody || !custCount) return;
+  custTableBody.innerHTML = "";
+  custCount.textContent = list.length;
+
+  if(!list.length){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="5" class="muted">لا يوجد عملاء بعد</td>`;
+    custTableBody.appendChild(tr);
+    return;
+  }
+
+  list.forEach(c=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(c.name || "")}</td>
+      <td>${escapeHtml(c.phone || "")}</td>
+      <td>${escapeHtml(c.city || "")}</td>
+      <td>${escapeHtml(c.usual_pickup_point || "")}</td>
+      <td><button class="btn iconBtn" data-edit="${c.id}" title="تعديل">✏️</button></td>
+    `;
+
+    const editTr = document.createElement("tr");
+    editTr.className = "editRow";
+    editTr.dataset.editRow = c.id;
+    editTr.style.display = "none";
+    editTr.innerHTML = `
+      <td colspan="5">
+        <div class="row" style="margin-bottom:8px">
+          <div style="flex:1;min-width:200px">
+            <label>الاسم</label>
+            <input data-f="name" value="${escapeHtml(c.name || "")}">
+          </div>
+          <div style="flex:1;min-width:200px">
+            <label>رقم الهاتف</label>
+            <input data-f="phone" value="${escapeHtml(c.phone || "")}">
+          </div>
+        </div>
+        <div class="row" style="margin-bottom:8px">
+          <div style="flex:1;min-width:200px">
+            <label>المدينة</label>
+            <select data-f="city">${custCityOptions(c.city)}</select>
+          </div>
+          <div style="flex:1;min-width:200px">
+            <label>نقطة الاستلام المعتادة</label>
+            <select data-f="pickup">${custPickupOptions(c.usual_pickup_point)}</select>
+          </div>
+        </div>
+        <div class="row" style="justify-content:space-between">
+          <div class="row">
+            <button class="btn primary" type="button" data-save="${c.id}">حفظ</button>
+            <button class="btn" type="button" data-cancel="${c.id}">إلغاء</button>
+          </div>
+          <span class="muted" data-msg="${c.id}"></span>
+        </div>
+      </td>
+    `;
+
+    custTableBody.appendChild(tr);
+    custTableBody.appendChild(editTr);
+  });
+
+  custTableBody.querySelectorAll("button[data-edit]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const id = btn.dataset.edit;
+      custTableBody.querySelectorAll("tr[data-edit-row]").forEach(row=>{
+        row.style.display = row.dataset.editRow === id ? "" : "none";
+      });
+    };
+  });
+
+  custTableBody.querySelectorAll("button[data-cancel]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const row = custTableBody.querySelector(`tr[data-edit-row="${btn.dataset.cancel}"]`);
+      if(row) row.style.display = "none";
+    };
+  });
+
+  custTableBody.querySelectorAll("button[data-save]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      const id = btn.dataset.save;
+      const row = custTableBody.querySelector(`tr[data-edit-row="${id}"]`);
+      if(!row) return;
+      const msgEl = row.querySelector(`[data-msg="${id}"]`);
+      const name = row.querySelector(`[data-f="name"]`).value.trim();
+      const phone = custNormalizePhone(row.querySelector(`[data-f="phone"]`).value);
+      const city = row.querySelector(`[data-f="city"]`).value;
+      const pickup = row.querySelector(`[data-f="pickup"]`).value;
+
+      if(!name){ msgEl.textContent = "الاسم مطلوب."; return; }
+      if(!phone){ msgEl.textContent = "رقم الهاتف مطلوب."; return; }
+      if(!custIsValidPhone(phone)){ msgEl.textContent = "رقم الهاتف يجب أن يبدأ بـ 970 أو 972."; return; }
+      if(!city){ msgEl.textContent = "اختاري المدينة."; return; }
+
+      msgEl.textContent = "جاري الحفظ...";
+      const { error } = await sb.from("customers").update({
+        name,
+        phone,
+        city,
+        usual_pickup_point: pickup
+      }).eq("id", id);
+
+      if(error){
+        console.error(error);
+        msgEl.textContent = error.message || "فشل التعديل.";
+        return;
+      }
+
+      msgEl.textContent = "تم ✅";
+      await loadCustomersPanel();
+    };
+  });
+}
+
+async function loadCustomersPanel(){
+  if(!custTableBody) return;
+  const { data, error } = await sb
+    .from("customers")
+    .select("id,name,phone,city,usual_pickup_point")
+    .order("created_at", { ascending: false });
+  if(error){ console.error(error); return; }
+  renderCustList(data || []);
+}
+
+if(custSaveBtn){
+  custSaveBtn.onclick = async ()=>{
+    const name = (custName.value || "").trim();
+    const phone = custNormalizePhone(custPhone.value);
+    const city = custCity.value;
+    const pickup = custPickup.value;
+
+    if(!name){ if(custMsg) custMsg.textContent = "الاسم مطلوب."; return; }
+    if(!phone){ if(custMsg) custMsg.textContent = "رقم الهاتف مطلوب."; return; }
+    if(!custIsValidPhone(phone)){ if(custMsg) custMsg.textContent = "رقم الهاتف يجب أن يبدأ بـ 970 أو 972."; return; }
+    if(!city){ if(custMsg) custMsg.textContent = "اختاري المدينة."; return; }
+
+    if(custMsg) custMsg.textContent = "جاري الحفظ...";
+
+    const { error } = await sb.from("customers").insert({
+      name,
+      phone,
+      city,
+      usual_pickup_point: pickup
+    });
+
+    if(error){
+      console.error(error);
+      if(custMsg) custMsg.textContent = error.message || "فشل إضافة العميل.";
+      return;
+    }
+
+    if(custMsg) custMsg.textContent = "تم ✅";
+    custName.value = "";
+    custPhone.value = "";
+    custCity.value = "طولكرم";
+    custPickup.value = "من نقطة الاستلام";
+    await loadCustomersPanel();
+  };
+}
+
+async function initCustomersPanel(){
+  if(myEmail !== EMAIL_RAHAF) return;
+  await loadCustomersPanel();
+}
+
 (async function init(){
-  await guardIndexAccess();
+  const role = await guardIndexAccess();
+  if(!role) return;
   renderSidebar();
   closeSidebar();
-  await loadOrders();
+  setupTabs(role);
+  if(role === "rahaf"){
+    await loadOrders();
+    await initCustomersPanel();
+  }
+  await initViewPanel();
 })();
 </script>
 </body>

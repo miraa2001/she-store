@@ -32,6 +32,12 @@
     .sidebarOverlay.open{display:block}
     .sidebarHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
     .sidebarHeader b{font-size:16px}
+    .sidebarHeader{position:relative;justify-content:center;text-align:center}
+    .sidebarHeader b{margin:0 auto}
+    .sidebarHeader .menuBtn{
+      position:absolute;left:0;padding:6px 8px;width:32px;height:32px;
+      display:flex;align-items:center;justify-content:center;color:#b00020;border-color:#f2c2c2
+    }
     .sidebar a,.sidebar button{
       width:100%;text-align:right;border:1px solid #e7e7e7;background:#fff;
       padding:10px 12px;border-radius:10px;cursor:pointer;margin-top:8px;font-family:inherit;
@@ -46,7 +52,7 @@
     .orderGroupMeta{display:flex;gap:8px;align-items:center}
 
     table{width:100%;border-collapse:collapse}
-    th,td{border-bottom:1px solid #eee;padding:10px;text-align:right;vertical-align:top}
+    th,td{border-bottom:1px solid #eee;padding:10px;text-align:right;vertical-align:middle}
     th{color:#666;font-size:13px}
     .chk{width:18px;height:18px}
     .highlight{background:#fff8d6}
@@ -57,6 +63,15 @@
     }
     .searchResults button:last-child{border-bottom:none}
     .searchResults button:hover{background:#fafafa}
+    .editCol{width:1%;white-space:nowrap;text-align:center}
+    .editCol .btn{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:6px 10px;line-height:1;height:32px
+    }
+    body.embed .topbar,
+    body.embed .sidebar,
+    body.embed .sidebarOverlay{display:none !important}
+    body.embed .wrap{padding:0;max-width:none}
   </style>
 </head>
 <body>
@@ -97,6 +112,11 @@
     <main class="card">
       <div id="empty" class="muted">اختاري طلبية من القائمة</div>
 
+      <div id="allOrdersTotalWrap" class="row" style="margin-bottom:10px;display:none">
+        <span class="pill" id="allOrdersTotal">إجمالي التحصيل المطلوب: 0 ₪</span>
+        <button class="btn" id="collectAllBtn" style="display:none">تم استلام تحصيل الكل</button>
+      </div>
+
       <div id="main" style="display:none">
         <div class="row" style="justify-content:space-between;align-items:center">
           <div>
@@ -118,6 +138,7 @@
               <th>الزبون</th>
               <th>السعر</th>
               <th id="paidPriceHeader" style="display:none">المدفوع</th>
+              <th id="paidEditHeader" class="editCol" style="display:none"></th>
               <th>حجم الكيس</th>
               <th>تم الاستلام</th>
               <th id="pickedAtHeader" style="display:none">تاريخ الاستلام</th>
@@ -138,6 +159,8 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 const PICKUP_VALUE = "من نقطة الاستلام";
 const NTFY_TOPIC = "she-store-rahaf-2001-2014";
+const isEmbed = new URLSearchParams(location.search).get("embed") === "1";
+if(isEmbed) document.body.classList.add("embed");
 
 /* ========= Auth + Role Gate =========
    Allowed here: Rahaf + Reem + Laaura
@@ -153,8 +176,13 @@ async function requireAuth(){
 
 async function getMyRole(){
   const { data: u } = await sb.auth.getUser();
-  const email = (u?.user?.email || "").toLowerCase();
-  const userId = u?.user?.id || "";
+  let email = (u?.user?.email || "").toLowerCase();
+  let userId = u?.user?.id || "";
+  if(!userId){
+    const { data: s } = await sb.auth.getSession();
+    email = (s?.session?.user?.email || "").toLowerCase();
+    userId = s?.session?.user?.id || "";
+  }
 
   if(!userId) return { email, role:"viewer" };
 
@@ -233,16 +261,14 @@ function renderSidebar(){
   };
 
   if(myEmail === "rahaf@she-store.com"){
-    link("إضافة طلبية", "./index.html");
-    link("عرض الطلبيات", "./view.html");
-    link("مستلمو البيت", "./homepickup.html");
-    link("العملاء", "./customers.html");
-    link("تحصيل المبالغ", "./collections.html");
+    link("إدارة الطلبات", "./index.html?tab=orders");
+    link("الاستلام والتحصيل", "./pickup-dashboard.html");
+    link("المالية", "./finance.html");
   }
 
   if(myEmail === "reem@she-store.com"){
-    link("عرض الطلبيات", "./view.html");
-    link("مستلمو البيت", "./homepickup.html");
+    link("إدارة الطلبات", "./index.html?tab=view");
+    link("الاستلام والتحصيل", "./pickup-dashboard.html");
   }
 
   btn("تسجيل خروج", "danger", async ()=>{
@@ -262,12 +288,16 @@ const purchaseCountEl = document.getElementById("purchaseCount");
 const pickedTotalEl = document.getElementById("pickedTotal");
 const tbody = document.getElementById("tbody");
 const collectBtn = document.getElementById("collectBtn");
+const allOrdersTotalWrap = document.getElementById("allOrdersTotalWrap");
+const allOrdersTotalEl = document.getElementById("allOrdersTotal");
+const collectAllBtn = document.getElementById("collectAllBtn");
 
 const searchInput = document.getElementById("searchInput");
 const searchResultsEl = document.getElementById("searchResults");
 const searchCount = document.getElementById("searchCount");
 const pickedAtHeader = document.getElementById("pickedAtHeader");
 const paidPriceHeader = document.getElementById("paidPriceHeader");
+const paidEditHeader = document.getElementById("paidEditHeader");
 
 let userEmail = "";
 let isRahaf = false;
@@ -327,13 +357,44 @@ function updatePickedTotal(list){
   pickedTotalEl.textContent = `مجموع المستلم: ${formatILS(pickedTotal)} ₪`;
 }
 
+async function updateAllOrdersTotal(){
+  if(!allOrdersTotalEl || !allOrdersTotalWrap) return;
+  const isRahafUser = isRahaf || myEmail === "rahaf@she-store.com" || userEmail === "rahaf@she-store.com";
+  allOrdersTotalWrap.style.display = isRahafUser ? "" : "none";
+  if(collectAllBtn){
+    collectAllBtn.style.display = isRahafUser ? "" : "none";
+  }
+  if(!isRahafUser) return;
+  const { data, error } = await sb
+    .from("purchases")
+    .select("paid_price, price, picked_up, collected")
+    .eq("pickup_point", PICKUP_VALUE)
+    .eq("collected", false)
+    .eq("picked_up", true);
+
+  if(error){
+    console.error(error);
+    allOrdersTotalEl.textContent = "إجمالي التحصيل المطلوب: —";
+    if(collectAllBtn) collectAllBtn.disabled = true;
+    return;
+  }
+  const total = (data || []).reduce((sum, item)=> sum + parsePrice(item.paid_price ?? item.price), 0);
+  allOrdersTotalEl.textContent = `إجمالي التحصيل المطلوب: ${formatILS(total)} ₪`;
+  if(collectAllBtn) collectAllBtn.disabled = total <= 0;
+}
+
 async function loadUser(){
   const { data } = await sb.auth.getUser();
   userEmail = (data?.user?.email || "").toLowerCase();
+  if(!userEmail){
+    const { data: s } = await sb.auth.getSession();
+    userEmail = (s?.session?.user?.email || "").toLowerCase();
+  }
   isRahaf = userEmail === "rahaf@she-store.com";
   isLaaura = userEmail === "laaura@she-store.com";
   pickedAtHeader.style.display = isRahaf ? "" : "none";
   if(paidPriceHeader) paidPriceHeader.style.display = isRahaf ? "" : "none";
+  if(paidEditHeader) paidEditHeader.style.display = isRahaf ? "" : "none";
 }
 
 function showMain(on){
@@ -506,7 +567,8 @@ if(collectBtn){
     }
 
     await sendNtfy([
-      "تم استلام تحصيل النقود من نقطة الاستلام",
+      "تم استلام تحصيل النقود ✅",
+      "المكان: نقطة الاستلام (La Aura)",
       `المبلغ: ${pendingText}`
     ].join("\n"));
 
@@ -515,7 +577,64 @@ if(collectBtn){
     const visibleList = list.filter(item=>!item.collected);
     renderTable(visibleList);
     updatePickedTotal(visibleList);
+    await updateAllOrdersTotal();
     collectBtn.disabled = false;
+  };
+}
+
+if(collectAllBtn){
+  collectAllBtn.onclick = async ()=>{
+    if(!isRahaf) return;
+
+    const { data, error } = await sb
+      .from("purchases")
+      .select("paid_price, price")
+      .eq("pickup_point", PICKUP_VALUE)
+      .eq("picked_up", true)
+      .eq("collected", false);
+
+    if(error){
+      console.error(error);
+      return;
+    }
+
+    const total = (data || []).reduce((sum, item)=> sum + parsePrice(item.paid_price ?? item.price), 0);
+    if(total <= 0){
+      return;
+    }
+
+    collectAllBtn.disabled = true;
+    const { error: upErr } = await sb
+      .from("purchases")
+      .update({ collected: true, collected_at: new Date().toISOString() })
+      .eq("pickup_point", PICKUP_VALUE)
+      .eq("picked_up", true)
+      .eq("collected", false);
+
+    if(upErr){
+      console.error(upErr);
+      collectAllBtn.disabled = false;
+      return;
+    }
+
+    await sendNtfy([
+      "تم استلام تحصيل النقود ✅",
+      "المكان: نقطة الاستلام (La Aura)",
+      `المبلغ: ${formatILS(total)}`
+    ].join("\n"));
+
+    await loadPickupOrders();
+    if(activeOrder){
+      const list = activeOrder.orderIds
+        ? await loadPurchasesForOrders(activeOrder.orderIds)
+        : await loadPurchasesForOrder(activeOrder.id);
+      purchasesByOrder.set(activeOrder.id, list);
+      const visibleList = list.filter(item=>!item.collected);
+      renderTable(visibleList);
+      updatePickedTotal(visibleList);
+    }
+    await updateAllOrdersTotal();
+    collectAllBtn.disabled = false;
   };
 }
 
@@ -531,7 +650,7 @@ function renderTable(list){
   tbody.innerHTML = "";
 
   if(!list.length){
-    tbody.innerHTML = `<tr><td colspan="${isRahaf?7:5}" class="muted">لا يوجد مشتريات</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${isRahaf?8:5}" class="muted">لا يوجد مشتريات</td></tr>`;
     return;
   }
 
@@ -543,9 +662,9 @@ function renderTable(list){
     const pickedAt = fmtDate(p.picked_up_at);
     const paidCell = isRahaf
       ? `
-        <td data-paid-cell="${p.id}">
-          <span>${escapeHtml(p.paid_price ?? "—")}</span>
-          ${p.picked_up ? `<button class="btn" data-edit-paid="${p.id}" title="تعديل المدفوع">✏️</button>` : ""}
+        <td data-paid-value-cell="${p.id}">${escapeHtml(p.paid_price ?? "—")}</td>
+        <td class="editCol" data-paid-edit-cell="${p.id}">
+          <button class="btn" data-edit-paid="${p.id}" title="تعديل المدفوع">✏️</button>
         </td>
       `
       : ``;
@@ -570,16 +689,14 @@ function renderTable(list){
 
       const list = purchasesByOrder.get(activeOrder.id) || [];
       const item = list.find(x=>String(x.id)===String(id));
-      const paidPrice = val ? parsePrice(item?.price) : null;
       if(item){
         item.picked_up = val;
         item.picked_up_at = pickedAt;
-        item.paid_price = paidPrice;
       }
 
       const { error } = await sb
         .from("purchases")
-        .update({ picked_up: val, picked_up_at: pickedAt, paid_price: paidPrice })
+        .update({ picked_up: val, picked_up_at: pickedAt })
         .eq("id", id);
 
       if(error){
@@ -608,6 +725,7 @@ function renderTable(list){
         renderTable(visibleList);
         updatePickedTotal(visibleList);
       }
+      await updateAllOrdersTotal();
     };
   });
 
@@ -619,19 +737,23 @@ function renderTable(list){
       const id = btn.dataset.editPaid;
       const listAll = purchasesByOrder.get(activeOrder.id) || [];
       const item = listAll.find(x=>String(x.id)===String(id));
-      if(!item || !item.picked_up) return;
+      if(!item) return;
 
-      const cell = btn.closest("td");
+      const valueCell = tbody.querySelector(`[data-paid-value-cell="${id}"]`);
+      const editCell = tbody.querySelector(`[data-paid-edit-cell="${id}"]`);
+      if(!valueCell || !editCell) return;
       const currentVal = item.paid_price ?? "";
-      cell.innerHTML = `
+      valueCell.innerHTML = `
         <input type="number" step="0.01" min="0" data-paid-input="${id}" value="${escapeAttr(currentVal)}" style="width:90px">
+      `;
+      editCell.innerHTML = `
         <button class="btn" data-paid-save="${id}">✅</button>
         <button class="btn" data-paid-cancel="${id}">✖</button>
       `;
 
-      const input = cell.querySelector(`[data-paid-input="${id}"]`);
-      const saveBtn = cell.querySelector(`[data-paid-save="${id}"]`);
-      const cancelBtn = cell.querySelector(`[data-paid-cancel="${id}"]`);
+      const input = valueCell.querySelector(`[data-paid-input="${id}"]`);
+      const saveBtn = editCell.querySelector(`[data-paid-save="${id}"]`);
+      const cancelBtn = editCell.querySelector(`[data-paid-cancel="${id}"]`);
 
       const visibleList = listAll.filter(entry=>!entry.collected);
       const cancel = ()=>{
@@ -656,6 +778,7 @@ function renderTable(list){
         item.paid_price = nextVal;
         renderTable(visibleList);
         updatePickedTotal(visibleList);
+        await updateAllOrdersTotal();
       };
 
       saveBtn.onclick = save;
@@ -738,6 +861,7 @@ async function runSearch(){
   renderSidebar();
   await loadUser();
   await loadPickupOrders();
+  await updateAllOrdersTotal();
   if(orders.length && !isLaaura) selectOrder(orders[0]);
 })();
 </script>

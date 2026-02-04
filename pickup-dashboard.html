@@ -1,0 +1,234 @@
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>الاستلام والتحصيل</title>
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/3665/3665980.png" />
+  <style>
+    body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa;color:#111}
+    .wrap{max-width:1200px;margin:auto;padding:16px}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+    .brand b{font-size:20px}
+    .muted{color:#666;font-size:13px}
+
+    .menuBtn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
+    .sidebarOverlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:50}
+    .sidebar{
+      position:fixed;top:0;right:0;height:100vh;width:min(280px,82vw);
+      background:#fff;border-left:1px solid #eee;z-index:60;
+      transform:translateX(100%);transition:transform .2s ease;
+      display:flex;flex-direction:column;padding:14px;box-sizing:border-box
+    }
+    .sidebar.open{transform:translateX(0)}
+    .sidebarOverlay.open{display:block}
+    .sidebarHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+    .sidebarHeader b{font-size:16px}
+    .sidebarHeader{position:relative;justify-content:center;text-align:center}
+    .sidebarHeader b{margin:0 auto}
+    .sidebarHeader .menuBtn{
+      position:absolute;left:0;padding:6px 8px;width:32px;height:32px;
+      display:flex;align-items:center;justify-content:center;color:#b00020;border-color:#f2c2c2
+    }
+    .sidebar a,.sidebar button{
+      width:100%;text-align:right;border:1px solid #e7e7e7;background:#fff;
+      padding:10px 12px;border-radius:10px;cursor:pointer;margin-top:8px;font-family:inherit;
+      box-sizing:border-box
+    }
+    .sidebar a{color:#111;text-decoration:none;display:block}
+    .sidebar .danger{border-color:#f2c2c2;color:#b00020}
+
+    .tabs{
+      display:flex;gap:6px;background:#111;padding:6px;border-radius:12px;margin:8px 0 14px
+    }
+    .tabBtn{
+      border:none;background:#222;color:#eaeaea;padding:10px 16px;border-radius:10px;
+      cursor:pointer;font-weight:600;font-family:inherit
+    }
+    .tabBtn.active{background:#fff;color:#111}
+    .tabPanel{display:none}
+    .tabPanel.active{display:block}
+    .panelFrame{
+      width:100%;border:none;border-radius:14px;
+      height:calc(100vh - 220px);min-height:620px;background:#fff
+    }
+    @media(max-width:700px){
+      .panelFrame{height:calc(100vh - 260px);min-height:540px}
+    }
+  </style>
+</head>
+<body>
+
+<div class="sidebarOverlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebarHeader">
+    <b>القائمة</b>
+    <button class="menuBtn" id="closeSidebarBtn" type="button">✕</button>
+  </div>
+  <div id="sidebarContent"></div>
+</aside>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <b>الاستلام والتحصيل</b>
+      <div class="muted">من البيت + La Aura + التحصيل</div>
+    </div>
+    <button class="menuBtn" id="openSidebarBtn" type="button">☰</button>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="tabBtn" data-tab="home">مستلمو البيت</button>
+    <button class="tabBtn" data-tab="aura">La Aura</button>
+    <button class="tabBtn" data-tab="collections">تحصيل المبالغ</button>
+  </div>
+
+  <div class="tabPanel" id="homePanel">
+    <iframe class="panelFrame" id="homeFrame" data-src="./homepickup.html?embed=1"></iframe>
+  </div>
+  <div class="tabPanel" id="auraPanel">
+    <iframe class="panelFrame" id="auraFrame" data-src="./pickuppoint.html?embed=1"></iframe>
+  </div>
+  <div class="tabPanel" id="collectionsPanel">
+    <iframe class="panelFrame" id="collectionsFrame" data-src="./collections.html?embed=1"></iframe>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://maucjvxhrnkdeybltjco.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+const EMAIL_RAHAF = "rahaf@she-store.com";
+const EMAIL_REEM  = "reem@she-store.com";
+const EMAIL_LAAURA= "laaura@she-store.com";
+
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("sidebarOverlay");
+const openBtn = document.getElementById("openSidebarBtn");
+const closeBtn = document.getElementById("closeSidebarBtn");
+const sidebarContent = document.getElementById("sidebarContent");
+
+function openSidebar(){ sidebar.classList.add("open"); overlay.classList.add("open"); }
+function closeSidebar(){ sidebar.classList.remove("open"); overlay.classList.remove("open"); }
+openBtn.onclick = openSidebar;
+closeBtn.onclick = closeSidebar;
+overlay.onclick = closeSidebar;
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeSidebar(); });
+
+function renderSidebar(role){
+  sidebarContent.innerHTML = "";
+  const link = (text, href)=>{
+    const a = document.createElement("a");
+    a.href = href;
+    a.textContent = text;
+    a.onclick = ()=> closeSidebar();
+    sidebarContent.appendChild(a);
+  };
+  const btn = (text, cls, onClick)=>{
+    const b = document.createElement("button");
+    b.type="button";
+    b.className = cls || "";
+    b.textContent = text;
+    b.onclick = async ()=>{
+      await onClick();
+      closeSidebar();
+    };
+    sidebarContent.appendChild(b);
+  };
+
+  if(role === "rahaf"){
+    link("إدارة الطلبات", "./index.html?tab=orders");
+    link("الاستلام والتحصيل", "./pickup-dashboard.html");
+    link("المالية", "./finance.html");
+  }
+  if(role === "reem"){
+    link("عرض الطلبيات", "./index.html?tab=view");
+    link("الاستلام والتحصيل", "./pickup-dashboard.html");
+  }
+  if(role === "laaura"){
+    link("La Aura", "./pickup-dashboard.html");
+  }
+
+  btn("تسجيل خروج", "danger", async ()=>{
+    await sb.auth.signOut();
+    window.location.href="./login.html";
+  });
+}
+
+const tabsEl = document.getElementById("tabs");
+const tabButtons = Array.from(document.querySelectorAll(".tabBtn"));
+const tabCollectionsBtn = document.querySelector('.tabBtn[data-tab="collections"]');
+const tabAuraBtn = document.querySelector('.tabBtn[data-tab="aura"]');
+const tabHomeBtn = document.querySelector('.tabBtn[data-tab="home"]');
+const panels = {
+  home: document.getElementById("homePanel"),
+  aura: document.getElementById("auraPanel"),
+  collections: document.getElementById("collectionsPanel")
+};
+const frames = {
+  home: document.getElementById("homeFrame"),
+  aura: document.getElementById("auraFrame"),
+  collections: document.getElementById("collectionsFrame")
+};
+
+function loadFrame(key){
+  const frame = frames[key];
+  if(frame && !frame.src){
+    frame.src = frame.dataset.src;
+  }
+}
+
+function showTab(key){
+  Object.keys(panels).forEach(k=>{
+    if(panels[k]) panels[k].classList.toggle("active", k === key);
+  });
+  tabButtons.forEach(btn=>{
+    btn.classList.toggle("active", btn.dataset.tab === key);
+  });
+  loadFrame(key);
+}
+
+tabButtons.forEach(btn=>{
+  btn.addEventListener("click", ()=> showTab(btn.dataset.tab));
+});
+
+async function guard(){
+  const { data } = await sb.auth.getSession();
+  if(!data.session){
+    window.location.href="./login.html?next=pickup-dashboard.html";
+    return null;
+  }
+  const { data: u } = await sb.auth.getUser();
+  const email = (u?.user?.email || "").toLowerCase();
+  if(email === EMAIL_RAHAF) return "rahaf";
+  if(email === EMAIL_REEM) return "reem";
+  if(email === EMAIL_LAAURA) return "laaura";
+  window.location.replace("./login.html");
+  return null;
+}
+
+(async function init(){
+  const role = await guard();
+  if(!role) return;
+  renderSidebar(role);
+
+  if(role === "rahaf"){
+    tabsEl.style.display = "flex";
+    if(tabCollectionsBtn) tabCollectionsBtn.style.display = "";
+    showTab("home");
+  } else if(role === "reem"){
+    tabsEl.style.display = "flex";
+    if(tabCollectionsBtn) tabCollectionsBtn.style.display = "none";
+    showTab("home");
+  } else {
+    tabsEl.style.display = "none";
+    if(tabCollectionsBtn) tabCollectionsBtn.style.display = "none";
+    if(tabHomeBtn) tabHomeBtn.style.display = "none";
+    if(tabAuraBtn) tabAuraBtn.style.display = "none";
+    showTab("aura");
+  }
+})();
+</script>
+</body>
+</html>

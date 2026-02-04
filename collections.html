@@ -30,6 +30,12 @@
     .sidebarOverlay.open{display:block}
     .sidebarHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
     .sidebarHeader b{font-size:16px}
+    .sidebarHeader{position:relative;justify-content:center;text-align:center}
+    .sidebarHeader b{margin:0 auto}
+    .sidebarHeader .menuBtn{
+      position:absolute;left:0;padding:6px 8px;width:32px;height:32px;
+      display:flex;align-items:center;justify-content:center;color:#b00020;border-color:#f2c2c2
+    }
     .sidebar a,.sidebar button{
       width:100%;text-align:right;border:1px solid #e7e7e7;background:#fff;
       padding:10px 12px;border-radius:10px;cursor:pointer;margin-top:8px;font-family:inherit;
@@ -43,6 +49,10 @@
     table{width:100%;border-collapse:collapse}
     th,td{border-bottom:1px solid #eee;padding:10px;text-align:right;vertical-align:top}
     th{color:#666;font-size:13px}
+    body.embed .topbar,
+    body.embed .sidebar,
+    body.embed .sidebarOverlay{display:none !important}
+    body.embed .wrap{padding:0;max-width:none}
   </style>
 </head>
 <body>
@@ -122,26 +132,21 @@
 const SUPABASE_URL="https://maucjvxhrnkdeybltjco.supabase.co";
 const SUPABASE_ANON_KEY="sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const isEmbed = new URLSearchParams(location.search).get("embed") === "1";
+if(isEmbed) document.body.classList.add("embed");
 
 const HOME_PICKUP_VALUE = "من البيت";
 const PICKUP_VALUE = "من نقطة الاستلام";
 const EMAIL_RAHAF = "rahaf@she-store.com";
 
-async function requireAuth(){
-  const { data } = await sb.auth.getSession();
-  if(!data.session){
-    window.location.href="./login.html?next=collections.html";
-    return false;
-  }
-  return true;
-}
-
 async function guardCollectionsAccess(){
-  const ok = await requireAuth();
-  if(!ok) return;
-
-  const { data: u } = await sb.auth.getUser();
-  const email = (u?.user?.email || "").toLowerCase();
+  const { data } = await sb.auth.getSession();
+  const session = data?.session;
+  if(!session){
+    window.location.href="./login.html?next=collections.html";
+    return;
+  }
+  const email = (session?.user?.email || "").toLowerCase();
   if(email !== EMAIL_RAHAF){
     window.location.replace("./login.html");
   }
@@ -202,11 +207,9 @@ function renderSidebar(){
     sidebarContent.appendChild(b);
   };
 
-  link("إضافة طلبية", "./index.html");
-  link("عرض الطلبيات", "./view.html");
-  link("مستلمو البيت", "./homepickup.html");
-  link("La Aura", "./pickuppoint.html");
-  link("العملاء", "./customers.html");
+  link("إدارة الطلبات", "./index.html?tab=orders");
+  link("الاستلام والتحصيل", "./pickup-dashboard.html");
+  link("المالية", "./finance.html");
 
   btn("تسجيل خروج", "danger", async ()=>{
     await sb.auth.signOut();
