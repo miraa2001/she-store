@@ -8,7 +8,7 @@
 
   <style>
     body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa;color:#111}
-    .wrap{max-width:1100px;margin:auto;padding:16px}
+    .wrap{max-width:1100px;margin:auto;padding:16px;overflow-x:hidden}
 
     /* ===== Image Lightbox ===== */
 
@@ -22,7 +22,7 @@
     }
     .sidebarOverlay{
       position:fixed;inset:0;background:rgba(0,0,0,.35);
-      display:none;z-index:50
+      display:none;z-index:50;pointer-events:none
     }
     .sidebar{
       position:fixed;top:0;right:0;height:100vh;width:min(280px, 82vw);
@@ -33,7 +33,7 @@
       box-sizing:border-box;
     }
     .sidebar.open{transform:translateX(0)}
-    .sidebarOverlay.open{display:block}
+    .sidebarOverlay.open{display:block;pointer-events:auto}
     .sidebarHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
     .sidebarHeader b{font-size:16px}
     .sidebar a,.sidebar button{
@@ -52,6 +52,7 @@
 
     /* ===== Layout ===== */
     .grid{display:grid;grid-template-columns:320px 1fr;gap:12px}
+    .grid > *{min-width:0}
     @media(max-width:900px){.grid{grid-template-columns:1fr}}
 
     .card{background:#fff;border:1px solid #e7e7e7;border-radius:14px;padding:12px}
@@ -61,9 +62,17 @@
     .dangerText{color:#b00020;font-size:13px}
     input, select, textarea{padding:10px;border:1px solid #e7e7e7;border-radius:10px;font-family:inherit}
     input[readonly]{background:#f4f4f4;color:#666}
-    textarea{width:100%;min-height:84px;resize:vertical}
-    table{width:100%;border-collapse:collapse}
+    textarea{width:100%;min-height:84px;resize:vertical;box-sizing:border-box}
+    .tableWrap{
+      overflow-x:auto;overflow-y:hidden;
+      max-width:100%;width:100%;
+      -webkit-overflow-scrolling:touch;
+      touch-action:pan-x pan-y;
+      direction:ltr;
+    }
+    table{width:100%;border-collapse:collapse;min-width:860px;direction:rtl}
     th,td{border-bottom:1px solid #eee;padding:10px;text-align:right;vertical-align:top}
+    td a{word-break:break-all;overflow-wrap:anywhere}
     th{color:#666;font-size:13px}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     .orderItem{border:1px solid #e7e7e7;border-radius:12px;padding:10px;cursor:pointer;display:flex;justify-content:space-between}
@@ -285,6 +294,7 @@
 
         <hr>
 
+        <div class="tableWrap">
         <table>
           <thead>
             <tr>
@@ -302,6 +312,7 @@
           </thead>
           <tbody id="tbody"></tbody>
         </table>
+        </div>
       </div>
     </main>
   </div>
@@ -423,10 +434,42 @@ function closeSidebar(){
   sidebar.classList.remove("open");
   overlay.classList.remove("open");
 }
-openBtn.onclick = openSidebar;
-closeBtn.onclick = closeSidebar;
+openBtn.onclick = (e)=>{
+  e.stopPropagation();
+  if(isMobile()){
+    e.preventDefault();
+    return;
+  }
+  openSidebar();
+};
+openBtn.addEventListener("touchstart",(e)=>{
+  if(!isMobile()) return;
+  e.preventDefault();
+  e.stopPropagation();
+  openSidebar();
+},{ passive:false });
+
+closeBtn.onclick = (e)=>{ e.stopPropagation(); closeSidebar(); };
+closeBtn.addEventListener("touchstart",(e)=>{
+  if(!isMobile()) return;
+  e.preventDefault();
+  e.stopPropagation();
+  closeSidebar();
+},{ passive:false });
 overlay.onclick = closeSidebar;
 document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeSidebar(); });
+window.addEventListener("pageshow", closeSidebar);
+window.addEventListener("resize", ()=>{ if(isMobile()) closeSidebar(); });
+document.addEventListener("click",(e)=>{
+  if(!sidebar.classList.contains("open")) return;
+  if(sidebar.contains(e.target) || openBtn.contains(e.target)) return;
+  closeSidebar();
+});
+document.addEventListener("touchstart",(e)=>{
+  if(!sidebar.classList.contains("open")) return;
+  if(sidebar.contains(e.target) || openBtn.contains(e.target)) return;
+  closeSidebar();
+},{ passive:true });
 
 function renderSidebar(){
   // Rahaf only here anyway, but keep it clean
@@ -510,6 +553,9 @@ const orderNameInput = document.getElementById("orderNameInput");
 const searchInput = document.getElementById("searchInput");
 const searchResultsEl = document.getElementById("searchResults");
 const searchCountEl = document.getElementById("searchCount");
+if(ordersList){
+  ordersList.addEventListener("click", ()=>{ if(isMobile()) closeSidebar(); });
+}
 
 
 /* ===== Lightbox (click image to enlarge) ===== */
@@ -1781,6 +1827,7 @@ addBtn.onclick = async ()=>{
 (async function init(){
   await guardIndexAccess();
   renderSidebar();
+  closeSidebar();
   await loadOrders();
 })();
 </script>
