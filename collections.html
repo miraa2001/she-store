@@ -10,6 +10,7 @@
     body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa;color:#111}
     .wrap{max-width:1100px;margin:auto;padding:16px}
     .grid{display:grid;grid-template-columns:320px 1fr;gap:12px}
+    .grid > *{min-width:0}
     @media(max-width:900px){.grid{grid-template-columns:1fr}}
     .card{background:#fff;border:1px solid #e7e7e7;border-radius:14px;padding:12px}
     .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
@@ -45,10 +46,13 @@
     .sidebar .danger{border-color:#f2c2c2;color:#b00020}
     .orderItem{border:1px solid #e7e7e7;border-radius:12px;padding:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
     .orderItem.active{border-color:#111}
+    .ordersMeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
     .sectionTitle{font-weight:700;margin:10px 0 6px}
-    table{width:100%;border-collapse:collapse}
+    .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;direction:ltr;max-width:100%}
+    table{width:max-content;min-width:100%;border-collapse:collapse;direction:rtl}
     th,td{border-bottom:1px solid #eee;padding:10px;text-align:right;vertical-align:top}
     th{color:#666;font-size:13px}
+    body.embed{overflow-x:hidden}
     body.embed .topbar,
     body.embed .sidebar,
     body.embed .sidebarOverlay{display:none !important}
@@ -79,7 +83,10 @@
     <aside class="card">
       <div class="row" style="justify-content:space-between">
         <b>الطلبيات</b>
-        <span class="pill" id="ordersCount">0</span>
+        <div class="ordersMeta">
+          <span class="pill" id="ordersCount">0</span>
+          <span class="pill" id="ordersCollectedTotal">إجمالي التحصيل: 0 ₪</span>
+        </div>
       </div>
       <div id="ordersList" style="margin-top:10px"></div>
       <div id="ordersEmpty" class="muted" style="margin-top:10px;display:none">لا يوجد طلبيات</div>
@@ -102,26 +109,30 @@
         </div>
 
         <div class="sectionTitle">مستلمو البيت</div>
-        <table>
-          <thead>
-            <tr>
-              <th>الزبون</th>
-              <th>السعر</th>
-            </tr>
-          </thead>
-          <tbody id="homeBody"></tbody>
-        </table>
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>الزبون</th>
+                <th>السعر</th>
+              </tr>
+            </thead>
+            <tbody id="homeBody"></tbody>
+          </table>
+        </div>
 
         <div class="sectionTitle">نقطة الاستلام - La Aura</div>
-        <table>
-          <thead>
-            <tr>
-              <th>الزبون</th>
-              <th>السعر</th>
-            </tr>
-          </thead>
-          <tbody id="pickupBody"></tbody>
-        </table>
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>الزبون</th>
+                <th>السعر</th>
+              </tr>
+            </thead>
+            <tbody id="pickupBody"></tbody>
+          </table>
+        </div>
       </div>
     </main>
   </div>
@@ -155,6 +166,7 @@ async function guardCollectionsAccess(){
 const ordersListEl = document.getElementById("ordersList");
 const ordersEmptyEl = document.getElementById("ordersEmpty");
 const ordersCountEl = document.getElementById("ordersCount");
+const ordersCollectedTotalEl = document.getElementById("ordersCollectedTotal");
 const emptyEl = document.getElementById("empty");
 const mainEl = document.getElementById("main");
 const orderTitleEl = document.getElementById("orderTitle");
@@ -258,6 +270,25 @@ async function loadOrders(){
   });
 
   ordersCountEl.textContent = orders.length;
+  if(ordersCollectedTotalEl){
+    const orderIds = orders.map(o=>o.id);
+    if(orderIds.length){
+      const { data: pData, error: pErr } = await sb
+        .from("purchases")
+        .select("paid_price, price, collected, order_id")
+        .in("order_id", orderIds)
+        .eq("collected", true);
+      if(!pErr){
+        const total = (pData || []).reduce((sum,p)=> sum + parsePrice(p.paid_price ?? p.price), 0);
+        ordersCollectedTotalEl.textContent = `إجمالي التحصيل: ${formatILS(total)} ₪`;
+      }else{
+        console.error(pErr);
+        ordersCollectedTotalEl.textContent = "إجمالي التحصيل: —";
+      }
+    }else{
+      ordersCollectedTotalEl.textContent = "إجمالي التحصيل: 0 ₪";
+    }
+  }
   ordersListEl.innerHTML = "";
   ordersEmptyEl.style.display = orders.length ? "none" : "";
 

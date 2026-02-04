@@ -10,6 +10,7 @@
     body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa;color:#111}
     .wrap{max-width:1100px;margin:auto;padding:16px}
     .grid{display:grid;grid-template-columns:320px 1fr;gap:12px}
+    .grid > *{min-width:0}
     @media(max-width:900px){.grid{grid-template-columns:1fr}}
     .card{background:#fff;border:1px solid #e7e7e7;border-radius:14px;padding:12px}
     .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
@@ -56,8 +57,8 @@
     .orderItem{border:1px solid #e7e7e7;border-radius:12px;padding:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
     .orderItem.active{border-color:#111}
 
-    .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;direction:ltr}
-    table{width:100%;border-collapse:collapse;direction:rtl;min-width:720px}
+    .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;direction:ltr;max-width:100%}
+    table{width:max-content;min-width:100%;border-collapse:collapse;direction:rtl}
     th,td{border-bottom:1px solid #eee;padding:10px;text-align:right;vertical-align:middle}
     th{color:#666;font-size:13px}
     .chk{width:18px;height:18px}
@@ -93,6 +94,7 @@
       .lightboxClose{top:12px;right:12px}
       .lightboxCount{top:12px;left:12px;font-size:12px}
     }
+    body.embed{overflow-x:hidden}
     body.embed .topbar,
     body.embed .sidebar,
     body.embed .sidebarOverlay{display:none !important}
