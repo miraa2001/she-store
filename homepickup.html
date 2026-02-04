@@ -141,6 +141,7 @@
             <tr>
               <th>الزبون</th>
               <th>السعر</th>
+              <th id="paidPriceHeader" style="display:none">المدفوع</th>
               <th>صور</th>
               <th>تم الاستلام</th>
               <th>وقت الاستلام</th>
@@ -195,6 +196,7 @@ async function guardHomePickupAccess(){
   if(email !== EMAIL_RAHAF && email !== EMAIL_REEM){
     window.location.replace("./login.html");
   }
+  if(paidPriceHeader) paidPriceHeader.style.display = email === EMAIL_RAHAF ? "" : "none";
 }
 /* ===== Sidebar ===== */
 const sidebar = document.getElementById("sidebar");
@@ -265,6 +267,7 @@ const mainEl = document.getElementById("main");
 const orderTitleEl = document.getElementById("orderTitle");
 const purchaseCountEl = document.getElementById("purchaseCount");
 const totalPriceEl = document.getElementById("totalPrice");
+const paidPriceHeader = document.getElementById("paidPriceHeader");
 const tbody = document.getElementById("tbody");
 const lb = document.getElementById("lightbox");
 const lbImg = lb ? lb.querySelector("img") : null;
@@ -402,12 +405,13 @@ async function sendNtfy(message){
   }
 }
 
-function buildPickupMessage({ customerName, price, pickupLabel }){
+function buildPickupMessage({ picked, customerName, price, pickupLabel }){
   const priceText = formatILS(price);
   const nameText = customerName || "";
   const pickupText = pickupLabel || "";
+  const status = picked ? "✅" : "❌";
   return [
-    "تم استلام الطلب ✅",
+    `تم استلام الطلب ${status}`,
     `الزبون: ${nameText}`,
     `نقطة الاستلام: ${pickupText}`,
     `السعر: ${priceText}`
@@ -424,7 +428,7 @@ function renderPurchases(){
   purchaseCountEl.textContent = `عدد المشتريات: ${visible.length}`;
   const pickedTotal = visible
     .filter(p=>p.picked_up)
-    .reduce((sum,p)=> sum + parsePrice(p.price), 0);
+    .reduce((sum,p)=> sum + parsePrice(p.paid_price ?? p.price), 0);
   totalPriceEl.textContent = `مجموع أسعار المستلم: ${formatILS(pickedTotal)} ₪`;
 
   tbody.innerHTML = "";
@@ -442,6 +446,7 @@ function renderPurchases(){
     tr.innerHTML = `
       <td>${highlight}${escapeHtml(p.customer_name || "")}</td>
       <td>${escapeHtml(p.price ?? "")}</td>
+      ${myEmail === EMAIL_RAHAF ? `<td>${escapeHtml(p.paid_price ?? "—")}</td>` : `<td style="display:none"></td>`}
       <td class="thumbs">${imgs || "—"}</td>
       <td><input class="chk" type="checkbox" data-pick="${p.id}" ${p.picked_up ? "checked" : ""}></td>
       <td data-picked-at="${p.id}">${formatDateTime(p.picked_up_at)}</td>
@@ -475,8 +480,9 @@ function renderPurchases(){
       const cell = tbody.querySelector(`[data-picked-at="${id}"]`);
       if(cell) cell.textContent = formatDateTime(payload.picked_up_at);
 
-      if(entry && payload.picked_up){
+      if(entry){
         await sendNtfy(buildPickupMessage({
+          picked: payload.picked_up,
           customerName: entry.customer_name,
           price: entry.price,
           pickupLabel: HOME_PICKUP_VALUE
@@ -528,7 +534,7 @@ async function selectOrder(order){
 
   const { data, error } = await sb
     .from("purchases")
-    .select("id, customer_name, price, picked_up, picked_up_at, pickup_point, purchase_images(storage_path), collected")
+    .select("id, customer_name, price, paid_price, picked_up, picked_up_at, pickup_point, purchase_images(storage_path), collected")
     .eq("order_id", order.id)
     .eq("pickup_point", HOME_PICKUP_VALUE)
     .order("created_at", { ascending: true });
@@ -549,7 +555,7 @@ if(collectHomeBtn){
     if(!activeOrder || myEmail !== EMAIL_RAHAF) return;
 
     const pendingList = purchases.filter(p=>!p.collected && p.picked_up);
-    const pendingTotal = pendingList.reduce((sum,p)=> sum + parsePrice(p.price), 0);
+    const pendingTotal = pendingList.reduce((sum,p)=> sum + parsePrice(p.paid_price ?? p.price), 0);
     const pendingText = formatILS(pendingTotal);
 
     collectHomeBtn.disabled = true;
@@ -573,7 +579,7 @@ if(collectHomeBtn){
 
     const { data, error: reloadErr } = await sb
       .from("purchases")
-      .select("id, customer_name, price, picked_up, picked_up_at, pickup_point, purchase_images(storage_path), collected")
+      .select("id, customer_name, price, paid_price, picked_up, picked_up_at, pickup_point, purchase_images(storage_path), collected")
       .eq("order_id", activeOrder.id)
       .eq("pickup_point", HOME_PICKUP_VALUE)
       .order("created_at", { ascending: true });

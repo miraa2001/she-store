@@ -117,6 +117,7 @@
               <th>#</th>
               <th>الزبون</th>
               <th>السعر</th>
+              <th id="paidPriceHeader" style="display:none">المدفوع</th>
               <th>حجم الكيس</th>
               <th>تم الاستلام</th>
               <th id="pickedAtHeader" style="display:none">تاريخ الاستلام</th>
@@ -266,6 +267,7 @@ const searchInput = document.getElementById("searchInput");
 const searchResultsEl = document.getElementById("searchResults");
 const searchCount = document.getElementById("searchCount");
 const pickedAtHeader = document.getElementById("pickedAtHeader");
+const paidPriceHeader = document.getElementById("paidPriceHeader");
 
 let userEmail = "";
 let isRahaf = false;
@@ -304,12 +306,13 @@ async function sendNtfy(message){
   }
 }
 
-function buildPickupMessage({ customerName, price, pickupLabel }){
+function buildPickupMessage({ picked, customerName, price, pickupLabel }){
   const priceText = formatILS(price);
   const nameText = customerName || "";
   const pickupText = pickupLabel || "";
+  const status = picked ? "✅" : "❌";
   return [
-    "تم استلام الطلب ✅",
+    `تم استلام الطلب ${status}`,
     `الزبون: ${nameText}`,
     `نقطة الاستلام: ${pickupText}`,
     `السعر: ${priceText}`
@@ -319,7 +322,7 @@ function buildPickupMessage({ customerName, price, pickupLabel }){
 function updatePickedTotal(list){
   const pickedTotal = list
     .filter(item=>item.picked_up)
-    .reduce((sum,item)=> sum + parsePrice(item.price), 0);
+    .reduce((sum,item)=> sum + parsePrice(item.paid_price ?? item.price), 0);
   pickedTotalEl.textContent = `مجموع المستلم: ${formatILS(pickedTotal)} ₪`;
 }
 
@@ -329,6 +332,7 @@ async function loadUser(){
   isRahaf = userEmail === "rahaf@she-store.com";
   isLaaura = userEmail === "laaura@she-store.com";
   pickedAtHeader.style.display = isRahaf ? "" : "none";
+  if(paidPriceHeader) paidPriceHeader.style.display = isRahaf ? "" : "none";
 }
 
 function showMain(on){
@@ -433,7 +437,7 @@ async function loadPickupOrders(){
 async function loadPurchasesForOrder(orderId){
   const { data, error } = await sb
     .from("purchases")
-    .select("id, order_id, customer_name, price, bag_size, picked_up, picked_up_at, created_at, pickup_point, collected")
+    .select("id, order_id, customer_name, price, paid_price, bag_size, picked_up, picked_up_at, created_at, pickup_point, collected")
     .eq("order_id", orderId)
     .eq("pickup_point", PICKUP_VALUE)
     .order("created_at",{ascending:true});
@@ -446,7 +450,7 @@ async function loadPurchasesForOrders(orderIds){
   if(!orderIds.length) return [];
   const { data, error } = await sb
     .from("purchases")
-    .select("id, order_id, customer_name, price, bag_size, picked_up, picked_up_at, created_at, pickup_point, collected")
+    .select("id, order_id, customer_name, price, paid_price, bag_size, picked_up, picked_up_at, created_at, pickup_point, collected")
     .in("order_id", orderIds)
     .eq("pickup_point", PICKUP_VALUE)
     .order("created_at",{ascending:true});
@@ -483,7 +487,7 @@ if(collectBtn){
     const pendingList = currentList.filter(item=>!item.collected);
     const pendingTotal = pendingList
       .filter(item=>item.picked_up)
-      .reduce((sum,item)=> sum + parsePrice(item.price), 0);
+      .reduce((sum,item)=> sum + parsePrice(item.paid_price ?? item.price), 0);
     const pendingText = formatILS(pendingTotal);
 
     collectBtn.disabled = true;
@@ -526,7 +530,7 @@ function renderTable(list){
   tbody.innerHTML = "";
 
   if(!list.length){
-    tbody.innerHTML = `<tr><td colspan="${isRahaf?6:5}" class="muted">لا يوجد مشتريات</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${isRahaf?7:5}" class="muted">لا يوجد مشتريات</td></tr>`;
     return;
   }
 
@@ -541,6 +545,7 @@ function renderTable(list){
       <td>${i+1}</td>
       <td>${escapeHtml(p.customer_name || "")}</td>
       <td>${escapeHtml(p.price ?? "")}</td>
+      ${isRahaf ? `<td>${escapeHtml(p.paid_price ?? "—")}</td>` : ``}
       <td>${escapeHtml(p.bag_size || "—")}</td>
       <td><input class="chk" type="checkbox" data-id="${p.id}" ${checked}></td>
       ${isRahaf ? `<td>${escapeHtml(pickedAt)}</td>` : ``}
@@ -579,8 +584,9 @@ function renderTable(list){
         return;
       }
 
-      if(item && val){
+      if(item){
         await sendNtfy(buildPickupMessage({
+          picked: val,
           customerName: item.customer_name,
           price: item.price,
           pickupLabel: PICKUP_VALUE
