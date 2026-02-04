@@ -278,7 +278,7 @@ async function selectOrder(order){
 
   const { data, error } = await sb
     .from("purchases")
-    .select("id, customer_name, price, pickup_point, collected")
+    .select("id, customer_name, price, paid_price, pickup_point, collected")
     .eq("order_id", order.id)
     .order("created_at",{ascending:true});
 
@@ -289,18 +289,18 @@ async function selectOrder(order){
   const pickupList = list.filter(p=>p.pickup_point === PICKUP_VALUE && p.collected);
 
   purchaseCountEl.textContent = `عدد المشتريات: ${homeList.length + pickupList.length}`;
-  const homeTotal = homeList.reduce((sum,p)=> sum + parsePrice(p.price), 0);
-  const pickupTotal = pickupList.reduce((sum,p)=> sum + parsePrice(p.price), 0);
+  const homeTotal = homeList.reduce((sum,p)=> sum + parsePrice(p.paid_price ?? p.price), 0);
+  const pickupTotal = pickupList.reduce((sum,p)=> sum + parsePrice(p.paid_price ?? p.price), 0);
   homeTotalEl.textContent = `مجموع البيت: ${formatILS(homeTotal)} ₪`;
   pickupTotalEl.textContent = `مجموع نقطة الاستلام: ${formatILS(pickupTotal)} ₪`;
   grandTotalEl.textContent = `المجموع الكلي: ${formatILS(homeTotal + pickupTotal)} ₪`;
 
   homeBody.innerHTML = homeList.length
-    ? homeList.map(p=>`<tr><td>${escapeHtml(p.customer_name || "")}</td><td>${escapeHtml(p.price ?? "")}</td></tr>`).join("")
+    ? homeList.map(p=>`<tr><td>${escapeHtml(p.customer_name || "")}</td><td>${escapeHtml(formatILS(p.paid_price ?? p.price))}</td></tr>`).join("")
     : `<tr><td colspan="2" class="muted">لا يوجد مشتريات</td></tr>`;
 
   pickupBody.innerHTML = pickupList.length
-    ? pickupList.map(p=>`<tr><td>${escapeHtml(p.customer_name || "")}</td><td>${escapeHtml(p.price ?? "")}</td></tr>`).join("")
+    ? pickupList.map(p=>`<tr><td>${escapeHtml(p.customer_name || "")}</td><td>${escapeHtml(formatILS(p.paid_price ?? p.price))}</td></tr>`).join("")
     : `<tr><td colspan="2" class="muted">لا يوجد مشتريات</td></tr>`;
 
   showMain(true);
