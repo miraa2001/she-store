@@ -453,9 +453,11 @@ function renderPurchases(){
     chk.onchange = async ()=>{
       const id = chk.dataset.pick;
       const checked = chk.checked;
+      const entry = purchases.find(p=>String(p.id) === String(id));
+      const paidPrice = checked ? parsePrice(entry?.price) : null;
       const payload = checked
-        ? { picked_up: true, picked_up_at: new Date().toISOString() }
-        : { picked_up: false, picked_up_at: null };
+        ? { picked_up: true, picked_up_at: new Date().toISOString(), paid_price: paidPrice }
+        : { picked_up: false, picked_up_at: null, paid_price: null };
 
       const { error: upErr } = await sb.from("purchases").update(payload).eq("id", id);
       if(upErr){
@@ -464,10 +466,10 @@ function renderPurchases(){
         return;
       }
 
-      const entry = purchases.find(p=>String(p.id) === String(id));
       if(entry){
         entry.picked_up = payload.picked_up;
         entry.picked_up_at = payload.picked_up_at;
+        entry.paid_price = payload.paid_price;
       }
 
       const cell = tbody.querySelector(`[data-picked-at="${id}"]`);

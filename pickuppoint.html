@@ -556,14 +556,16 @@ function renderTable(list){
 
       const list = purchasesByOrder.get(activeOrder.id) || [];
       const item = list.find(x=>String(x.id)===String(id));
+      const paidPrice = val ? parsePrice(item?.price) : null;
       if(item){
         item.picked_up = val;
         item.picked_up_at = pickedAt;
+        item.paid_price = paidPrice;
       }
 
       const { error } = await sb
         .from("purchases")
-        .update({ picked_up: val, picked_up_at: pickedAt })
+        .update({ picked_up: val, picked_up_at: pickedAt, paid_price: paidPrice })
         .eq("id", id);
 
       if(error){
