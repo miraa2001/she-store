@@ -442,11 +442,20 @@ function renderPurchases(){
       ? `<div class="highlight" style="margin-bottom:6px">✅ هذا هو البحث</div>`
       : "";
 
+    const paidCell = myEmail === EMAIL_RAHAF
+      ? `
+        <td data-paid-cell="${p.id}">
+          <span>${escapeHtml(p.paid_price ?? "—")}</span>
+          ${p.picked_up ? `<button class="btn" data-edit-paid="${p.id}" title="تعديل المدفوع">✏️</button>` : ""}
+        </td>
+      `
+      : ``;
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${highlight}${escapeHtml(p.customer_name || "")}</td>
       <td>${escapeHtml(p.price ?? "")}</td>
-      ${myEmail === EMAIL_RAHAF ? `<td>${escapeHtml(p.paid_price ?? "—")}</td>` : `<td style="display:none"></td>`}
+      ${paidCell}
       <td class="thumbs">${imgs || "—"}</td>
       <td><input class="chk" type="checkbox" data-pick="${p.id}" ${p.picked_up ? "checked" : ""}></td>
       <td data-picked-at="${p.id}">${formatDateTime(p.picked_up_at)}</td>
@@ -490,6 +499,55 @@ function renderPurchases(){
       }
 
       renderPurchases();
+    };
+  });
+
+  tbody.querySelectorAll("[data-edit-paid]").forEach(btn=>{
+    btn.onclick = async (e)=>{
+      e.stopPropagation();
+      const id = btn.dataset.editPaid;
+      const entry = purchases.find(p=>String(p.id) === String(id));
+      if(!entry || !entry.picked_up || myEmail !== EMAIL_RAHAF) return;
+
+      const cell = btn.closest("td");
+      const currentVal = entry.paid_price ?? "";
+      cell.innerHTML = `
+        <input type="number" step="0.01" min="0" data-paid-input="${id}" value="${escapeAttr(currentVal)}" style="width:90px">
+        <button class="btn" data-paid-save="${id}">✅</button>
+        <button class="btn" data-paid-cancel="${id}">✖</button>
+      `;
+
+      const input = cell.querySelector(`[data-paid-input="${id}"]`);
+      const saveBtn = cell.querySelector(`[data-paid-save="${id}"]`);
+      const cancelBtn = cell.querySelector(`[data-paid-cancel="${id}"]`);
+
+      const cancel = ()=>{ renderPurchases(); };
+      cancelBtn.onclick = cancel;
+
+      const save = async ()=>{
+        const raw = input.value.trim();
+        const nextVal = raw === "" ? null : Number(raw);
+        if(raw !== "" && (!Number.isFinite(nextVal) || nextVal < 0)){
+          alert("السعر المدفوع غير صحيح.");
+          return;
+        }
+        const { error } = await sb.from("purchases").update({ paid_price: nextVal }).eq("id", id);
+        if(error){
+          console.error(error);
+          alert("فشل حفظ المدفوع");
+          return;
+        }
+        entry.paid_price = nextVal;
+        renderPurchases();
+      };
+
+      saveBtn.onclick = save;
+      input.onkeydown = (ev)=>{
+        if(ev.key === "Enter") save();
+        if(ev.key === "Escape") cancel();
+      };
+      input.focus();
+      input.select();
     };
   });
 

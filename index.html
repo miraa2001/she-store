@@ -210,6 +210,7 @@
             <input type="checkbox" id="arrivedToggle">
             <span>تم وصول الطلب</span>
           </label>
+          <button class="btn" id="exportPdfBtn" type="button">تصدير PDF</button>
           <span class="muted" id="arrivedMsg"></span>
         </div>
 
@@ -316,6 +317,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
 <script>
 const SUPABASE_URL = "https://maucjvxhrnkdeybltjco.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
@@ -473,6 +476,11 @@ const tbody = document.getElementById("tbody");
 const arrivedRow = document.getElementById("arrivedRow");
 const arrivedToggle = document.getElementById("arrivedToggle");
 const arrivedMsg = document.getElementById("arrivedMsg");
+const exportPdfBtn = document.getElementById("exportPdfBtn");
+
+if(exportPdfBtn){
+  exportPdfBtn.disabled = true;
+}
 
 const customer = document.getElementById("customer");
 const customerList = document.getElementById("customerList");
@@ -882,6 +890,283 @@ document.addEventListener("paste",(e)=>{
 });
 
 /* ===== Orders ===== */
+let pdfFonts = null;
+const PDF_FONT_REGULAR_URL = "https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts/hinted/ttf/NotoNaskhArabic/NotoNaskhArabic-Regular.ttf";
+const PDF_FONT_BOLD_URL = "https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts/hinted/ttf/NotoNaskhArabic/NotoNaskhArabic-Bold.ttf";
+
+async function loadPdfFonts(pdfDoc){
+  if(pdfFonts) return pdfFonts;
+  if(!window.fontkit){
+    throw new Error("تعذر تحميل محرك الخطوط");
+  }
+  pdfDoc.registerFontkit(window.fontkit);
+
+  const [regularRes, boldRes] = await Promise.all([
+    fetch(PDF_FONT_REGULAR_URL),
+    fetch(PDF_FONT_BOLD_URL)
+  ]);
+
+  if(!regularRes.ok || !boldRes.ok){
+    throw new Error("تعذر تحميل الخط العربي");
+  }
+
+  const [regularBytes, boldBytes] = await Promise.all([
+    regularRes.arrayBuffer(),
+    boldRes.arrayBuffer()
+  ]);
+
+  const { StandardFonts } = PDFLib;
+  pdfFonts = {
+    regular: await pdfDoc.embedFont(regularBytes, { subset: true }),
+    bold: await pdfDoc.embedFont(boldBytes, { subset: true }),
+    latinRegular: await pdfDoc.embedFont(StandardFonts.Helvetica),
+    latinBold: await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+  };
+  return pdfFonts;
+}
+
+async function fetchOrder(orderId){
+  const { data, error } = await sb
+    .from("orders")
+    .select("*")
+    .eq("id", orderId)
+    .maybeSingle();
+  if(error){ console.error(error); throw error; }
+  if(!data) throw new Error("Order not found");
+  return data;
+}
+
+async function fetchPurchases(orderId){
+  const { data, error } = await sb
+    .from("purchases")
+    .select("id, customer_name, qty, price, paid_price, purchase_links(url), purchase_images(storage_path)")
+    .eq("order_id", orderId)
+    .order("created_at", { ascending: true });
+  if(error){ console.error(error); throw error; }
+  return data || [];
+}
+
+function normalizeUrl(url){
+  const raw = String(url || "").trim();
+  if(!raw) return "";
+  if(/^https?:\/\//i.test(raw)) return raw;
+  return `https://${raw}`;
+}
+
+function addLinkAnnotation(pdfDoc, page, url, x, y, width, height){
+  const { PDFName, PDFString } = PDFLib;
+  if(!url) return;
+  const rect = [x, y, x + width, y + height];
+  const linkAnnotation = pdfDoc.context.obj({
+    Type: PDFName.of("Annot"),
+    Subtype: PDFName.of("Link"),
+    Rect: rect,
+    Border: [0, 0, 0],
+    A: pdfDoc.context.obj({
+      Type: PDFName.of("Action"),
+      S: PDFName.of("URI"),
+      URI: PDFString.of(url)
+    })
+  });
+  page.node.addAnnot(linkAnnotation);
+}
+
+async function addPurchasePage(pdfDoc, purchase, order){
+  const { rgb, PageSizes } = PDFLib;
+  const page = pdfDoc.addPage(PageSizes?.A4 || [595.28, 841.89]);
+  const { width, height } = page.getSize();
+  const regular = pdfFonts?.regular;
+  const bold = pdfFonts?.bold;
+  const latinRegular = pdfFonts?.latinRegular;
+  const latinBold = pdfFonts?.latinBold;
+  if(!regular || !bold){
+    throw new Error("خط PDF غير جاهز");
+  }
+
+  const title = purchase.customer_name || order.order_name || "Purchase";
+  const qtyValue = purchase.qty ?? "—";
+  const unitPrice = purchase.price === null || purchase.price === undefined ? "—" : formatILS(purchase.price);
+  const paidPrice = purchase.paid_price === null || purchase.paid_price === undefined ? "—" : formatILS(purchase.paid_price);
+
+  const links = (purchase.purchase_links || []).map(l=>l.url).filter(Boolean);
+  const linkLines = links.length ? links : ["—"];
+
+  const imageUrls = (purchase.purchase_images || []).map(img=>{
+    const res = sb.storage.from(BUCKET).getPublicUrl(img.storage_path);
+    return res?.data?.publicUrl || "";
+  }).filter(Boolean);
+
+  const thumbItems = [];
+  for(const url of imageUrls){
+    try{
+      const res = await fetch(url);
+      if(!res.ok) throw new Error("Image fetch failed");
+      const bytes = await res.arrayBuffer();
+      const contentType = (res.headers.get("content-type") || "").toLowerCase();
+      let image;
+      if(contentType.includes("png") || url.toLowerCase().endsWith(".png")){
+        image = await pdfDoc.embedPng(bytes);
+      } else {
+        image = await pdfDoc.embedJpg(bytes);
+      }
+      const maxW = 160;
+      const maxH = 120;
+      const scale = Math.min(maxW / image.width, maxH / image.height, 1);
+      const dims = image.scale(scale);
+      thumbItems.push({ type:"image", image, width:dims.width, height:dims.height });
+    } catch (err){
+      console.error("Image embed failed:", err);
+      thumbItems.push({ type:"error", width:140, height:18 });
+    }
+  }
+  if(!thumbItems.length){
+    thumbItems.push({ type:"error", width:140, height:18 });
+  }
+
+  const lines = [
+    { type:"text", text: title, size: 22, font: bold, color: rgb(0,0,0), gap: 14, align:"right" },
+    { type:"pair", label: "الكمية", value: qtyValue, size: 14, gap: 8 },
+    { type:"pair", label: "سعر القطعة", value: unitPrice, size: 14, gap: 8 },
+    { type:"pair", label: "السعر المدفوع", value: paidPrice, size: 14, gap: 14 },
+    { type:"text", text: "رابط المنتج:", size: 12, font: bold, color: rgb(0,0,0), gap: 6, align:"right" }
+  ];
+
+  linkLines.forEach((url)=> lines.push({
+    text: url,
+    size: 11,
+    font: latinRegular || regular,
+    color: url === "—" ? rgb(0,0,0) : rgb(0.1,0.4,0.9),
+    link: url === "—" ? null : normalizeUrl(url),
+    gap: 6,
+    align:"left"
+  }));
+
+  lines.push({ text: "الصور:", size: 12, font: bold, color: rgb(0,0,0), gap: 8, align:"right" });
+
+  const thumbsGap = 12;
+  const rowHeight = Math.max(...thumbItems.map(t=>t.height));
+  const rowWidth = thumbItems.reduce((sum,t)=> sum + t.width, 0) + thumbsGap * (thumbItems.length - 1);
+
+  const contentHeight = lines.reduce((sum,l)=> sum + l.size + l.gap, 0) + rowHeight;
+  let y = (height + contentHeight) / 2;
+
+  const blockWidth = Math.max(0, width - 120);
+  const blockX = (width - blockWidth) / 2;
+
+  const drawTextLine = (text, size, font, color, link, align="center")=>{
+    const safeText = String(text ?? "");
+    const textWidth = font.widthOfTextAtSize(safeText, size);
+    let x = blockX + (blockWidth - textWidth) / 2;
+    if(align === "right") x = blockX + (blockWidth - textWidth);
+    if(align === "left") x = blockX;
+    page.drawText(safeText, { x, y, size, font, color, maxWidth: width - 80 });
+    if(link){
+      addLinkAnnotation(pdfDoc, page, link, x, y, textWidth, size + 2);
+    }
+  };
+  const drawPairLine = (label, value, size)=>{
+    const labelText = String(label ?? "");
+    const valueText = String(value ?? "—");
+    const labelWidth = regular.widthOfTextAtSize(labelText, size);
+    const valueWidth = (latinRegular || regular).widthOfTextAtSize(valueText, size);
+    const labelX = blockX + blockWidth - labelWidth;
+    const valueX = blockX;
+    page.drawText(labelText, { x: labelX, y, size, font: regular, color: rgb(0,0,0) });
+    page.drawText(valueText, { x: valueX, y, size, font: latinRegular || regular, color: rgb(0,0,0) });
+  };
+
+  for(const line of lines){
+    y -= line.size;
+    if(line.type === "pair"){
+      drawPairLine(line.label, line.value, line.size);
+    } else {
+      drawTextLine(line.text, line.size, line.font, line.color, line.link, line.align);
+    }
+    y -= line.gap;
+  }
+
+  const rowX = Math.max(40, (width - rowWidth) / 2);
+  const rowY = y - rowHeight;
+  let x = rowX;
+  thumbItems.forEach((item)=>{
+    if(item.type === "image"){
+      page.drawImage(item.image, { x, y: rowY, width: item.width, height: item.height });
+    } else {
+      page.drawText("Image unavailable", {
+        x,
+        y: rowY + Math.max(0, (rowHeight - item.height) / 2),
+        size: 10,
+        font: latinRegular || regular,
+        color: rgb(0.4,0.4,0.4),
+        maxWidth: item.width
+      });
+    }
+    x += item.width + thumbsGap;
+  });
+}
+
+async function buildPdf(order, purchases){
+  const { PDFDocument } = PDFLib;
+  const pdfDoc = await PDFDocument.create();
+  pdfFonts = null;
+  await loadPdfFonts(pdfDoc);
+
+  if(!purchases.length){
+    const page = pdfDoc.addPage(PDFLib.PageSizes.A4);
+    page.drawText("No purchases", { x: 50, y: page.getHeight()/2, size: 16, font: pdfFonts.bold });
+  } else {
+    for(const p of purchases){
+      await addPurchasePage(pdfDoc, p, order);
+    }
+  }
+
+  return await pdfDoc.save();
+}
+
+function downloadPdf(bytes, filename){
+  const blob = new Blob([bytes], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{
+    URL.revokeObjectURL(url);
+    a.remove();
+  }, 0);
+}
+
+async function exportOrderPdf(orderId, btn){
+  if(!window.PDFLib){
+    alert("تعذر تحميل مكتبة PDF");
+    return;
+  }
+  const originalText = btn?.textContent;
+  if(btn){
+    btn.disabled = true;
+    btn.textContent = "جاري التصدير...";
+  }
+  try{
+    const order = await fetchOrder(orderId);
+    const purchases = await fetchPurchases(orderId);
+    const bytes = await buildPdf(order, purchases);
+    const safeName = (order.order_name || "Order").trim()
+      .replace(/[\\/:*?"<>|]+/g, "-")
+      .replace(/\s+/g, "-");
+    downloadPdf(bytes, `${safeName || "Order"}-Purchases.pdf`);
+  } catch (err){
+    console.error(err);
+    const msg = err?.message || "فشل تصدير PDF";
+    alert(msg);
+  } finally {
+    if(btn){
+      btn.disabled = false;
+      btn.textContent = originalText || "تصدير PDF";
+    }
+  }
+}
+
 async function loadOrders(){
   const { data, error } = await sb.from("orders").select("*").order("created_at",{ascending:false});
   if(error){ console.error(error); return; }
@@ -892,7 +1177,7 @@ async function loadOrders(){
     const div=document.createElement("div");
     div.className="orderItem"+(activeOrder?.id===o.id?" active":"");
     div.innerHTML = `<span>${escapeHtml(o.order_name || "")}</span><span class="pill">فتح</span>`;
-    div.onclick=()=>selectOrder(o);
+    div.onclick = ()=>selectOrder(o);
     ordersList.appendChild(div);
   });
 }
@@ -908,6 +1193,10 @@ async function selectOrder(o){
     arrivedRow.style.display = canSeeArrived ? "" : "none";
     arrivedMsg.textContent = "";
     arrivedToggle.checked = !!o.arrived;
+  }
+  if(exportPdfBtn){
+    exportPdfBtn.disabled = false;
+    exportPdfBtn.onclick = ()=> exportOrderPdf(activeOrder.id, exportPdfBtn);
   }
   clearDuplicateWarning();
 
@@ -953,6 +1242,9 @@ deleteOrderBtn.onclick = async ()=>{
   if(arrivedRow){
     arrivedRow.style.display = "none";
     arrivedMsg.textContent = "";
+  }
+  if(exportPdfBtn){
+    exportPdfBtn.disabled = true;
   }
   await loadOrders();
 };
