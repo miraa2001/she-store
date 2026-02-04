@@ -49,7 +49,9 @@
     .ordersMeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
     .sectionTitle{font-weight:700;margin:10px 0 6px}
     .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;direction:ltr;max-width:100%}
-    table{width:max-content;min-width:100%;border-collapse:collapse;direction:rtl}
+    table{width:max-content;min-width:100%;border-collapse:collapse;direction:rtl;margin-left:auto}
+    body.ios-chrome .tableWrap{direction:rtl}
+    body.ios-chrome table{direction:rtl}
     th,td{border-bottom:1px solid #eee;padding:10px;text-align:right;vertical-align:top}
     th{color:#666;font-size:13px}
     body.embed{overflow-x:hidden}
@@ -145,6 +147,8 @@ const SUPABASE_ANON_KEY="sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const isEmbed = new URLSearchParams(location.search).get("embed") === "1";
 if(isEmbed) document.body.classList.add("embed");
+const isIOSChrome = /CriOS/i.test(navigator.userAgent);
+if(isIOSChrome) document.body.classList.add("ios-chrome");
 
 const HOME_PICKUP_VALUE = "من البيت";
 const PICKUP_VALUE = "من نقطة الاستلام";

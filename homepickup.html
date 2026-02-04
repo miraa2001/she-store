@@ -58,7 +58,9 @@
     .orderItem.active{border-color:#111}
 
     .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;direction:ltr;max-width:100%}
-    table{width:max-content;min-width:100%;border-collapse:collapse;direction:rtl}
+    table{width:max-content;min-width:100%;border-collapse:collapse;direction:rtl;margin-left:auto}
+    body.ios-chrome .tableWrap{direction:rtl}
+    body.ios-chrome table{direction:rtl}
     th,td{border-bottom:1px solid #eee;padding:10px;text-align:right;vertical-align:middle}
     th{color:#666;font-size:13px}
     .chk{width:18px;height:18px}
@@ -197,6 +199,8 @@ const EMAIL_REEM  = "reem@she-store.com";
 const EMAIL_LAAURA= "laaura@she-store.com";
 const isEmbed = new URLSearchParams(location.search).get("embed") === "1";
 if(isEmbed) document.body.classList.add("embed");
+const isIOSChrome = /CriOS/i.test(navigator.userAgent);
+if(isIOSChrome) document.body.classList.add("ios-chrome");
 
 async function requireAuth(){
   const { data } = await sb.auth.getSession();
