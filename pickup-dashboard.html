@@ -49,10 +49,7 @@
     .tabPanel.active{display:block}
     .panelFrame{
       width:100%;border:none;border-radius:14px;
-      height:calc(100vh - 220px);min-height:620px;background:#fff
-    }
-    @media(max-width:700px){
-      .panelFrame{height:calc(100vh - 260px);min-height:540px}
+      height:600px;min-height:300px;background:#fff;display:block
     }
   </style>
 </head>
@@ -172,6 +169,29 @@ const frames = {
   collections: document.getElementById("collectionsFrame")
 };
 
+function resizeFrame(key){
+  const frame = frames[key];
+  if(!frame) return;
+  try{
+    const doc = frame.contentDocument || frame.contentWindow.document;
+    if(!doc) return;
+    const h = Math.max(
+      doc.body?.scrollHeight || 0,
+      doc.documentElement?.scrollHeight || 0
+    );
+    if(h) frame.style.height = `${h}px`;
+  }catch(err){
+    // Ignore cross-frame or timing errors
+  }
+}
+
+Object.keys(frames).forEach(key=>{
+  const frame = frames[key];
+  if(frame){
+    frame.addEventListener("load", ()=> resizeFrame(key));
+  }
+});
+
 function loadFrame(key){
   const frame = frames[key];
   if(frame && !frame.src){
@@ -187,10 +207,16 @@ function showTab(key){
     btn.classList.toggle("active", btn.dataset.tab === key);
   });
   loadFrame(key);
+  setTimeout(()=> resizeFrame(key), 200);
 }
 
 tabButtons.forEach(btn=>{
   btn.addEventListener("click", ()=> showTab(btn.dataset.tab));
+});
+
+window.addEventListener("resize", ()=>{
+  const active = tabButtons.find(b=>b.classList.contains("active"))?.dataset.tab;
+  if(active) resizeFrame(active);
 });
 
 async function guard(){
