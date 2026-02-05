@@ -708,7 +708,7 @@ function renderTable(list){
     tr.innerHTML = `
       <td>${i+1}</td>
       <td>${escapeHtml(p.customer_name || "")}</td>
-      <td>${escapeHtml(p.price ?? "")}</td>
+      <td>${escapeHtml(p.paid_price ?? p.price ?? "")}</td>
       ${paidCell}
       <td>${escapeHtml(p.bag_size || "—")}</td>
       <td><input class="chk" type="checkbox" data-id="${p.id}" ${checked}></td>
