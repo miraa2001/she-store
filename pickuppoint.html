@@ -5,27 +5,17 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>نقطة الاستلام - La Aura</title>
   <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/3665/3665980.png" />
+  <link rel="stylesheet" href="assets/tokens.css">
+  <link rel="stylesheet" href="assets/base.css">
+  <script src="assets/ui.js" defer></script>
 
   <style>
     body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa;color:#111}
     .wrap{max-width:1100px;margin:auto;padding:16px}
-    .grid{
-      display:grid;
-      grid-template-columns:320px 1fr;
-      grid-template-areas:
-        "orders summary"
-        "orders main";
-      gap:12px
-    }
+    .grid{display:grid;grid-template-columns:320px 1fr;gap:12px}
     .grid > *{min-width:0}
     @media(max-width:900px){
-      .grid{
-        grid-template-columns:1fr;
-        grid-template-areas:
-          "orders"
-          "summary"
-          "main";
-      }
+      .grid{grid-template-columns:1fr}
     }
     .card{background:#fff;border:1px solid #e7e7e7;border-radius:14px;padding:12px}
     .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
@@ -87,18 +77,16 @@
       display:inline-flex;align-items:center;justify-content:center;
       padding:6px 10px;line-height:1;height:32px
     }
-    .ordersCol{grid-area:orders}
-    .summaryCol{grid-area:summary}
-    .mainCol{grid-area:main}
     .globalSummary{
       background:#f4f7ff;
       border:1px solid #dfe6ff;
       border-radius:14px;
       padding:10px 12px;
-      margin-bottom:14px
+      margin-bottom:12px
     }
     body.embed{overflow-x:hidden}
     body.embed .topbar,
+    body.embed .menuBtn,
     body.embed .sidebar,
     body.embed .sidebarOverlay{display:none !important}
     body.embed .wrap{padding:0;max-width:none}
@@ -110,7 +98,7 @@
 <aside class="sidebar" id="sidebar">
   <div class="sidebarHeader">
     <b>القائمة</b>
-    <button class="menuBtn" id="closeSidebarBtn" type="button">✕</button>
+    <button class="menuBtn" id="closeSidebarBtn" type="button" aria-label="إغلاق القائمة">✕</button>
   </div>
   <div id="sidebarContent"></div>
 </aside>
@@ -118,9 +106,9 @@
 <div class="wrap">
   <div class="topbar">
     <div class="brand">
-      <b>نقطة الاستلام - La Aura</b>
+      <b>La Aura</b>
     </div>
-    <button class="menuBtn" id="openSidebarBtn" type="button">☰</button>
+    <button class="menuBtn" id="openSidebarBtn" type="button" aria-label="فتح القائمة">☰</button>
   </div>
 
   <div class="row" style="margin-bottom:12px">
@@ -130,24 +118,29 @@
   <div id="searchResults" class="searchResults" style="display:none"></div>
 
   <div class="grid">
-    <aside class="card ordersCol">
+    <aside class="card">
       <div class="row" style="justify-content:space-between">
         <b>الطلبيات</b>
         <span class="pill" id="ordersCount">0</span>
       </div>
       <div id="ordersList" style="margin-top:10px"></div>
-      <div id="ordersEmpty" class="muted" style="margin-top:10px;display:none">لا يوجد طلبيات</div>
+      <div id="ordersEmpty" class="muted" style="margin-top:10px;display:none">
+        لا يوجد بيانات
+        <div style="margin-top:8px"><button class="btn" id="ordersRefreshBtn" type="button">تحديث</button></div>
+      </div>
     </aside>
 
-    <div class="globalSummary summaryCol" style="display:none" id="allOrdersTotalWrap">
-      <div class="row">
-        <span class="pill" id="allOrdersTotal">إجمالي التحصيل المطلوب: 0 ₪</span>
-        <button class="btn" id="collectAllBtn" style="display:none">تم استلام تحصيل الكل</button>
+    <main class="card">
+      <div class="globalSummary" style="display:none" id="allOrdersTotalWrap">
+        <div class="row">
+          <span class="pill" id="allOrdersTotal">اجمالي المبلغ للتسليم: 0 ₪</span>
+          <button class="btn" id="collectAllBtn" style="display:none">تم استلام تحصيل الكل</button>
+        </div>
       </div>
-    </div>
-
-    <main class="card mainCol">
-      <div id="empty" class="muted">اختاري طلبية من القائمة</div>
+      <div id="empty" class="muted">
+        لا يوجد بيانات
+        <div style="margin-top:8px"><button class="btn" id="emptyRefreshBtn" type="button">تحديث</button></div>
+      </div>
 
       <div id="main" style="display:none">
         <div class="row" style="justify-content:space-between;align-items:center">
@@ -191,16 +184,36 @@ const SUPABASE_URL="https://maucjvxhrnkdeybltjco.supabase.co";
 const SUPABASE_ANON_KEY="sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
-const PICKUP_VALUE = "من نقطة الاستلام";
+const PICKUP_VALUE = "\u0645\u0646 \u0646\u0642\u0637\u0629 \u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645";
+const PICKUP_ALIASES = [
+  PICKUP_VALUE,
+  "\u0645\u0646 \u0646\u0642\u0637\u0647 \u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645",
+  "La Aura",
+  "la aura",
+  "LAAURA",
+  "\u0644\u0627 \u0627\u0648\u0631\u0627",
+  "\u0644\u0627 \u0623\u0648\u0631\u0627",
+  "\u0644\u0627\u0648\u0631\u0627"
+];
 const NTFY_TOPIC = "she-store-rahaf-2001-2014";
-const isEmbed = new URLSearchParams(location.search).get("embed") === "1";
+const EMAIL_RAHAF = "rahaf@she-store.com";
+const EMAIL_REEM  = "reem@she-store.com";
+const EMAIL_RAWAND= "rawand@she-store.com";
+const EMAIL_LAAURA= "laaura@she-store.com";
+
+const isEmbedParam = new URLSearchParams(location.search).get("embed") === "1";
+let isInFrame = false;
+try{
+  isInFrame = window.self !== window.top;
+} catch {
+  isInFrame = true;
+}
+if(window.frameElement) isInFrame = true;
+const isEmbed = isEmbedParam || isInFrame;
 if(isEmbed) document.body.classList.add("embed");
 const isIOSChrome = /CriOS/i.test(navigator.userAgent);
 if(isIOSChrome) document.body.classList.add("ios-chrome");
 
-/* ========= Auth + Role Gate =========
-   Allowed here: Rahaf + Reem + Laaura
-*/
 async function requireAuth(){
   const { data } = await sb.auth.getSession();
   if(!data.session){
@@ -210,50 +223,28 @@ async function requireAuth(){
   return true;
 }
 
-async function getMyRole(){
-  const { data: u } = await sb.auth.getUser();
-  let email = (u?.user?.email || "").toLowerCase();
-  let userId = u?.user?.id || "";
-  if(!userId){
-    const { data: s } = await sb.auth.getSession();
-    email = (s?.session?.user?.email || "").toLowerCase();
-    userId = s?.session?.user?.id || "";
-  }
-
-  if(!userId) return { email, role:"viewer" };
-
-  const { data: r, error } = await sb
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if(error){
-    console.error("ROLE READ ERROR:", error);
-    return { email, role:"viewer" }; // safe default
-  }
-  return { email, role: (r?.role || "viewer") };
-}
-
 let myEmail = "";
-async function guardPickupPage(){
+let isRahaf = false;
+let isLaaura = false;
+async function guardAuraPickup(){
   const ok = await requireAuth();
   if(!ok) return;
 
-  const { email } = await getMyRole();
-  const normalized = (email || "").toLowerCase();
-  myEmail = normalized;
-  const allowed = [
-    "rahaf@she-store.com",
-    "reem@she-store.com",
-    "laaura@she-store.com"
-  ];
+  const { data: u } = await sb.auth.getUser();
+  const email = (u?.user?.email || "").toLowerCase();
+  myEmail = email;
+  isRahaf = email === EMAIL_RAHAF;
+  isLaaura = email === EMAIL_LAAURA;
 
-  if(!allowed.includes(normalized)){
+  const allowed = [EMAIL_RAHAF, EMAIL_LAAURA];
+  if(!allowed.includes(email)){
     window.location.replace("./login.html");
   }
+  if(paidPriceHeader) paidPriceHeader.style.display = isRahaf ? "" : "none";
+  if(paidEditHeader) paidEditHeader.style.display = isRahaf ? "" : "none";
+  if(pickedAtHeader) pickedAtHeader.style.display = isRahaf ? "" : "none";
 }
-/* =================================== */
+
 /* ===== Sidebar ===== */
 const sidebar = document.getElementById("sidebar");
 const overlay = document.getElementById("sidebarOverlay");
@@ -296,18 +287,17 @@ function renderSidebar(){
     sidebarContent.appendChild(b);
   };
 
-  if(myEmail === "rahaf@she-store.com"){
-    link("إدارة الطلبات", "./index.html?tab=orders");
-    link("الاستلام والتحصيل", "./pickup-dashboard.html");
-    link("المالية", "./finance.html");
+  if(myEmail === EMAIL_RAHAF){
+    link("\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0637\u0644\u0628\u0627\u062a", "./index.html?tab=orders");
+    link("\u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645 \u0648\u0627\u0644\u062a\u062d\u0635\u064a\u0644", "./pickup-dashboard.html");
+    link("\u0627\u0644\u0645\u0627\u0644\u064a\u0629", "./finance.html");
+  }
+  if(myEmail === EMAIL_REEM || myEmail === EMAIL_RAWAND){
+    link("\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0637\u0644\u0628\u0627\u062a", "./index.html?tab=view");
+    link("\u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645 \u0648\u0627\u0644\u062a\u062d\u0635\u064a\u0644", "./pickup-dashboard.html");
   }
 
-  if(myEmail === "reem@she-store.com"){
-    link("إدارة الطلبات", "./index.html?tab=view");
-    link("الاستلام والتحصيل", "./pickup-dashboard.html");
-  }
-
-  btn("تسجيل خروج", "danger", async ()=>{
+  btn("\u062a\u0633\u062c\u064a\u0644 \u062e\u0631\u0648\u062c", "danger", async ()=>{
     await sb.auth.signOut();
     window.location.href="./login.html";
   });
@@ -316,8 +306,9 @@ function renderSidebar(){
 const ordersListEl = document.getElementById("ordersList");
 const ordersEmptyEl = document.getElementById("ordersEmpty");
 const ordersCountEl = document.getElementById("ordersCount");
-
+const ordersRefreshBtn = document.getElementById("ordersRefreshBtn");
 const emptyEl = document.getElementById("empty");
+const emptyRefreshBtn = document.getElementById("emptyRefreshBtn");
 const mainEl = document.getElementById("main");
 const orderTitleEl = document.getElementById("orderTitle");
 const purchaseCountEl = document.getElementById("purchaseCount");
@@ -327,30 +318,111 @@ const collectBtn = document.getElementById("collectBtn");
 const allOrdersTotalWrap = document.getElementById("allOrdersTotalWrap");
 const allOrdersTotalEl = document.getElementById("allOrdersTotal");
 const collectAllBtn = document.getElementById("collectAllBtn");
-
 const searchInput = document.getElementById("searchInput");
 const searchResultsEl = document.getElementById("searchResults");
-const searchCount = document.getElementById("searchCount");
+const searchCountEl = document.getElementById("searchCount");
 const pickedAtHeader = document.getElementById("pickedAtHeader");
 const paidPriceHeader = document.getElementById("paidPriceHeader");
 const paidEditHeader = document.getElementById("paidEditHeader");
 
-let userEmail = "";
-let isRahaf = false;
-let isLaaura = false;
-
 let orders = [];
 let activeOrder = null;
-let purchasesByOrder = new Map();
+let purchases = [];
 let highlightPurchaseId = null;
+let listItems = [];
 
 function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 function escapeAttr(s=""){ return escapeHtml(s); }
 
+function normalizePickup(value){
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/[\u0623\u0625\u0622]/g, "\u0627");
+}
+function isAuraPickup(value){
+  const n = normalizePickup(value || PICKUP_VALUE);
+  if(!n) return false;
+  if(n.includes("\u0628\u064a\u062a") || n.includes("\u062a\u0648\u0635\u064a\u0644")) return false;
+
+  if(PICKUP_ALIASES.some(alias=>{
+    const a = normalizePickup(alias);
+    return a && (n === a || n.includes(a));
+  })) return true;
+
+  if(n.includes("aura")) return true;
+  if(n.includes("\u0644\u0627\u0648\u0631\u0627") || n.includes("\u0644\u0627\u0627\u0648\u0631\u0627")) return true;
+  if(n.includes("\u0646\u0642\u0637\u0647") || n.includes("\u0646\u0642\u0637\u0629") || n.includes("\u0627\u0633\u062a\u0644\u0627\u0645")) return true;
+  const target = normalizePickup(PICKUP_VALUE);
+  return n === target || n.includes(target);
+}
+
+function showMain(on){
+  mainEl.style.display = on ? "" : "none";
+  emptyEl.style.display = on ? "none" : "";
+}
+
+function formatDateTime(iso){
+  if(!iso) return "\u2014";
+  const d = new Date(iso);
+  const date = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+  const time = `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  return `${date} ${time}`;
+}
+
+function formatDMY(iso){
+  if(!iso) return "";
+  const d = new Date(iso);
+  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+}
+
+function getOrderDateKey(order){
+  return formatDMY(order?.placed_at_pickup_at || order?.order_date || order?.created_at);
+}
+
+function formatOrderLabel(order){
+  if(order?.orderIds){
+    return order.label || "\u0637\u0644\u0628\u064a\u0629";
+  }
+  return order?.order_name || "\u0637\u0644\u0628\u064a\u0629";
+}
+
+function buildOrderGroups(list){
+  const groups = [];
+  const map = new Map();
+
+  list.forEach(order=>{
+    const dateKey = getOrderDateKey(order);
+    const label = `\u0637\u0644\u0628\u064a\u0629 ${dateKey || ""}`.trim();
+    if(!map.has(dateKey)){
+      const group = {
+        id: `group-${dateKey || "unknown"}`,
+        label,
+        orderIds: []
+      };
+      map.set(dateKey, group);
+      groups.push(group);
+    }
+    map.get(dateKey).orderIds.push(order.id);
+  });
+
+  return groups;
+}
+
+function findGroupForOrder(order){
+  const dateKey = getOrderDateKey(order);
+  const sameDay = orders.filter(o=> getOrderDateKey(o) === dateKey);
+  return {
+    id: `group-${dateKey || "unknown"}`,
+    label: `\u0637\u0644\u0628\u064a\u0629 ${dateKey || ""}`.trim(),
+    orderIds: sameDay.map(o=>o.id)
+  };
+}
+
 function parsePrice(v){
   if(v === null || v === undefined) return 0;
   if(typeof v === "number") return isFinite(v) ? v : 0;
-  const s = String(v).replace(/[, ]/g, "").replace(/[₪]/g, "");
+  const s = String(v).replace(/[, ]/g, "").replace(/[\u20aa]/g, "");
   const m = s.match(/-?\d+(?:\.\d+)?/);
   return m ? Number(m[0]) : 0;
 }
@@ -377,12 +449,12 @@ function buildPickupMessage({ picked, customerName, price, pickupLabel }){
   const priceText = formatILS(price);
   const nameText = customerName || "";
   const pickupText = pickupLabel || "";
-  const status = picked ? "✅" : "❌";
+  const status = picked ? "\u2705" : "\u274c";
   return [
-    `تم استلام الطلب ${status}`,
-    `الزبون: ${nameText}`,
-    `نقطة الاستلام: ${pickupText}`,
-    `السعر: ${priceText}`
+    `\u062a\u0645 \u0627\u0633\u062a\u0644\u0627\u0645 \u0627\u0644\u0637\u0644\u0628 ${status}`,
+    `\u0627\u0644\u0632\u0628\u0648\u0646: ${nameText}`,
+    `\u0646\u0642\u0637\u0629 \u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645: ${pickupText}`,
+    `\u0627\u0644\u0633\u0639\u0631: ${priceText}`
   ].join("\n");
 }
 
@@ -390,317 +462,67 @@ function updatePickedTotal(list){
   const pickedTotal = list
     .filter(item=>item.picked_up)
     .reduce((sum,item)=> sum + parsePrice(item.paid_price ?? item.price), 0);
-  pickedTotalEl.textContent = `مجموع المستلم: ${formatILS(pickedTotal)} ₪`;
+  pickedTotalEl.textContent = `\u0645\u062c\u0645\u0648\u0639 \u0627\u0644\u0645\u0633\u062a\u0644\u0645: ${formatILS(pickedTotal)} \u20aa`;
 }
 
 async function updateAllOrdersTotal(){
   if(!allOrdersTotalEl || !allOrdersTotalWrap) return;
-  const isRahafUser = isRahaf || myEmail === "rahaf@she-store.com" || userEmail === "rahaf@she-store.com";
-  allOrdersTotalWrap.style.display = isRahafUser ? "" : "none";
+  const show = isRahaf;
+  allOrdersTotalWrap.style.display = show ? "" : "none";
   if(collectAllBtn){
-    collectAllBtn.style.display = isRahafUser ? "" : "none";
+    collectAllBtn.style.display = show ? "" : "none";
   }
-  if(!isRahafUser) return;
+  if(!show) return;
+
   const { data, error } = await sb
     .from("purchases")
-    .select("paid_price, price, picked_up, collected")
-    .eq("pickup_point", PICKUP_VALUE)
-    .eq("collected", false)
-    .eq("picked_up", true);
+    .select("id, paid_price, price, picked_up, collected, pickup_point")
+    .eq("picked_up", true)
+    .eq("collected", false);
 
   if(error){
     console.error(error);
-    allOrdersTotalEl.textContent = "إجمالي التحصيل المطلوب: —";
+    allOrdersTotalEl.textContent = "\u0627\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0645\u0628\u0644\u063a \u0644\u0644\u062a\u062d\u0635\u064a\u0644: \u2014";
     if(collectAllBtn) collectAllBtn.disabled = true;
     return;
   }
-  const total = (data || []).reduce((sum, item)=> sum + parsePrice(item.paid_price ?? item.price), 0);
-  allOrdersTotalEl.textContent = `إجمالي التحصيل المطلوب: ${formatILS(total)} ₪`;
+
+  const auraList = (data || []).filter(item=>isAuraPickup(item.pickup_point));
+  const total = auraList.reduce((sum, item)=> sum + parsePrice(item.paid_price ?? item.price), 0);
+  allOrdersTotalEl.textContent = `\u0627\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0645\u0628\u0644\u063a \u0644\u0644\u062a\u062d\u0635\u064a\u0644: ${formatILS(total)} \u20aa`;
   if(collectAllBtn) collectAllBtn.disabled = total <= 0;
 }
 
-async function loadUser(){
-  const { data } = await sb.auth.getUser();
-  userEmail = (data?.user?.email || "").toLowerCase();
-  if(!userEmail){
-    const { data: s } = await sb.auth.getSession();
-    userEmail = (s?.session?.user?.email || "").toLowerCase();
-  }
-  isRahaf = userEmail === "rahaf@she-store.com";
-  isLaaura = userEmail === "laaura@she-store.com";
-  pickedAtHeader.style.display = isRahaf ? "" : "none";
-  if(paidPriceHeader) paidPriceHeader.style.display = isRahaf ? "" : "none";
-  if(paidEditHeader) paidEditHeader.style.display = isRahaf ? "" : "none";
-}
-
-function showMain(on){
-  mainEl.style.display = on ? "" : "none";
-  emptyEl.style.display = on ? "none" : "";
-}
-
-function formatDMY(iso){
-  if(!iso) return "";
-  const d = new Date(iso);
-  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
-}
-function formatOrderLabel(order){
-  if(order?.isGroup || order?.orderIds){
-    return order.label || "طلبية";
-  }
-  if(userEmail === "laaura@she-store.com"){
-    const dateLabel = formatDMY(order.order_date || order.placed_at_pickup_at || order.created_at);
-    return `طلبية ${dateLabel || ""}`.trim();
-  }
-  return order.order_name || "طلبية";
-}
-
-function buildOrderGroups(list){
-  const groups = [];
-  const map = new Map();
-
-  list.forEach(order=>{
-    const dateKey = formatDMY(order.order_date || order.placed_at_pickup_at || order.created_at);
-    const label = `طلبية ${dateKey || ""}`.trim();
-    if(!map.has(dateKey)){
-      const group = {
-        id: `group-${dateKey || "unknown"}`,
-        label,
-        order_name: label,
-        orderIds: []
-      };
-      map.set(dateKey, group);
-      groups.push(group);
-    }
-    map.get(dateKey).orderIds.push(order.id);
-  });
-
-  return groups;
-}
-
-function findGroupForOrder(order){
-  const dateKey = formatDMY(order.order_date || order.placed_at_pickup_at || order.created_at);
-  return {
-    id: `group-${dateKey || "unknown"}`,
-    label: `طلبية ${dateKey || ""}`.trim(),
-    order_name: `طلبية ${dateKey || ""}`.trim(),
-    orderIds: orders.filter(o=>{
-      const oKey = formatDMY(o.order_date || o.placed_at_pickup_at || o.created_at);
-      return oKey === dateKey;
-    }).map(o=>o.id)
-  };
-}
-
-function formatDateTime(iso){
-  if(!iso) return "—";
-  const d = new Date(iso);
-  const date = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
-  const time = `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
-  return `${date} ${time}`;
-}
-
-async function loadPickupOrders(){
-  const { data, error } = await sb
-    .from("orders")
-    .select("id, order_name, order_date, placed_at_pickup_at, created_at, purchases!inner(pickup_point)")
-    .eq("arrived", true)
-    .eq("placed_at_pickup", true)
-    .eq("purchases.pickup_point", PICKUP_VALUE)
-    .order("created_at",{ascending:false});
-
-  if(error){ console.error(error); return; }
-
-  orders = data || [];
-  const listItems = isLaaura ? buildOrderGroups(orders) : orders;
-  ordersCountEl.textContent = listItems.length;
-
-  ordersListEl.innerHTML = "";
-  ordersEmptyEl.style.display = listItems.length ? "none" : "";
-
-  listItems.forEach(o=>{
-    const div = document.createElement("div");
-    const label = formatOrderLabel(o);
-    div.className = "orderItem" + (activeOrder?.id === o.id ? " active" : "");
-    div.innerHTML = `
-      <div><b>${escapeHtml(label)}</b></div>
-      <div class="orderGroupMeta">
-        ${o.orderIds ? `<span class="pill">${o.orderIds.length}</span>` : ""}
-        <span class="pill">فتح</span>
-      </div>
-    `;
-    div.onclick = ()=>selectOrder(o);
-    ordersListEl.appendChild(div);
-  });
-}
-
-async function loadPurchasesForOrder(orderId){
-  const { data, error } = await sb
-    .from("purchases")
-    .select("id, order_id, customer_name, price, paid_price, bag_size, picked_up, picked_up_at, created_at, pickup_point, collected")
-    .eq("order_id", orderId)
-    .eq("pickup_point", PICKUP_VALUE)
-    .order("created_at",{ascending:true});
-
-  if(error){ console.error(error); return []; }
-  return data || [];
-}
-
-async function loadPurchasesForOrders(orderIds){
-  if(!orderIds.length) return [];
-  const { data, error } = await sb
-    .from("purchases")
-    .select("id, order_id, customer_name, price, paid_price, bag_size, picked_up, picked_up_at, created_at, pickup_point, collected")
-    .in("order_id", orderIds)
-    .eq("pickup_point", PICKUP_VALUE)
-    .order("created_at",{ascending:true});
-
-  if(error){ console.error(error); return []; }
-  return data || [];
-}
-
-async function selectOrder(o){
-  activeOrder = o;
-  await loadPickupOrders();
-
-  const list = o.orderIds ? await loadPurchasesForOrders(o.orderIds) : await loadPurchasesForOrder(o.id);
-  purchasesByOrder.set(o.id, list);
-
-  const visibleList = list.filter(item=>!item.collected);
-  orderTitleEl.textContent = formatOrderLabel(o);
-  purchaseCountEl.textContent = `عدد المشتريات: ${visibleList.length}`;
-  updatePickedTotal(visibleList);
-
-  if(collectBtn){
-    collectBtn.style.display = isRahaf ? "" : "none";
-  }
-
-  renderTable(visibleList);
-  showMain(true);
-}
-
-if(collectBtn){
-  collectBtn.onclick = async ()=>{
-    if(!activeOrder || !isRahaf) return;
-
-    const currentList = purchasesByOrder.get(activeOrder.id) || [];
-    const pendingList = currentList.filter(item=>!item.collected);
-    const pendingTotal = pendingList
-      .filter(item=>item.picked_up)
-      .reduce((sum,item)=> sum + parsePrice(item.paid_price ?? item.price), 0);
-    const pendingText = formatILS(pendingTotal);
-
-    collectBtn.disabled = true;
-    const { error } = await sb
-      .from("purchases")
-      .update({ collected: true, collected_at: new Date().toISOString() })
-      .eq("order_id", activeOrder.id)
-      .eq("pickup_point", PICKUP_VALUE)
-      .eq("picked_up", true);
-
-    if(error){
-      console.error(error);
-      collectBtn.disabled = false;
-      return;
-    }
-
-    await sendNtfy([
-      "تم استلام تحصيل النقود ✅",
-      "المكان: نقطة الاستلام (La Aura)",
-      `المبلغ: ${pendingText}`
-    ].join("\n"));
-
-    const list = await loadPurchasesForOrder(activeOrder.id);
-    purchasesByOrder.set(activeOrder.id, list);
-    const visibleList = list.filter(item=>!item.collected);
-    renderTable(visibleList);
-    updatePickedTotal(visibleList);
-    await updateAllOrdersTotal();
-    collectBtn.disabled = false;
-  };
-}
-
-if(collectAllBtn){
-  collectAllBtn.onclick = async ()=>{
-    if(!isRahaf) return;
-
-    const { data, error } = await sb
-      .from("purchases")
-      .select("paid_price, price")
-      .eq("pickup_point", PICKUP_VALUE)
-      .eq("picked_up", true)
-      .eq("collected", false);
-
-    if(error){
-      console.error(error);
-      return;
-    }
-
-    const total = (data || []).reduce((sum, item)=> sum + parsePrice(item.paid_price ?? item.price), 0);
-    if(total <= 0){
-      return;
-    }
-
-    collectAllBtn.disabled = true;
-    const { error: upErr } = await sb
-      .from("purchases")
-      .update({ collected: true, collected_at: new Date().toISOString() })
-      .eq("pickup_point", PICKUP_VALUE)
-      .eq("picked_up", true)
-      .eq("collected", false);
-
-    if(upErr){
-      console.error(upErr);
-      collectAllBtn.disabled = false;
-      return;
-    }
-
-    await sendNtfy([
-      "تم استلام تحصيل النقود ✅",
-      "المكان: نقطة الاستلام (La Aura)",
-      `المبلغ: ${formatILS(total)}`
-    ].join("\n"));
-
-    await loadPickupOrders();
-    if(activeOrder){
-      const list = activeOrder.orderIds
-        ? await loadPurchasesForOrders(activeOrder.orderIds)
-        : await loadPurchasesForOrder(activeOrder.id);
-      purchasesByOrder.set(activeOrder.id, list);
-      const visibleList = list.filter(item=>!item.collected);
-      renderTable(visibleList);
-      updatePickedTotal(visibleList);
-    }
-    await updateAllOrdersTotal();
-    collectAllBtn.disabled = false;
-  };
-}
-
-function fmtDate(iso){
-  try{
-    if(!iso) return "—";
-    const d = new Date(iso);
-    return d.toLocaleString("ar", { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" });
-  } catch { return "—"; }
-}
-
-function renderTable(list){
-  tbody.innerHTML = "";
-
-  if(!list.length){
-    tbody.innerHTML = `<tr><td colspan="${isRahaf?8:5}" class="muted">لا يوجد مشتريات</td></tr>`;
+function renderTable(){
+  if(!activeOrder){
+    showMain(false);
     return;
   }
 
-  list.forEach((p, i)=>{
+  const visible = purchases.filter(p=>!p.collected);
+  purchaseCountEl.textContent = `\u0639\u062f\u062f \u0627\u0644\u0645\u0634\u062a\u0631\u064a\u0627\u062a: ${visible.length}`;
+  updatePickedTotal(visible);
+
+  tbody.innerHTML = "";
+  if(!visible.length){
+    tbody.innerHTML = `<tr><td colspan="${isRahaf?8:5}" class="muted">\u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u0634\u062a\u0631\u064a\u0627\u062a</td></tr>`;
+    showMain(true);
+    return;
+  }
+
+  visible.forEach((p, i)=>{
     const tr = document.createElement("tr");
     if(highlightPurchaseId && highlightPurchaseId === p.id) tr.classList.add("highlight");
 
     const checked = p.picked_up ? "checked" : "";
-    const pickedAt = fmtDate(p.picked_up_at);
+    const pickupBadge = (typeof statusBadge === "function")
+      ? statusBadge(p.picked_up ? "\u062a\u0645 \u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645" : "\u063a\u064a\u0631 \u0645\u0633\u062a\u0644\u0645", p.picked_up ? "success" : "neutral")
+      : (p.picked_up ? "\u062a\u0645 \u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645" : "\u063a\u064a\u0631 \u0645\u0633\u062a\u0644\u0645");
     const paidCell = isRahaf
       ? `
-        <td data-paid-value-cell="${p.id}">${escapeHtml(p.paid_price ?? "—")}</td>
+        <td data-paid-value-cell="${p.id}">${escapeHtml(p.paid_price ?? "\u2014")}</td>
         <td class="editCol" data-paid-edit-cell="${p.id}">
-          <button class="btn" data-edit-paid="${p.id}" title="تعديل المدفوع">✏️</button>
+          <button class="btn" data-edit-paid="${p.id}" title="\u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0645\u062f\u0641\u0648\u0639" aria-label="\u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0645\u062f\u0641\u0648\u0639">\u270f\ufe0f</button>
         </td>
       `
       : ``;
@@ -710,9 +532,14 @@ function renderTable(list){
       <td>${escapeHtml(p.customer_name || "")}</td>
       <td>${escapeHtml(p.paid_price ?? p.price ?? "")}</td>
       ${paidCell}
-      <td>${escapeHtml(p.bag_size || "—")}</td>
-      <td><input class="chk" type="checkbox" data-id="${p.id}" ${checked}></td>
-      ${isRahaf ? `<td>${escapeHtml(pickedAt)}</td>` : ``}
+      <td>${escapeHtml(p.bag_size || "\u2014")}</td>
+      <td>
+        <label class="row" style="gap:6px;align-items:center">
+          <input class="chk" type="checkbox" data-id="${p.id}" ${checked}>
+          <span>${pickupBadge}</span>
+        </label>
+      </td>
+      ${isRahaf ? `<td>${escapeHtml(formatDateTime(p.picked_up_at))}</td>` : ``}
     `;
     tbody.appendChild(tr);
   });
@@ -722,13 +549,7 @@ function renderTable(list){
       const id = chk.dataset.id;
       const val = chk.checked;
       const pickedAt = val ? new Date().toISOString() : null;
-
-      const list = purchasesByOrder.get(activeOrder.id) || [];
-      const item = list.find(x=>String(x.id)===String(id));
-      if(item){
-        item.picked_up = val;
-        item.picked_up_at = pickedAt;
-      }
+      const entry = purchases.find(x=>String(x.id)===String(id));
 
       const { error } = await sb
         .from("purchases")
@@ -737,30 +558,23 @@ function renderTable(list){
 
       if(error){
         console.error(error);
-        alert(error.message || "فشل تحديث الاستلام");
+        alert(error.message || "\u0641\u0634\u0644 \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645");
         chk.checked = !val;
-        if(item){
-          item.picked_up = !val;
-          item.picked_up_at = item.picked_up ? item.picked_up_at : null;
-        }
         return;
       }
 
-      if(item){
+      if(entry){
+        entry.picked_up = val;
+        entry.picked_up_at = pickedAt;
         await sendNtfy(buildPickupMessage({
           picked: val,
-          customerName: item.customer_name,
-          price: item.price,
-          pickupLabel: PICKUP_VALUE
+          customerName: entry.customer_name,
+          price: entry.price,
+          pickupLabel: "\u0646\u0642\u0637\u0629 \u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645 (La Aura)"
         }));
       }
 
-      if(isRahaf){
-        const list = purchasesByOrder.get(activeOrder.id) || [];
-        const visibleList = list.filter(entry=>!entry.collected);
-        renderTable(visibleList);
-        updatePickedTotal(visibleList);
-      }
+      renderTable();
       await updateAllOrdersTotal();
     };
   });
@@ -768,52 +582,44 @@ function renderTable(list){
   tbody.querySelectorAll("[data-edit-paid]").forEach(btn=>{
     btn.onclick = async (e)=>{
       e.stopPropagation();
-      if(!activeOrder) return;
-
       const id = btn.dataset.editPaid;
-      const listAll = purchasesByOrder.get(activeOrder.id) || [];
-      const item = listAll.find(x=>String(x.id)===String(id));
-      if(!item) return;
+      const entry = purchases.find(x=>String(x.id)===String(id));
+      if(!entry || !isRahaf) return;
 
       const valueCell = tbody.querySelector(`[data-paid-value-cell="${id}"]`);
       const editCell = tbody.querySelector(`[data-paid-edit-cell="${id}"]`);
       if(!valueCell || !editCell) return;
-      const currentVal = item.paid_price ?? "";
+      const currentVal = entry.paid_price ?? "";
       valueCell.innerHTML = `
         <input type="number" step="0.01" min="0" data-paid-input="${id}" value="${escapeAttr(currentVal)}" style="width:90px">
       `;
       editCell.innerHTML = `
-        <button class="btn" data-paid-save="${id}">✅</button>
-        <button class="btn" data-paid-cancel="${id}">✖</button>
+        <button class="btn" data-paid-save="${id}">\u2705</button>
+        <button class="btn" data-paid-cancel="${id}">\u2716</button>
       `;
 
       const input = valueCell.querySelector(`[data-paid-input="${id}"]`);
       const saveBtn = editCell.querySelector(`[data-paid-save="${id}"]`);
       const cancelBtn = editCell.querySelector(`[data-paid-cancel="${id}"]`);
 
-      const visibleList = listAll.filter(entry=>!entry.collected);
-      const cancel = ()=>{
-        renderTable(visibleList);
-        updatePickedTotal(visibleList);
-      };
+      const cancel = ()=>{ renderTable(); };
       cancelBtn.onclick = cancel;
 
       const save = async ()=>{
         const raw = input.value.trim();
         const nextVal = raw === "" ? null : Number(raw);
         if(raw !== "" && (!Number.isFinite(nextVal) || nextVal < 0)){
-          alert("السعر المدفوع غير صحيح.");
+          alert("\u0627\u0644\u0633\u0639\u0631 \u0627\u0644\u0645\u062f\u0641\u0648\u0639 \u063a\u064a\u0631 \u0635\u062d\u064a\u062d.");
           return;
         }
         const { error } = await sb.from("purchases").update({ paid_price: nextVal }).eq("id", id);
         if(error){
           console.error(error);
-          alert("فشل حفظ المدفوع");
+          alert("\u0641\u0634\u0644 \u062d\u0641\u0638 \u0627\u0644\u0645\u062f\u0641\u0648\u0639");
           return;
         }
-        item.paid_price = nextVal;
-        renderTable(visibleList);
-        updatePickedTotal(visibleList);
+        entry.paid_price = nextVal;
+        renderTable();
         await updateAllOrdersTotal();
       };
 
@@ -826,6 +632,181 @@ function renderTable(list){
       input.select();
     };
   });
+
+  showMain(true);
+}
+
+async function loadOrders(){
+  const { data, error } = await sb
+    .from("orders")
+    .select("*")
+    .eq("arrived", true)
+    .order("created_at",{ascending:false});
+
+  if(error){ console.error(error); return; }
+
+  orders = data || [];
+  listItems = isLaaura ? buildOrderGroups(orders) : orders;
+  ordersCountEl.textContent = listItems.length;
+  ordersListEl.innerHTML = "";
+  ordersEmptyEl.style.display = listItems.length ? "none" : "";
+
+  listItems.forEach(o=>{
+    const div = document.createElement("div");
+    div.className = "orderItem" + (activeOrder?.id === o.id ? " active" : "");
+    const label = formatOrderLabel(o);
+    const meta = o.orderIds
+      ? `<span class="pill">\u0627\u0644\u0637\u0644\u0628\u0627\u062a: ${o.orderIds.length}</span>`
+      : `<span class="pill">\u0641\u062a\u062d</span>`;
+    div.innerHTML = `<span>${escapeHtml(label)}</span>${meta}`;
+    div.onclick = () => selectOrder(o);
+    ordersListEl.appendChild(div);
+  });
+}
+
+async function fetchPurchases(orderId){
+  const { data, error } = await sb
+    .from("purchases")
+    .select("id, order_id, customer_name, price, paid_price, bag_size, picked_up, picked_up_at, pickup_point, collected")
+    .eq("order_id", orderId)
+    .order("created_at", { ascending: true });
+
+  if(error){ console.error(error); return []; }
+  return (data || []).filter(p=>isAuraPickup(p.pickup_point));
+}
+
+async function fetchPurchasesForOrders(orderIds){
+  if(!orderIds.length) return [];
+  const { data, error } = await sb
+    .from("purchases")
+    .select("id, order_id, customer_name, price, paid_price, bag_size, picked_up, picked_up_at, pickup_point, collected")
+    .in("order_id", orderIds)
+    .order("created_at", { ascending: true });
+
+  if(error){ console.error(error); return []; }
+  return (data || []).filter(p=>isAuraPickup(p.pickup_point));
+}
+
+async function selectOrder(order){
+  activeOrder = order;
+  orderTitleEl.textContent = formatOrderLabel(order);
+  await loadOrders();
+
+  purchases = order.orderIds
+    ? await fetchPurchasesForOrders(order.orderIds)
+    : await fetchPurchases(order.id);
+  if(collectBtn){
+    collectBtn.style.display = isRahaf ? "" : "none";
+  }
+  renderTable();
+}
+
+if(ordersRefreshBtn) ordersRefreshBtn.onclick = loadOrders;
+if(emptyRefreshBtn) emptyRefreshBtn.onclick = loadOrders;
+
+if(collectBtn){
+  collectBtn.onclick = async ()=>{
+    if(!activeOrder || !isRahaf) return;
+
+    const pendingList = purchases.filter(item=>!item.collected && item.picked_up);
+    if(!pendingList.length) return;
+    const pendingTotal = pendingList.reduce((sum,item)=> sum + parsePrice(item.paid_price ?? item.price), 0);
+    const pendingText = formatILS(pendingTotal);
+    const ok = await (typeof confirmModal === "function"
+      ? confirmModal({
+          title: "\u062a\u062d\u0635\u064a\u0644 \u0627\u0644\u0645\u0628\u0627\u0644\u063a",
+          message: `\u062a\u0623\u0643\u064a\u062f \u062a\u062d\u0635\u064a\u0644 ${pendingList.length} \u0645\u0634\u062a\u0631\u064a\u0627\u062a \u0628\u0645\u0628\u0644\u063a ${pendingText} \u20aa\u061f`
+        })
+      : Promise.resolve(confirm(`\u062a\u0623\u0643\u064a\u062f \u062a\u062d\u0635\u064a\u0644 ${pendingList.length} \u0645\u0634\u062a\u0631\u064a\u0627\u062a \u0628\u0645\u0628\u0644\u063a ${pendingText} \u20aa\u061f`)));
+    if(!ok) return;
+
+    collectBtn.disabled = true;
+    const ids = pendingList.map(p=>p.id);
+    const { error } = ids.length
+      ? await sb
+          .from("purchases")
+          .update({ collected: true, collected_at: new Date().toISOString() })
+          .in("id", ids)
+      : { error: null };
+
+  if(error){
+    console.error(error);
+    collectBtn.disabled = false;
+    return;
+  }
+
+  await sendNtfy([
+    "\u062a\u0645 \u0627\u0633\u062a\u0644\u0627\u0645 \u062a\u062d\u0635\u064a\u0644 \u0627\u0644\u0646\u0642\u0648\u062f \u2705",
+    "\u0627\u0644\u0645\u0643\u0627\u0646: \u0646\u0642\u0637\u0629 \u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645 (La Aura)",
+    `\u0627\u0644\u0645\u0628\u0644\u063a: ${pendingText}`
+  ].join("\n"));
+
+  purchases = await fetchPurchases(activeOrder.id);
+  renderTable();
+  await updateAllOrdersTotal();
+  collectBtn.disabled = false;
+  };
+}
+
+if(collectAllBtn){
+  collectAllBtn.onclick = async ()=>{
+    if(!isRahaf) return;
+
+    const { data, error } = await sb
+      .from("purchases")
+      .select("id, paid_price, price, pickup_point")
+      .eq("picked_up", true)
+      .eq("collected", false);
+
+    if(error){
+      console.error(error);
+      return;
+    }
+
+    const auraList = (data || []).filter(item=>isAuraPickup(item.pickup_point));
+    const total = auraList.reduce((sum, item)=> sum + parsePrice(item.paid_price ?? item.price), 0);
+    if(total <= 0){
+      return;
+    }
+
+    const ok = await (typeof confirmModal === "function"
+      ? confirmModal({
+          title: "\u062a\u062d\u0635\u064a\u0644 \u0627\u0644\u0645\u0628\u0627\u0644\u063a",
+          message: `\u062a\u0623\u0643\u064a\u062f \u062a\u062d\u0635\u064a\u0644 \u0643\u0644 \u0627\u0644\u0645\u0628\u0627\u0644\u063a (${auraList.length} \u0645\u0634\u062a\u0631\u064a\u0627\u062a) \u0628\u0645\u0628\u0644\u063a ${formatILS(total)} \u20aa\u061f`
+        })
+      : Promise.resolve(confirm(`\u062a\u0623\u0643\u064a\u062f \u062a\u062d\u0635\u064a\u0644 \u0643\u0644 \u0627\u0644\u0645\u0628\u0627\u0644\u063a (${auraList.length} \u0645\u0634\u062a\u0631\u064a\u0627\u062a) \u0628\u0645\u0628\u0644\u063a ${formatILS(total)} \u20aa\u061f`)));
+    if(!ok) return;
+
+    collectAllBtn.disabled = true;
+    const ids = auraList.map(p=>p.id);
+    const { error: upErr } = ids.length
+      ? await sb
+          .from("purchases")
+          .update({ collected: true, collected_at: new Date().toISOString() })
+          .in("id", ids)
+      : { error: null };
+
+    if(upErr){
+      console.error(upErr);
+      collectAllBtn.disabled = false;
+      return;
+    }
+
+    await sendNtfy([
+      "\u062a\u0645 \u0627\u0633\u062a\u0644\u0627\u0645 \u062a\u062d\u0635\u064a\u0644 \u0627\u0644\u0646\u0642\u0648\u062f \u2705",
+      "\u0627\u0644\u0645\u0643\u0627\u0646: \u0646\u0642\u0637\u0629 \u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645 (La Aura)",
+      `\u0627\u0644\u0645\u0628\u0644\u063a: ${formatILS(total)}`
+    ].join("\n"));
+
+    if(activeOrder){
+      purchases = activeOrder.orderIds
+        ? await fetchPurchasesForOrders(activeOrder.orderIds)
+        : await fetchPurchases(activeOrder.id);
+      renderTable();
+    }
+    await updateAllOrdersTotal();
+    collectAllBtn.disabled = false;
+  };
 }
 
 /* ===== Search ===== */
@@ -836,56 +817,50 @@ searchInput.addEventListener("input", ()=>{
   searchTimer = setTimeout(runSearch, 250);
 });
 
+function clearSearchUI(){
+  searchResultsEl.style.display = "none";
+  searchCountEl.style.display = "none";
+  searchResultsEl.innerHTML = "";
+}
+
 async function runSearch(){
   const q = (searchInput.value || "").trim();
-  if(q.length < 2){
-    searchResultsEl.style.display = "none";
-    searchCount.style.display = "none";
-    searchResultsEl.innerHTML = "";
-    return;
-  }
+  if(q.length < 2){ clearSearchUI(); return; }
 
   const orderIds = orders.map(o=>o.id);
-  if(!orderIds.length){
-    searchResultsEl.style.display = "none";
-    searchCount.style.display = "none";
-    return;
-  }
+  if(!orderIds.length){ clearSearchUI(); return; }
 
   const { data, error } = await sb
     .from("purchases")
-    .select("id, order_id, customer_name, price, created_at")
+    .select("id, order_id, customer_name, price, pickup_point, created_at")
     .in("order_id", orderIds)
-    .eq("pickup_point", PICKUP_VALUE)
     .ilike("customer_name", `%${q}%`)
     .order("created_at",{ascending:false})
     .limit(50);
 
   if(error){ console.error(error); return; }
 
-  const results = data || [];
-  searchCount.textContent = `${results.length} نتيجة`;
-  searchCount.style.display = "";
+  const results = (data || []).filter(r=>isAuraPickup(r.pickup_point));
+  searchCountEl.textContent = `${results.length} \u0646\u062a\u064a\u062c\u0629`;
+  searchCountEl.style.display = "";
   searchResultsEl.style.display = "";
   searchResultsEl.innerHTML = "";
 
   results.forEach(r=>{
     const ord = orders.find(o=>o.id === r.order_id);
-    const label = ord ? formatOrderLabel(ord) : "طلبية";
-
     const btn = document.createElement("button");
     btn.innerHTML = `
       <b>${escapeHtml(r.customer_name || "")}</b>
-      <div class="muted">${escapeHtml(label)} — السعر: ${escapeHtml(r.price ?? "")}</div>
+      <div class="muted">${escapeHtml(ord?.order_name || "\u0637\u0644\u0628\u064a\u0629")} \u2014 \u0627\u0644\u0633\u0639\u0631: ${escapeHtml(r.price ?? "")}</div>
     `;
     btn.onclick = async ()=>{
-      highlightPurchaseId = r.id;
       searchResultsEl.style.display = "none";
+      highlightPurchaseId = r.id;
       if(ord){
         const target = isLaaura ? findGroupForOrder(ord) : ord;
         await selectOrder(target);
       }
-      setTimeout(()=>{ highlightPurchaseId = null; }, 2500);
+      setTimeout(()=>{ highlightPurchaseId = null; renderTable(); }, 2500);
     };
     searchResultsEl.appendChild(btn);
   });
@@ -893,12 +868,11 @@ async function runSearch(){
 
 /* ===== Init ===== */
 (async function init(){
-  await guardPickupPage();
+  await guardAuraPickup();
   renderSidebar();
-  await loadUser();
-  await loadPickupOrders();
+  await loadOrders();
+  if(listItems.length) selectOrder(listItems[0]);
   await updateAllOrdersTotal();
-  if(orders.length && !isLaaura) selectOrder(orders[0]);
 })();
 </script>
 </body>

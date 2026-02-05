@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>مستلمو البيت</title>
   <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/3665/3665980.png" />
+  <link rel="stylesheet" href="assets/tokens.css">
+  <link rel="stylesheet" href="assets/base.css">
+  <script src="assets/ui.js" defer></script>
 
   <style>
     body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa;color:#111}
@@ -109,7 +112,7 @@
 <aside class="sidebar" id="sidebar">
   <div class="sidebarHeader">
     <b>القائمة</b>
-    <button class="menuBtn" id="closeSidebarBtn" type="button">✕</button>
+    <button class="menuBtn" id="closeSidebarBtn" type="button" aria-label="إغلاق القائمة">✕</button>
   </div>
   <div id="sidebarContent"></div>
 </aside>
@@ -120,7 +123,7 @@
       <b>مستلمو البيت</b>
       <div class="muted">طلبات الاستلام من البيت</div>
     </div>
-    <button class="menuBtn" id="openSidebarBtn" type="button">☰</button>
+    <button class="menuBtn" id="openSidebarBtn" type="button" aria-label="فتح القائمة">☰</button>
   </div>
 
   <div class="row" style="margin-bottom:12px">
@@ -136,11 +139,17 @@
         <span class="pill" id="ordersCount">0</span>
       </div>
       <div id="ordersList" style="margin-top:10px"></div>
-      <div id="ordersEmpty" class="muted" style="margin-top:10px;display:none">لا يوجد طلبيات</div>
+      <div id="ordersEmpty" class="muted" style="margin-top:10px;display:none">
+        لا يوجد بيانات
+        <div style="margin-top:8px"><button class="btn" id="ordersRefreshBtn" type="button">تحديث</button></div>
+      </div>
     </aside>
 
     <main class="card">
-      <div id="empty" class="muted">اختاري طلبية من القائمة</div>
+      <div id="empty" class="muted">
+        لا يوجد بيانات
+        <div style="margin-top:8px"><button class="btn" id="emptyRefreshBtn" type="button">تحديث</button></div>
+      </div>
 
       <div id="main" style="display:none">
         <div class="row" style="justify-content:space-between;align-items:center">
@@ -196,6 +205,7 @@ const HOME_PICKUP_VALUE = "من البيت";
 const NTFY_TOPIC = "she-store-rahaf-2001-2014";
 const EMAIL_RAHAF = "rahaf@she-store.com";
 const EMAIL_REEM  = "reem@she-store.com";
+const EMAIL_RAWAND= "rawand@she-store.com";
 const EMAIL_LAAURA= "laaura@she-store.com";
 const isEmbed = new URLSearchParams(location.search).get("embed") === "1";
 if(isEmbed) document.body.classList.add("embed");
@@ -220,7 +230,7 @@ async function guardHomePickupAccess(){
   const email = (u?.user?.email || "").toLowerCase();
   myEmail = email;
 
-  if(email !== EMAIL_RAHAF && email !== EMAIL_REEM){
+  if(email !== EMAIL_RAHAF && email !== EMAIL_REEM && email !== EMAIL_RAWAND){
     window.location.replace("./login.html");
   }
   if(paidPriceHeader) paidPriceHeader.style.display = email === EMAIL_RAHAF ? "" : "none";
@@ -274,7 +284,7 @@ function renderSidebar(){
     link("المالية", "./finance.html");
   }
 
-  if(myEmail === EMAIL_REEM){
+  if(myEmail === EMAIL_REEM || myEmail === EMAIL_RAWAND){
     link("إدارة الطلبات", "./index.html?tab=view");
     link("الاستلام والتحصيل", "./pickup-dashboard.html");
   }
@@ -288,7 +298,9 @@ function renderSidebar(){
 const ordersListEl = document.getElementById("ordersList");
 const ordersEmptyEl = document.getElementById("ordersEmpty");
 const ordersCountEl = document.getElementById("ordersCount");
+const ordersRefreshBtn = document.getElementById("ordersRefreshBtn");
 const emptyEl = document.getElementById("empty");
+const emptyRefreshBtn = document.getElementById("emptyRefreshBtn");
 const mainEl = document.getElementById("main");
 const orderTitleEl = document.getElementById("orderTitle");
 const purchaseCountEl = document.getElementById("purchaseCount");
@@ -473,18 +485,26 @@ function renderPurchases(){
       ? `
         <td data-paid-value-cell="${p.id}">${escapeHtml(p.paid_price ?? "—")}</td>
         <td class="editCol" data-paid-edit-cell="${p.id}">
-          <button class="btn" data-edit-paid="${p.id}" title="تعديل المدفوع">✏️</button>
+          <button class="btn" data-edit-paid="${p.id}" title="تعديل المدفوع" aria-label="تعديل المدفوع">✏️</button>
         </td>
       `
       : ``;
 
+    const pickupBadge = (typeof statusBadge === "function")
+      ? statusBadge(p.picked_up ? "تم الاستلام" : "غير مستلم", p.picked_up ? "success" : "neutral")
+      : (p.picked_up ? "تم الاستلام" : "غير مستلم");
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${highlight}${escapeHtml(p.customer_name || "")}</td>
       <td>${escapeHtml(p.paid_price ?? p.price ?? "")}</td>
       ${paidCell}
       <td class="thumbs">${imgs || "—"}</td>
-      <td><input class="chk" type="checkbox" data-pick="${p.id}" ${p.picked_up ? "checked" : ""}></td>
+      <td>
+        <label class="row" style="gap:6px;align-items:center">
+          <input class="chk" type="checkbox" data-pick="${p.id}" ${p.picked_up ? "checked" : ""}>
+          <span>${pickupBadge}</span>
+        </label>
+      </td>
       <td data-picked-at="${p.id}">${formatDateTime(p.picked_up_at)}</td>
     `;
     tbody.appendChild(tr);
@@ -522,6 +542,8 @@ function renderPurchases(){
           pickupLabel: HOME_PICKUP_VALUE
         }));
       }
+
+      renderPurchases();
 
       renderPurchases();
     };
@@ -613,6 +635,9 @@ async function loadOrders(){
   });
 }
 
+if(ordersRefreshBtn) ordersRefreshBtn.onclick = loadOrders;
+if(emptyRefreshBtn) emptyRefreshBtn.onclick = loadOrders;
+
 async function selectOrder(order){
   activeOrder = order;
   orderTitleEl.textContent = order.order_name || "";
@@ -642,8 +667,16 @@ if(collectHomeBtn){
     if(!activeOrder || myEmail !== EMAIL_RAHAF) return;
 
     const pendingList = purchases.filter(p=>!p.collected && p.picked_up);
+    if(!pendingList.length) return;
     const pendingTotal = pendingList.reduce((sum,p)=> sum + parsePrice(p.paid_price ?? p.price), 0);
     const pendingText = formatILS(pendingTotal);
+    const ok = await (typeof confirmModal === "function"
+      ? confirmModal({
+          title:"تحصيل المبالغ",
+          message:`تأكيد تحصيل ${pendingList.length} مشتريات بمبلغ ${pendingText} ₪؟`
+        })
+      : Promise.resolve(confirm(`تأكيد تحصيل ${pendingList.length} مشتريات بمبلغ ${pendingText} ₪؟`)));
+    if(!ok) return;
 
     collectHomeBtn.disabled = true;
     const { error } = await sb

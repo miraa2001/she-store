@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>تحصيل المبالغ</title>
   <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/3665/3665980.png" />
+  <link rel="stylesheet" href="assets/tokens.css">
+  <link rel="stylesheet" href="assets/base.css">
+  <script src="assets/ui.js" defer></script>
 
   <style>
     body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa;color:#111}
@@ -67,7 +70,7 @@
 <aside class="sidebar" id="sidebar">
   <div class="sidebarHeader">
     <b>القائمة</b>
-    <button class="menuBtn" id="closeSidebarBtn" type="button">✕</button>
+    <button class="menuBtn" id="closeSidebarBtn" type="button" aria-label="إغلاق القائمة">✕</button>
   </div>
   <div id="sidebarContent"></div>
 </aside>
@@ -78,7 +81,7 @@
       <b>تحصيل المبالغ</b>
       <div class="muted">الطلبات المحصلة</div>
     </div>
-    <button class="menuBtn" id="openSidebarBtn" type="button">☰</button>
+    <button class="menuBtn" id="openSidebarBtn" type="button" aria-label="فتح القائمة">☰</button>
   </div>
 
   <div class="grid">
@@ -91,18 +94,25 @@
         </div>
       </div>
       <div id="ordersList" style="margin-top:10px"></div>
-      <div id="ordersEmpty" class="muted" style="margin-top:10px;display:none">لا يوجد طلبيات</div>
+      <div id="ordersEmpty" class="muted" style="margin-top:10px;display:none">
+        لا يوجد بيانات
+        <div style="margin-top:8px"><button class="btn" id="ordersRefreshBtn" type="button">تحديث</button></div>
+      </div>
     </aside>
 
     <main class="card">
-      <div id="empty" class="muted">اختاري طلبية من القائمة</div>
+      <div id="empty" class="muted">
+        لا يوجد بيانات
+        <div style="margin-top:8px"><button class="btn" id="emptyRefreshBtn" type="button">تحديث</button></div>
+      </div>
 
-      <div id="main" style="display:none">
-        <div class="row" style="justify-content:space-between;align-items:center">
-          <div>
-            <b id="orderTitle"></b>
-          </div>
-          <div class="row">
+        <div id="main" style="display:none">
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <div>
+              <b id="orderTitle"></b>
+              <span id="collectedBadge"></span>
+            </div>
+            <div class="row">
             <span class="pill" id="purchaseCount">0</span>
             <span class="pill" id="homeTotal">مجموع البيت: 0</span>
             <span class="pill" id="pickupTotal">مجموع نقطة الاستلام: 0</span>
@@ -171,9 +181,12 @@ const ordersListEl = document.getElementById("ordersList");
 const ordersEmptyEl = document.getElementById("ordersEmpty");
 const ordersCountEl = document.getElementById("ordersCount");
 const ordersCollectedTotalEl = document.getElementById("ordersCollectedTotal");
+const ordersRefreshBtn = document.getElementById("ordersRefreshBtn");
 const emptyEl = document.getElementById("empty");
+const emptyRefreshBtn = document.getElementById("emptyRefreshBtn");
 const mainEl = document.getElementById("main");
 const orderTitleEl = document.getElementById("orderTitle");
+const collectedBadge = document.getElementById("collectedBadge");
 const purchaseCountEl = document.getElementById("purchaseCount");
 const homeTotalEl = document.getElementById("homeTotal");
 const pickupTotalEl = document.getElementById("pickupTotal");
@@ -305,9 +318,17 @@ async function loadOrders(){
   });
 }
 
+if(ordersRefreshBtn) ordersRefreshBtn.onclick = loadOrders;
+if(emptyRefreshBtn) emptyRefreshBtn.onclick = loadOrders;
+
 async function selectOrder(order){
   activeOrder = order;
   orderTitleEl.textContent = order.order_name || "";
+  if(collectedBadge){
+    collectedBadge.innerHTML = typeof statusBadge === "function"
+      ? statusBadge("تم التحصيل", "success")
+      : "تم التحصيل";
+  }
 
   await loadOrders();
 
