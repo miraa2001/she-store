@@ -3076,6 +3076,15 @@ function custIsValidPhone(value){
   return /^(970|972)\d{7,9}$/.test(phone);
 }
 
+function customerFriendlyError(error, fallback){
+  const msg = error?.message || "";
+  const code = error?.code || "";
+  if(code === "23505" || msg.includes("duplicate key value") || msg.toLowerCase().includes("unique constraint")){
+    return "هذا الزبون موجود مسبقًا. تأكدي من الاسم أو رقم الهاتف.";
+  }
+  return fallback || msg || "حصل خطأ غير متوقع.";
+}
+
 function custCityOptions(selected){
   const cities = [
     "طولكرم","نابلس","جنين","رام الله","سلفيت","قلقيلية","أريحا","بيت لحم","القدس","الداخل"
@@ -3215,7 +3224,7 @@ function renderCustList(list){
 
       if(error){
         console.error(error);
-        msgEl.textContent = error.message || "فشل التعديل.";
+        msgEl.textContent = customerFriendlyError(error, "فشل التعديل.");
         return;
       }
 
@@ -3258,7 +3267,7 @@ if(custSaveBtn){
 
     if(error){
       console.error(error);
-      if(custMsg) custMsg.textContent = error.message || "فشل إضافة العميل.";
+      if(custMsg) custMsg.textContent = customerFriendlyError(error, "فشل إضافة العميل.");
       return;
     }
 
