@@ -150,6 +150,7 @@
     }
 
     .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px}
+    .countPill{background:#f8fafc;color:#374151;font-weight:600;min-width:44px;text-align:center}
     .searchBox{width:100%;max-width:420px}
     .searchResults{margin-top:8px;border:1px solid #eee;border-radius:12px;overflow:hidden}
     .searchResults button{
@@ -483,7 +484,7 @@
           <b>قائمة العملاء</b>
           <div class="muted">تعديل معلومات العملاء</div>
         </div>
-        <span class="muted" id="custCount">0</span>
+        <span class="pill countPill" id="custCount">0</span>
       </div>
 
       <table>
@@ -2636,12 +2637,15 @@ async function initViewPanel(){
 
 /* ===== Customers panel ===== */
 function custNormalizePhone(value){
-  return (value || "").replace(/\\s+/g, "");
+  const s = (value || "")
+    .replace(/[٠-٩]/g, d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
+    .replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)));
+  return s.replace(/[^\d]/g, "");
 }
 
 function custIsValidPhone(value){
   const phone = custNormalizePhone(value);
-  return /^(\\+?970|\\+?972)\\d{7,9}$/.test(phone);
+  return /^(970|972)\d{7,9}$/.test(phone);
 }
 
 function custCityOptions(selected){
