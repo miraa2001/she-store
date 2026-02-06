@@ -2677,18 +2677,37 @@ function viewCanShowWhatsapp(){
 }
 
 function viewNormalizePhone(value){
-  return String(value || "").replace(/\\s+/g, "").replace(/^\\+/, "");
+  const s = (value || "")
+    .replace(/[٠-٩]/g, d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
+    .replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)));
+  return s.replace(/[^\d]/g, "");
+}
+
+function viewToWhatsappPhone(value){
+  let phone = viewNormalizePhone(value);
+  if(!phone) return "";
+  if(phone.startsWith("00")) phone = phone.slice(2);
+  if(phone.startsWith("970") || phone.startsWith("972")) return phone;
+  if(phone.startsWith("0")){
+    const local = phone.slice(1);
+    if(local.startsWith("59") || local.startsWith("56")) return `970${local}`;
+    if(local.startsWith("5")) return `972${local}`;
+  }
+  return phone;
 }
 
 function viewIsValidPhone(value){
-  return /^(970|972)\\d{7,9}$/.test(value);
+  const phone = viewToWhatsappPhone(value);
+  return /^(970|972)\d{8,9}$/.test(phone);
 }
 
-function viewBuildWhatsappMessage(pickupPoint, price){
+function viewBuildWhatsappMessage(pickupPoint, price, customerName){
   const priceText = formatILS(price);
+  const name = (customerName || "").trim();
+  const greeting = name ? `مرحبا ${name}💖` : "مرحبا حبيبتي💖";
   if(pickupPoint === "من نقطة الاستلام"){
     return [
-      "مرحبا حبيبتي💖",
+      greeting,
       "طلبك جاهز بنقطة الاستلام",
       "📍كافيه la aura سوق الذهب",
       "⏰ بفتحوا من ال٨ صباحاً لل١٠ مساءً",
@@ -2697,14 +2716,14 @@ function viewBuildWhatsappMessage(pickupPoint, price){
   }
   if(pickupPoint === "من البيت"){
     return [
-      "مرحبا حبيبتي💖",
+      greeting,
       "طلبك جاهز عندي بالبيت",
       "خبريني قبل بوقت وينتا رح تستلمي💌",
       `📦حسابك: ${priceText} شيكل`
     ].join("\\n");
   }
   return [
-    "مرحبا حبيبتي💖",
+    greeting,
     `طلبك جاهز للاستلام (${pickupPoint || "—"})`,
     `📦 حسابك: ${priceText} شيكل`
   ].join("\\n");
@@ -2714,7 +2733,7 @@ async function openViewWhatsappForPurchase(purchaseId){
   try{
     const { data: purchase, error: purchaseErr } = await sb
       .from("purchases")
-      .select("id, order_id, price, pickup_point, customer_id")
+      .select("id, order_id, price, pickup_point, customer_id, customer_name")
       .eq("id", purchaseId)
       .maybeSingle();
 
@@ -2746,7 +2765,7 @@ async function openViewWhatsappForPurchase(purchaseId){
 
     const { data: customer, error: customerErr } = await sb
       .from("customers")
-      .select("phone")
+      .select("phone, name")
       .eq("id", purchase.customer_id)
       .maybeSingle();
 
@@ -2755,13 +2774,14 @@ async function openViewWhatsappForPurchase(purchaseId){
       return;
     }
 
-    const phone = viewNormalizePhone(customer.phone);
+    const phone = viewToWhatsappPhone(customer.phone);
     if(!viewIsValidPhone(phone)){
       alert("رقم الهاتف غير صالح.");
       return;
     }
 
-    const message = viewBuildWhatsappMessage(purchase.pickup_point, purchase.price);
+    const name = (customer?.name || purchase.customer_name || "").trim();
+    const message = viewBuildWhatsappMessage(purchase.pickup_point, purchase.price, name);
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
   } catch (err){
@@ -3337,3 +3357,4 @@ function applyCustomerPrefill(){
 </script>
 </body>
 </html>
+
