@@ -1,10 +1,10 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>نقطة الاستلام - La Aura</title>
-  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/3665/3665980.png" />
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/8863/8863863.png" />
   <link rel="stylesheet" href="assets/tokens.css">
   <link rel="stylesheet" href="assets/base.css">
   <script src="assets/ui.js" defer></script>
@@ -290,6 +290,7 @@ function renderSidebar(){
   if(myEmail === EMAIL_RAHAF){
     link("\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0637\u0644\u0628\u0627\u062a", "./index.html?tab=orders");
     link("\u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645 \u0648\u0627\u0644\u062a\u062d\u0635\u064a\u0644", "./pickup-dashboard.html");
+    link("\u0627\u0644\u0623\u0631\u0634\u064a\u0641", "./archive.html");
     link("\u0627\u0644\u0645\u0627\u0644\u064a\u0629", "./finance.html");
   }
   if(myEmail === EMAIL_REEM || myEmail === EMAIL_RAWAND){
@@ -637,9 +638,30 @@ function renderTable(){
 }
 
 async function loadOrders(){
+  const { data: pRows, error: pErr } = await sb
+    .from("purchases")
+    .select("order_id, pickup_point, collected")
+    .eq("collected", false);
+
+  if(pErr){ console.error(pErr); return; }
+
+  const auraPending = (pRows || []).filter(p=>isAuraPickup(p.pickup_point));
+  const orderIds = [...new Set(auraPending.map(p=>p.order_id))];
+  if(!orderIds.length){
+    orders = [];
+    listItems = [];
+    ordersCountEl.textContent = "0";
+    ordersListEl.innerHTML = "";
+    ordersEmptyEl.style.display = "";
+    activeOrder = null;
+    showMain(false);
+    return;
+  }
+
   const { data, error } = await sb
     .from("orders")
     .select("*")
+    .in("id", orderIds)
     .eq("arrived", true)
     .order("created_at",{ascending:false});
 
@@ -662,6 +684,22 @@ async function loadOrders(){
     div.onclick = () => selectOrder(o);
     ordersListEl.appendChild(div);
   });
+
+  if(!listItems.length){
+    activeOrder = null;
+    showMain(false);
+    return;
+  }
+
+  if(activeOrder){
+    const stillValid = activeOrder.orderIds
+      ? activeOrder.orderIds.some(id=> orders.find(o=>o.id === id))
+      : orders.find(o=>o.id === activeOrder.id);
+    if(!stillValid){
+      activeOrder = null;
+      showMain(false);
+    }
+  }
 }
 
 async function fetchPurchases(orderId){
@@ -669,6 +707,7 @@ async function fetchPurchases(orderId){
     .from("purchases")
     .select("id, order_id, customer_name, price, paid_price, bag_size, picked_up, picked_up_at, pickup_point, collected")
     .eq("order_id", orderId)
+    .eq("collected", false)
     .order("created_at", { ascending: true });
 
   if(error){ console.error(error); return []; }
@@ -681,6 +720,7 @@ async function fetchPurchasesForOrders(orderIds){
     .from("purchases")
     .select("id, order_id, customer_name, price, paid_price, bag_size, picked_up, picked_up_at, pickup_point, collected")
     .in("order_id", orderIds)
+    .eq("collected", false)
     .order("created_at", { ascending: true });
 
   if(error){ console.error(error); return []; }
@@ -741,10 +781,24 @@ if(collectBtn){
     `\u0627\u0644\u0645\u0628\u0644\u063a: ${pendingText}`
   ].join("\n"));
 
-  purchases = await fetchPurchases(activeOrder.id);
-  renderTable();
-  await updateAllOrdersTotal();
-  collectBtn.disabled = false;
+    purchases = activeOrder.orderIds
+      ? await fetchPurchasesForOrders(activeOrder.orderIds)
+      : await fetchPurchases(activeOrder.id);
+    renderTable();
+    await updateAllOrdersTotal();
+    await loadOrders();
+    if(!listItems.length){
+      activeOrder = null;
+      showMain(false);
+    } else if(activeOrder){
+      const stillValid = activeOrder.orderIds
+        ? activeOrder.orderIds.some(id=> orders.find(o=>o.id === id))
+        : orders.find(o=>o.id === activeOrder.id);
+      if(!stillValid){
+        await selectOrder(listItems[0]);
+      }
+    }
+    collectBtn.disabled = false;
   };
 }
 
@@ -805,6 +859,18 @@ if(collectAllBtn){
       renderTable();
     }
     await updateAllOrdersTotal();
+    await loadOrders();
+    if(!listItems.length){
+      activeOrder = null;
+      showMain(false);
+    } else if(activeOrder){
+      const stillValid = activeOrder.orderIds
+        ? activeOrder.orderIds.some(id=> orders.find(o=>o.id === id))
+        : orders.find(o=>o.id === activeOrder.id);
+      if(!stillValid){
+        await selectOrder(listItems[0]);
+      }
+    }
     collectAllBtn.disabled = false;
   };
 }
@@ -834,6 +900,7 @@ async function runSearch(){
     .from("purchases")
     .select("id, order_id, customer_name, price, pickup_point, created_at")
     .in("order_id", orderIds)
+    .eq("collected", false)
     .ilike("customer_name", `%${q}%`)
     .order("created_at",{ascending:false})
     .limit(50);

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>تحصيل المبالغ</title>
+  <title>الأرشيف</title>
   <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/8863/8863863.png" />
   <link rel="stylesheet" href="assets/tokens.css">
   <link rel="stylesheet" href="assets/base.css">
@@ -50,7 +50,6 @@
     .orderItem{border:1px solid #e7e7e7;border-radius:12px;padding:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
     .orderItem.active{border-color:#111}
     .ordersMeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-    .sectionTitle{font-weight:700;margin:10px 0 6px}
     .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;direction:ltr;max-width:100%}
     table{width:max-content;min-width:100%;border-collapse:collapse;direction:rtl;margin-left:auto}
     body.ios-chrome .tableWrap{direction:rtl}
@@ -78,8 +77,8 @@
 <div class="wrap">
   <div class="topbar">
     <div class="brand">
-      <b>تحصيل المبالغ</b>
-      <div class="muted">الطلبات المحصلة</div>
+      <b>الأرشيف</b>
+      <div class="muted">الطلبات المحصلة بالكامل</div>
     </div>
     <button class="menuBtn" id="openSidebarBtn" type="button" aria-label="فتح القائمة">☰</button>
   </div>
@@ -90,9 +89,10 @@
         <b>الطلبيات</b>
         <div class="ordersMeta">
           <span class="pill" id="ordersCount">0</span>
-          <span class="pill" id="ordersCollectedTotal">إجمالي التحصيل: 0 ₪</span>
+          <span class="pill" id="ordersTotal">إجمالي التحصيل: 0 ₪</span>
         </div>
       </div>
+      <div class="muted" id="cleanupMsg" style="margin-top:6px"></div>
       <div id="ordersList" style="margin-top:10px"></div>
       <div id="ordersEmpty" class="muted" style="margin-top:10px;display:none">
         لا يوجد بيانات
@@ -106,43 +106,30 @@
         <div style="margin-top:8px"><button class="btn" id="emptyRefreshBtn" type="button">تحديث</button></div>
       </div>
 
-        <div id="main" style="display:none">
-          <div class="row" style="justify-content:space-between;align-items:center">
-            <div>
-              <b id="orderTitle"></b>
-              <span id="collectedBadge"></span>
-            </div>
-            <div class="row">
+      <div id="main" style="display:none">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div>
+            <b id="orderTitle"></b>
+          </div>
+          <div class="row">
             <span class="pill" id="purchaseCount">0</span>
-            <span class="pill" id="homeTotal">مجموع البيت: 0</span>
-            <span class="pill" id="pickupTotal">مجموع نقطة الاستلام: 0</span>
-            <span class="pill" id="grandTotal">المجموع الكلي: 0</span>
+            <span class="pill" id="orderTotal">المجموع الكلي: 0 ₪</span>
           </div>
         </div>
 
-        <div class="sectionTitle">مستلمو البيت</div>
-        <div class="tableWrap">
-          <table>
-            <thead>
-              <tr>
-                <th>الزبون</th>
-                <th>السعر</th>
-              </tr>
-            </thead>
-            <tbody id="homeBody"></tbody>
-          </table>
-        </div>
+        <hr>
 
-        <div class="sectionTitle">نقطة الاستلام - La Aura</div>
         <div class="tableWrap">
           <table>
             <thead>
               <tr>
                 <th>الزبون</th>
+                <th>المكان</th>
                 <th>السعر</th>
+                <th>المدفوع</th>
               </tr>
             </thead>
-            <tbody id="pickupBody"></tbody>
+            <tbody id="tbody"></tbody>
           </table>
         </div>
       </div>
@@ -160,15 +147,14 @@ if(isEmbed) document.body.classList.add("embed");
 const isIOSChrome = /CriOS/i.test(navigator.userAgent);
 if(isIOSChrome) document.body.classList.add("ios-chrome");
 
-const HOME_PICKUP_VALUE = "من البيت";
-const PICKUP_VALUE = "من نقطة الاستلام";
+const BUCKET = "purchase-images";
 const EMAIL_RAHAF = "rahaf@she-store.com";
 
-async function guardCollectionsAccess(){
+async function guardArchiveAccess(){
   const { data } = await sb.auth.getSession();
   const session = data?.session;
   if(!session){
-    window.location.href="./login.html?next=collections.html";
+    window.location.href="./login.html?next=archive.html";
     return;
   }
   const email = (session?.user?.email || "").toLowerCase();
@@ -180,19 +166,16 @@ async function guardCollectionsAccess(){
 const ordersListEl = document.getElementById("ordersList");
 const ordersEmptyEl = document.getElementById("ordersEmpty");
 const ordersCountEl = document.getElementById("ordersCount");
-const ordersCollectedTotalEl = document.getElementById("ordersCollectedTotal");
+const ordersTotalEl = document.getElementById("ordersTotal");
 const ordersRefreshBtn = document.getElementById("ordersRefreshBtn");
 const emptyEl = document.getElementById("empty");
 const emptyRefreshBtn = document.getElementById("emptyRefreshBtn");
 const mainEl = document.getElementById("main");
 const orderTitleEl = document.getElementById("orderTitle");
-const collectedBadge = document.getElementById("collectedBadge");
 const purchaseCountEl = document.getElementById("purchaseCount");
-const homeTotalEl = document.getElementById("homeTotal");
-const pickupTotalEl = document.getElementById("pickupTotal");
-const grandTotalEl = document.getElementById("grandTotal");
-const homeBody = document.getElementById("homeBody");
-const pickupBody = document.getElementById("pickupBody");
+const orderTotalEl = document.getElementById("orderTotal");
+const tbody = document.getElementById("tbody");
+const cleanupMsgEl = document.getElementById("cleanupMsg");
 
 /* ===== Sidebar ===== */
 const sidebar = document.getElementById("sidebar");
@@ -216,7 +199,6 @@ document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeSidebar(); 
 
 function renderSidebar(){
   sidebarContent.innerHTML = "";
-
   const link = (text, href)=>{
     const a = document.createElement("a");
     a.href = href;
@@ -249,6 +231,8 @@ function renderSidebar(){
 
 let orders = [];
 let activeOrder = null;
+let purchasesByOrder = new Map();
+let totalsByOrder = new Map();
 
 function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 
@@ -272,102 +256,182 @@ function showMain(on){
   emptyEl.style.display = on ? "none" : "";
 }
 
-async function loadOrders(){
-  const { data, error } = await sb
-    .from("orders")
-    .select("id, order_name, created_at, purchases!inner(pickup_point, collected)")
-    .eq("arrived", true)
-    .order("created_at",{ascending:false});
-
-  if(error){ console.error(error); return; }
-
-  orders = (data || []).filter(o=>{
-    const list = o.purchases || [];
-    return list.some(p=>p.pickup_point === HOME_PICKUP_VALUE && p.collected) ||
-      list.some(p=>p.pickup_point === PICKUP_VALUE && p.collected);
+async function cleanupArchiveImages(){
+  if(!cleanupMsgEl) return;
+  const allPurchases = [];
+  purchasesByOrder.forEach(list=>{ allPurchases.push(...list); });
+  const paths = [];
+  allPurchases.forEach(p=>{
+    (p.purchase_images || []).forEach(img=>{
+      if(img?.storage_path) paths.push(img.storage_path);
+    });
   });
+  const uniquePaths = [...new Set(paths)];
+  if(!uniquePaths.length){
+    cleanupMsgEl.textContent = "لا يوجد صور للحذف.";
+    return;
+  }
 
-  ordersCountEl.textContent = orders.length;
-  if(ordersCollectedTotalEl){
-    const orderIds = orders.map(o=>o.id);
-    if(orderIds.length){
-      const { data: pData, error: pErr } = await sb
-        .from("purchases")
-        .select("paid_price, price, collected, order_id")
-        .in("order_id", orderIds)
-        .eq("collected", true);
-      if(!pErr){
-        const total = (pData || []).reduce((sum,p)=> sum + parsePrice(p.paid_price ?? p.price), 0);
-        ordersCollectedTotalEl.textContent = `إجمالي التحصيل: ${formatILS(total)} ₪`;
-      }else{
-        console.error(pErr);
-        ordersCollectedTotalEl.textContent = "إجمالي التحصيل: —";
-      }
-    }else{
-      ordersCollectedTotalEl.textContent = "إجمالي التحصيل: 0 ₪";
+  cleanupMsgEl.textContent = `جاري حذف ${uniquePaths.length} صورة من التخزين...`;
+  const chunkSize = 100;
+  for(let i=0;i<uniquePaths.length;i+=chunkSize){
+    const chunk = uniquePaths.slice(i, i + chunkSize);
+    const { error } = await sb.storage.from(BUCKET).remove(chunk);
+    if(error){
+      console.error(error);
+      cleanupMsgEl.textContent = "تعذر حذف بعض الصور من التخزين.";
+      return;
     }
   }
+
+  const dbChunk = 500;
+  for(let i=0;i<uniquePaths.length;i+=dbChunk){
+    const chunk = uniquePaths.slice(i, i + dbChunk);
+    const { error: dbErr } = await sb
+      .from("purchase_images")
+      .delete()
+      .in("storage_path", chunk);
+    if(dbErr){
+      console.error(dbErr);
+      cleanupMsgEl.textContent = "تم حذف الصور من التخزين، لكن حدث خطأ في قاعدة البيانات.";
+      return;
+    }
+  }
+
+  cleanupMsgEl.textContent = `تم حذف ${uniquePaths.length} صورة من التخزين.`;
+}
+
+function renderOrdersList(){
+  ordersCountEl.textContent = orders.length;
   ordersListEl.innerHTML = "";
   ordersEmptyEl.style.display = orders.length ? "none" : "";
 
   orders.forEach(o=>{
+    const total = totalsByOrder.get(o.id) || 0;
+    const count = (purchasesByOrder.get(o.id) || []).length;
     const div = document.createElement("div");
     div.className = "orderItem" + (activeOrder?.id === o.id ? " active" : "");
-    div.innerHTML = `<span>${escapeHtml(o.order_name || "")}</span><span class="pill">فتح</span>`;
-    div.onclick = () => selectOrder(o);
+    div.innerHTML = `
+      <span>${escapeHtml(o.order_name || "")}</span>
+      <div class="ordersMeta">
+        <span class="pill">${count}</span>
+        <span class="pill">${formatILS(total)} ₪</span>
+      </div>
+    `;
+    div.onclick = ()=> selectOrder(o);
     ordersListEl.appendChild(div);
   });
 }
 
-if(ordersRefreshBtn) ordersRefreshBtn.onclick = loadOrders;
-if(emptyRefreshBtn) emptyRefreshBtn.onclick = loadOrders;
-
-async function selectOrder(order){
-  activeOrder = order;
-  orderTitleEl.textContent = order.order_name || "";
-  if(collectedBadge){
-    collectedBadge.innerHTML = typeof statusBadge === "function"
-      ? statusBadge("تم التحصيل", "success")
-      : "تم التحصيل";
+function renderTable(list){
+  if(!activeOrder){
+    showMain(false);
+    return;
   }
 
-  await loadOrders();
+  const total = list.reduce((sum,p)=> sum + parsePrice(p.paid_price ?? p.price), 0);
+  purchaseCountEl.textContent = `عدد المشتريات: ${list.length}`;
+  orderTotalEl.textContent = `المجموع الكلي: ${formatILS(total)} ₪`;
 
-  const { data, error } = await sb
-    .from("purchases")
-    .select("id, customer_name, price, paid_price, pickup_point, collected")
-    .eq("order_id", order.id)
-    .order("created_at",{ascending:true});
+  tbody.innerHTML = "";
+  if(!list.length){
+    tbody.innerHTML = `<tr><td colspan="4" class="muted">لا يوجد مشتريات</td></tr>`;
+    showMain(true);
+    return;
+  }
 
-  if(error){ console.error(error); return; }
-
-  const list = data || [];
-  const homeList = list.filter(p=>p.pickup_point === HOME_PICKUP_VALUE && p.collected);
-  const pickupList = list.filter(p=>p.pickup_point === PICKUP_VALUE && p.collected);
-
-  purchaseCountEl.textContent = `عدد المشتريات: ${homeList.length + pickupList.length}`;
-  const homeTotal = homeList.reduce((sum,p)=> sum + parsePrice(p.paid_price ?? p.price), 0);
-  const pickupTotal = pickupList.reduce((sum,p)=> sum + parsePrice(p.paid_price ?? p.price), 0);
-  homeTotalEl.textContent = `مجموع البيت: ${formatILS(homeTotal)} ₪`;
-  pickupTotalEl.textContent = `مجموع نقطة الاستلام: ${formatILS(pickupTotal)} ₪`;
-  grandTotalEl.textContent = `المجموع الكلي: ${formatILS(homeTotal + pickupTotal)} ₪`;
-
-  homeBody.innerHTML = homeList.length
-    ? homeList.map(p=>`<tr><td>${escapeHtml(p.customer_name || "")}</td><td>${escapeHtml(formatILS(p.paid_price ?? p.price))}</td></tr>`).join("")
-    : `<tr><td colspan="2" class="muted">لا يوجد مشتريات</td></tr>`;
-
-  pickupBody.innerHTML = pickupList.length
-    ? pickupList.map(p=>`<tr><td>${escapeHtml(p.customer_name || "")}</td><td>${escapeHtml(formatILS(p.paid_price ?? p.price))}</td></tr>`).join("")
-    : `<tr><td colspan="2" class="muted">لا يوجد مشتريات</td></tr>`;
+  list.forEach(p=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(p.customer_name || "")}</td>
+      <td>${escapeHtml(p.pickup_point || "")}</td>
+      <td>${escapeHtml(p.price ?? "")}</td>
+      <td>${escapeHtml(p.paid_price ?? "—")}</td>
+    `;
+    tbody.appendChild(tr);
+  });
 
   showMain(true);
 }
 
+function selectOrder(order){
+  activeOrder = order;
+  orderTitleEl.textContent = order.order_name || "";
+  const list = purchasesByOrder.get(order.id) || [];
+  renderTable(list);
+}
+
+async function loadArchive(){
+  const { data: pRows, error: pErr } = await sb
+    .from("purchases")
+    .select("id, order_id, customer_name, price, paid_price, pickup_point, collected, purchase_images(id, storage_path)")
+    .order("created_at", { ascending: false });
+
+  if(pErr){ console.error(pErr); return; }
+
+  const byOrder = new Map();
+  (pRows || []).forEach(p=>{
+    if(!byOrder.has(p.order_id)){
+      byOrder.set(p.order_id, { allCollected: true, purchases: [] });
+    }
+    const entry = byOrder.get(p.order_id);
+    if(!p.collected) entry.allCollected = false;
+    entry.purchases.push(p);
+  });
+
+  const archivedOrderIds = [];
+  byOrder.forEach((entry, orderId)=>{
+    if(entry.purchases.length && entry.allCollected) archivedOrderIds.push(orderId);
+  });
+
+  if(!archivedOrderIds.length){
+    orders = [];
+    purchasesByOrder = new Map();
+    totalsByOrder = new Map();
+    ordersTotalEl.textContent = "إجمالي التحصيل: 0 ₪";
+    renderOrdersList();
+    showMain(false);
+    if(cleanupMsgEl) cleanupMsgEl.textContent = "لا يوجد أرشيف بعد.";
+    return;
+  }
+
+  const { data: oRows, error: oErr } = await sb
+    .from("orders")
+    .select("id, order_name, created_at")
+    .in("id", archivedOrderIds)
+    .order("created_at", { ascending: false });
+
+  if(oErr){ console.error(oErr); return; }
+
+  orders = oRows || [];
+  purchasesByOrder = new Map();
+  totalsByOrder = new Map();
+  orders.forEach(o=>{
+    const entry = byOrder.get(o.id);
+    const list = entry?.purchases || [];
+    purchasesByOrder.set(o.id, list);
+    const total = list.reduce((sum,p)=> sum + parsePrice(p.paid_price ?? p.price), 0);
+    totalsByOrder.set(o.id, total);
+  });
+
+  const totalAll = Array.from(totalsByOrder.values()).reduce((sum,v)=> sum + v, 0);
+  ordersTotalEl.textContent = `إجمالي التحصيل: ${formatILS(totalAll)} ₪`;
+
+  renderOrdersList();
+  if(orders.length){
+    selectOrder(orders[0]);
+  }
+
+  await cleanupArchiveImages();
+}
+
+if(ordersRefreshBtn) ordersRefreshBtn.onclick = loadArchive;
+if(emptyRefreshBtn) emptyRefreshBtn.onclick = loadArchive;
+
 (async function init(){
-  await guardCollectionsAccess();
+  await guardArchiveAccess();
   renderSidebar();
-  await loadOrders();
-  if(orders.length) selectOrder(orders[0]);
+  await loadArchive();
 })();
 </script>
 </body>

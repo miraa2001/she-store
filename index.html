@@ -1,10 +1,10 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>إدارة الطلبات</title>
-  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/3665/3665980.png" />
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/8863/8863863.png" />
   <link rel="stylesheet" href="assets/tokens.css">
   <link rel="stylesheet" href="assets/base.css">
   <script src="assets/ui.js" defer></script>
@@ -794,6 +794,7 @@ function renderSidebar(){
   if(myEmail === EMAIL_RAHAF){
     link("إدارة الطلبات", "./index.html?tab=orders");
     link("الاستلام والتحصيل", "./pickup-dashboard.html");
+    link("الأرشيف", "./archive.html");
     link("المالية", "./finance.html");
   }
   if(myEmail === EMAIL_REEM || myEmail === EMAIL_RAWAND){
@@ -968,6 +969,7 @@ const lightboxNext = document.getElementById("lightboxNext");
 const lightboxCount = document.getElementById("lightboxCount");
 let lightboxImages = [];
 let lightboxIndex = 0;
+let lightboxLabel = "";
 let touchStartX = 0;
 let touchStartY = 0;
 
@@ -977,8 +979,11 @@ function updateLightboxNav(){
   if(lightboxNext) lightboxNext.style.display = hasMultiple ? "flex" : "none";
   if(lightboxCount){
     const total = lightboxImages.length;
-    lightboxCount.textContent = total ? `${lightboxIndex + 1}/${total}` : "";
-    lightboxCount.style.display = total > 1 ? "inline-flex" : "none";
+    const countText = total ? `${lightboxIndex + 1}/${total}` : "";
+    const labelText = lightboxLabel ? ` — ${lightboxLabel}` : "";
+    const text = countText ? `${countText}${labelText}` : (lightboxLabel || "");
+    lightboxCount.textContent = text;
+    lightboxCount.style.display = (total > 1 || lightboxLabel) ? "inline-flex" : "none";
   }
 }
 function setLightboxIndex(nextIndex){
@@ -988,10 +993,11 @@ function setLightboxIndex(nextIndex){
   if(lightboxImg) lightboxImg.src = lightboxImages[lightboxIndex];
   updateLightboxNav();
 }
-function openLightbox(images, index){
+function openLightbox(images, index, label){
   if(!lightbox || !lightboxImg) return;
   lightboxImages = images && images.length ? images : [];
   lightboxIndex = Math.max(0, Math.min(index || 0, lightboxImages.length - 1));
+  lightboxLabel = (label || "").trim();
   lightboxImg.src = lightboxImages[lightboxIndex] || "";
   updateLightboxNav();
   lightbox.style.display = "flex";
@@ -1003,6 +1009,7 @@ function closeLightbox(){
   lightboxImg.src = "";
   lightboxImages = [];
   lightboxIndex = 0;
+  lightboxLabel = "";
   lightbox.setAttribute("aria-hidden","true");
 }
 function isLightboxOpen(){
@@ -1010,11 +1017,24 @@ function isLightboxOpen(){
 }
 function getGalleryImages(img){
   const container = img.closest(".thumbs, .editImgsRow, .preview, .miniPreview, .listThumbs");
-  if(!container) return { images:[img.src], index:0 };
+  let label = (img.dataset && img.dataset.customer) ? img.dataset.customer : "";
+  if(!label && container && container.dataset && container.dataset.customer){
+    label = container.dataset.customer || "";
+  }
+  if(!label && container && container.classList.contains("preview") && customer){
+    label = customer.value || "";
+  }
+  if(!label){
+    const row = img.closest("tr");
+    const input = row ? row.querySelector("input[data-customer-input]") : null;
+    if(input && input.value) label = input.value;
+  }
+  label = (label || "").trim();
+  if(!container) return { images:[img.src], index:0, label };
   const imgs = Array.from(container.querySelectorAll("img"));
   const images = imgs.map((item)=>item.src);
   const index = Math.max(0, imgs.indexOf(img));
-  return { images, index };
+  return { images, index, label };
 }
 if(lightbox){
   lightbox.addEventListener("click", (e)=>{
@@ -1061,8 +1081,8 @@ document.addEventListener("click", (e)=>{
     img.closest(".miniPreview") ||
     img.closest(".thumb")
   ){
-    const { images, index } = getGalleryImages(img);
-    openLightbox(images, index);
+    const { images, index, label } = getGalleryImages(img);
+    openLightbox(images, index, label);
   }
 });
 
@@ -1360,12 +1380,15 @@ const MAX_IMAGES = 10;
 function updatePreview(){
   imgCount.textContent = `${selectedImages.length}/${MAX_IMAGES}`;
   preview.innerHTML="";
+  const name = (customer && customer.value ? customer.value : "").trim();
   selectedImages.forEach((file,i)=>{
     const url = URL.createObjectURL(file);
     const div = document.createElement("div");
     div.className="thumb";
     div.innerHTML = `<button type="button" title="حذف">×</button><img alt="صورة">`;
-    div.querySelector("img").src = url;
+    const imgEl = div.querySelector("img");
+    imgEl.src = url;
+    if(name) imgEl.dataset.customer = name;
     div.querySelector("button").onclick=()=>{ selectedImages.splice(i,1); updatePreview(); };
     preview.appendChild(div);
   });
@@ -1859,12 +1882,16 @@ function renderNewPreview(purchaseId){
   if(!previewEl) return;
 
   previewEl.innerHTML="";
+  const nameInput = row.querySelector(`input[data-customer-input="${purchaseId}"]`);
+  const name = nameInput ? (nameInput.value || "").trim() : "";
   state.newFiles.forEach((file,i)=>{
     const url=URL.createObjectURL(file);
     const div=document.createElement("div");
     div.className="thumb";
     div.innerHTML=`<button type="button" title="حذف">×</button><img alt="صورة">`;
-    div.querySelector("img").src=url;
+    const imgEl = div.querySelector("img");
+    imgEl.src = url;
+    if(name) imgEl.dataset.customer = name;
     div.querySelector("button").onclick=()=>{ state.newFiles.splice(i,1); renderNewPreview(purchaseId); updateEditCounts(purchaseId); };
     previewEl.appendChild(div);
   });
@@ -2140,7 +2167,7 @@ async function loadPurchases(){
   (data||[]).forEach(p=>{
     const imgs=(p.purchase_images||[]).map(i=>{
       const url=sb.storage.from(BUCKET).getPublicUrl(i.storage_path).data.publicUrl;
-      return `<img src="${escapeAttr(url)}" alt="صورة">`;
+      return `<img src="${escapeAttr(url)}" alt="صورة" data-customer="${escapeAttr(p.customer_name || "")}">`;
     }).join("");
 
     const pickupTxt = p.pickup_point || "من نقطة الاستلام";
@@ -2185,7 +2212,7 @@ async function loadPurchases(){
       return `
         <div class="editThumb" data-existing-thumb="${p.id}" data-imgid="${escapeAttr(img.id)}" data-path="${escapeAttr(img.storage_path)}">
           <button type="button" title="حذف/تراجع" data-toggle-del="${p.id}">🗑</button>
-          <img src="${escapeAttr(url)}" alt="صورة">
+          <img src="${escapeAttr(url)}" alt="صورة" data-customer="${escapeAttr(p.customer_name || "")}">
         </div>
       `;
     }).join("");
@@ -2847,7 +2874,7 @@ function renderView(){
 
   const imgs = (p.purchase_images||[]).map(i=>{
     const url = sb.storage.from(BUCKET).getPublicUrl(i.storage_path).data.publicUrl;
-    return `<img src="${escapeAttr(url)}" alt="صورة">`;
+    return `<img src="${escapeAttr(url)}" alt="صورة" data-customer="${escapeAttr(p.customer_name || "")}">`;
   }).join("");
 
   const links = (p.purchase_links||[])
@@ -2903,7 +2930,7 @@ function renderViewList(){
   const rows = viewPurchases.map((p, i)=>{
     const imgs = (p.purchase_images||[]).map(img=>{
       const url = sb.storage.from(BUCKET).getPublicUrl(img.storage_path).data.publicUrl;
-      return `<img src="${escapeAttr(url)}" alt="صورة">`;
+      return `<img src="${escapeAttr(url)}" alt="صورة" data-customer="${escapeAttr(p.customer_name || "")}">`;
     }).join("");
 
     const links = (p.purchase_links||[])
