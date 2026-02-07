@@ -38,26 +38,30 @@
 
     /* ===== View panel ===== */
     .viewNav{display:flex;justify-content:space-between;align-items:center;margin:12px 0;gap:10px}
-    .modeSwitch{
+    #modeSwitch{
       display:inline-flex;
       align-items:center;
       gap:6px;
       background:var(--color-card);
       border:1px solid var(--color-border);
-      padding:4px;
-      border-radius:999px;
+      padding:5px;
+      border-radius:9999px;
     }
-    .modeBtn{
+    #modeSwitch .modeBtn{
       border:none;
       background:transparent;
-      padding:8px 14px;
-      border-radius:999px;
+      padding:9px 16px;
+      border-radius:9999px;
       cursor:pointer;
       font-weight:600;
       color:var(--color-muted);
       font-family:inherit;
     }
-    .modeBtn.active{background:var(--brand);color:#fff}
+    #modeSwitch .modeBtn.active{
+      background:var(--brand);
+      color:#fff;
+      border-radius:9999px;
+    }
     .filtersPanel{
       border:1px solid var(--color-border);
       border-radius:var(--radius-lg);
@@ -135,22 +139,239 @@
 
     /* ===== Layout ===== */
     .grid{display:grid;grid-template-columns:320px 1fr;gap:12px}
-    .grid.list-collapsed{grid-template-columns:72px 1fr}
+    .grid.list-collapsed{grid-template-columns:96px 1fr}
     .grid.list-collapsed .listFull{display:none}
     .grid.list-collapsed .listCollapsed{display:flex}
+    .listFull{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    #ordersGrid > aside.card .listFull > .row:first-child,
+    #viewGrid > aside.card .listFull > .row:first-child{
+      border:1px solid #d8e3de;
+      background:linear-gradient(180deg,#ffffff 0%,#f7fbf9 100%);
+      border-radius:14px;
+      padding:8px 10px;
+      box-shadow:0 8px 14px rgba(15,23,42,.05);
+    }
+    #ordersGrid > aside.card .listFull > .row:first-child b,
+    #viewGrid > aside.card .listFull > .row:first-child b{
+      font-size:15px;
+      font-weight:700;
+      color:#2d5b4f;
+      letter-spacing:.01em;
+    }
+    #ordersGrid > aside.card .listFull #ordersList,
+    #viewGrid > aside.card .listFull #viewOrdersList{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top:0 !important;
+    }
+    #ordersGrid > aside.card .listFull .orderGroupLabel{
+      display:inline-flex;
+      align-items:center;
+      width:max-content;
+      padding:4px 10px;
+      border:1px solid #d5e2dd;
+      border-radius:999px;
+      background:#f3f8f6;
+      color:#6a7672;
+      font-size:11px;
+      font-weight:700;
+      letter-spacing:.03em;
+      margin:10px 0 2px;
+      box-shadow:0 4px 8px rgba(15,23,42,.05);
+    }
+    #ordersGrid > aside.card .listFull .orderItem,
+    #viewGrid > aside.card .listFull .orderItem{
+      border:1px solid #d9e3de;
+      border-radius:14px;
+      background:#fff;
+      padding:11px 12px;
+      box-shadow:0 6px 12px rgba(15,23,42,.04);
+      transition:all .16s ease;
+    }
+    #ordersGrid > aside.card .listFull .orderItem:hover,
+    #viewGrid > aside.card .listFull .orderItem:hover{
+      border-color:#c4d6cf;
+      box-shadow:0 10px 16px rgba(15,23,42,.08);
+      transform:translateY(-1px);
+    }
+    #ordersGrid > aside.card .listFull .orderItem.active,
+    #viewGrid > aside.card .listFull .orderItem.active{
+      border-color:#a8cdc1;
+      border-radius:18px;
+      padding:13px 13px;
+      background:#eaf4f1;
+      box-shadow:0 14px 22px rgba(79,138,123,.18);
+      transform:translateY(-1px) scale(1.012);
+    }
+    #ordersGrid > aside.card .listFull .iconBtn,
+    #viewGrid > aside.card .listFull .iconBtn{
+      width:38px;
+      height:38px;
+      padding:0;
+      border-radius:999px;
+      border:1px solid #c8d9d2;
+      background:#f6fbf9;
+      box-shadow:0 6px 12px rgba(15,23,42,.08);
+      font-size:17px;
+      line-height:1;
+      color:#2d5b4f;
+    }
+    #ordersGrid > aside.card .listFull .iconBtn:hover,
+    #viewGrid > aside.card .listFull .iconBtn:hover{
+      background:#e9f4f1;
+      border-color:#a8cbc0;
+      box-shadow:0 10px 16px rgba(79,138,123,.16);
+    }
     .listCollapsed{
-      display:none;flex-direction:column;align-items:center;gap:10px;
-      padding:8px 6px;min-height:200px
+      display:none;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-start;
+      gap:10px;
+      padding:12px 8px;
+      min-height:250px;
+      border:1px solid #d4e0db;
+      border-radius:999px;
+      background:linear-gradient(180deg, #ffffff 0%, #f4f9f7 100%);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.9),
+        0 12px 18px rgba(15,23,42,.08);
     }
     .listCollapsed .miniBtn{
-      width:44px;height:44px;border-radius:var(--radius-md);border:1px solid var(--color-border);
-      background:var(--color-card);display:flex;align-items:center;justify-content:center;
-      font-size:20px;cursor:pointer
+      width:42px;height:42px;border-radius:999px;border:1px solid #cddcd6;
+      background:#f7fbf9;display:flex;align-items:center;justify-content:center;
+      font-size:18px;cursor:pointer;color:#2d5b4f;
+      box-shadow:0 6px 10px rgba(15,23,42,.08)
     }
-    .listCollapsed .miniLabel{font-size:11px;color:var(--color-muted);text-align:center}
+    .collapsedGlyph{
+      width:48px;
+      height:48px;
+      border-radius:16px;
+      border:1px solid #cfe0d9;
+      background:linear-gradient(180deg,#f8fcfa 0%,#eef6f3 100%);
+      position:relative;
+      box-shadow:0 6px 10px rgba(15,23,42,.06);
+    }
+    .collapsedGlyph::before,
+    .collapsedGlyph::after{
+      content:"";
+      position:absolute;
+      inset-inline:11px;
+      height:6px;
+      border-radius:999px;
+      background:#87aa9f;
+    }
+    .collapsedGlyph::before{top:14px}
+    .collapsedGlyph::after{top:27px}
+    .collapsedGlyph i{
+      position:absolute;
+      width:6px;
+      height:6px;
+      border-radius:999px;
+      background:#4f8a7b;
+      right:11px;
+      top:6px;
+    }
+    .listCollapsed .miniLabel{
+      font-size:11px;
+      color:#60716b;
+      text-align:center;
+      font-weight:700;
+      letter-spacing:.03em;
+    }
+    .collapsedStat{
+      min-width:36px;
+      text-align:center;
+      font-size:11px;
+      font-weight:700;
+      color:#25584c;
+      background:#e9f4f0;
+      border:1px solid #bdd7ce;
+      border-radius:999px;
+      padding:3px 8px;
+      line-height:1.1;
+      box-shadow:0 4px 8px rgba(79,138,123,.16);
+    }
+    .collapsedStack{
+      display:none;
+    }
+    .collapsedItem{
+      width:42px;
+      height:30px;
+      border:1px solid #d8e3de;
+      border-radius:10px;
+      background:#fff;
+      color:#4e5a56;
+      font-size:12px;
+      font-weight:700;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      box-shadow:0 4px 8px rgba(15,23,42,.04);
+    }
+    .collapsedItem.active{
+      border-color:var(--brand);
+      background:var(--brand-tint);
+      color:#25584c;
+    }
+    .collapsedItem.ghost{
+      color:transparent;
+      background:linear-gradient(90deg,#f5f8f6,#edf3f0,#f5f8f6);
+      border-style:dashed;
+    }
     @media(max-width:900px){
       .grid{grid-template-columns:1fr}
       .grid.list-collapsed{grid-template-columns:1fr}
+      #ordersGrid.list-collapsed > aside.card,
+      #viewGrid.list-collapsed > aside.card{
+        padding:8px;
+      }
+      #ordersGrid.list-collapsed .listCollapsed,
+      #viewGrid.list-collapsed .listCollapsed{
+        width:100%;
+        min-height:0;
+        flex-direction:row;
+        align-items:center;
+        justify-content:flex-start;
+        flex-wrap:nowrap;
+        gap:8px;
+        padding:8px 10px;
+        border-radius:14px;
+        overflow-x:auto;
+        overflow-y:hidden;
+      }
+      #ordersGrid.list-collapsed .listCollapsed .miniBtn,
+      #viewGrid.list-collapsed .listCollapsed .miniBtn{
+        flex:0 0 auto;
+        width:36px;
+        height:36px;
+        font-size:16px;
+      }
+      #ordersGrid.list-collapsed .listCollapsed .collapsedGlyph,
+      #viewGrid.list-collapsed .listCollapsed .collapsedGlyph{
+        flex:0 0 auto;
+        width:38px;
+        height:38px;
+        border-radius:12px;
+      }
+      #ordersGrid.list-collapsed .listCollapsed .miniLabel,
+      #viewGrid.list-collapsed .listCollapsed .miniLabel{
+        flex:0 0 auto;
+        font-size:12px;
+        white-space:nowrap;
+      }
+      #ordersGrid.list-collapsed .listCollapsed .collapsedStat,
+      #viewGrid.list-collapsed .listCollapsed .collapsedStat{
+        flex:0 0 auto;
+      }
     }
     .grid > *{min-width:0}
     @media(max-width:900px){.grid{grid-template-columns:1fr}}
@@ -176,6 +397,21 @@
     }
     .actionMenu button:hover{background:var(--table-row-hover)}
     .actionMenu .danger{color:#b00020}
+    .orderHeadActions #deleteOrderBtn{
+      border-color:#efc5c5;
+      color:#a63434;
+      background:#fff6f6;
+    }
+    .orderHeadActions #deleteOrderBtn:hover{
+      border-color:#e3a9af;
+      background:#fff0f0;
+    }
+    .orderHeadActions #deleteOrderBtn:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+      box-shadow:none;
+      transform:none;
+    }
 
     .card{background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:12px}
     .btn{border:1px solid var(--color-border);background:var(--color-card);padding:10px 14px;border-radius:var(--radius-lg);cursor:pointer}
@@ -356,7 +592,6 @@
           </div>
           <div class="row">
             <input id="orderNameInput" placeholder="اسم الطلبية" />
-            <button class="btn danger" id="deleteOrderBtn" disabled>حذف الطلبية</button>
             <button class="btn primary" id="newOrderBtn">+ إنشاء طلبية</button>
           </div>
         </div>
@@ -364,7 +599,10 @@
       </div>
       <div class="listCollapsed">
         <button class="miniBtn" id="ordersListToggleMini" type="button" aria-label="عرض القائمة">◀</button>
-        <div class="miniLabel">القائمة</div>
+        <div class="collapsedGlyph" aria-hidden="true"><i></i></div>
+        <div class="miniLabel">الطلبيات</div>
+        <span class="collapsedStat" id="collapsedOrdersCount">0</span>
+        <div class="collapsedStack" id="collapsedOrdersPreview" aria-hidden="true"></div>
       </div>
     </aside>
 
@@ -379,8 +617,9 @@
                 <b id="orderTitle"></b>
                 <span class="pill" id="orderStats">—</span>
               </div>
-              <div class="row" style="gap:8px;align-items:center">
+              <div class="row orderHeadActions" style="gap:8px;align-items:center">
                 <button class="icon-btn" id="editOrderBtn" title="تعديل اسم الطلبية" aria-label="تعديل اسم الطلبية">✏️</button>
+                <button class="icon-btn" id="deleteOrderBtn" title="حذف الطلبية" aria-label="حذف الطلبية" disabled>🗑️</button>
               </div>
             </div>
 
@@ -552,7 +791,10 @@
         </div>
         <div class="listCollapsed">
           <button class="miniBtn" id="viewOrdersListToggleMini" type="button" aria-label="عرض القائمة">◀</button>
-          <div class="miniLabel">القائمة</div>
+          <div class="collapsedGlyph" aria-hidden="true"><i></i></div>
+          <div class="miniLabel">عرض</div>
+          <span class="collapsedStat" id="collapsedViewCount">0</span>
+          <div class="collapsedStack" id="collapsedViewPreview" aria-hidden="true"></div>
         </div>
       </aside>
 
@@ -850,6 +1092,32 @@ function setViewListCollapsed(collapsed){
   }
 }
 
+function renderCollapsedPreview(list, previewEl, countEl, activeId){
+  if(countEl) countEl.textContent = String((list || []).length || 0);
+  if(!previewEl) return;
+  previewEl.innerHTML = "";
+
+  const src = Array.isArray(list) ? list.slice(0, 5) : [];
+  if(!src.length){
+    for(let i=0; i<4; i++){
+      const ghost = document.createElement("div");
+      ghost.className = "collapsedItem ghost";
+      ghost.textContent = "—";
+      previewEl.appendChild(ghost);
+    }
+    return;
+  }
+
+  src.forEach((order)=>{
+    const item = document.createElement("div");
+    const first = String(order?.order_name || "").trim().charAt(0) || "؟";
+    item.className = "collapsedItem" + (activeId && order?.id === activeId ? " active" : "");
+    item.title = String(order?.order_name || "");
+    item.textContent = first;
+    previewEl.appendChild(item);
+  });
+}
+
 /* ===== Auth guard ===== */
 async function requireAuth(){
   const { data } = await sb.auth.getSession();
@@ -1107,6 +1375,8 @@ const orderStats = document.getElementById("orderStats");
 const ordersGrid = document.getElementById("ordersGrid");
 const ordersListToggle = document.getElementById("ordersListToggle");
 const ordersListToggleMini = document.getElementById("ordersListToggleMini");
+const collapsedOrdersCountEl = document.getElementById("collapsedOrdersCount");
+const collapsedOrdersPreviewEl = document.getElementById("collapsedOrdersPreview");
 const tbody = document.getElementById("tbody");
 const ordersTableWrap = document.getElementById("ordersTableWrap");
 const ordersTableScrollTop = document.getElementById("ordersTableScrollTop");
@@ -1171,6 +1441,8 @@ const searchCountEl = document.getElementById("searchCount");
 const viewOrdersListEl = document.getElementById("viewOrdersList");
 const viewOrdersEmptyEl = document.getElementById("viewOrdersEmpty");
 const viewOrdersCountEl = document.getElementById("viewOrdersCount");
+const collapsedViewCountEl = document.getElementById("collapsedViewCount");
+const collapsedViewPreviewEl = document.getElementById("collapsedViewPreview");
 const viewViewerEmpty = document.getElementById("viewViewerEmpty");
 const viewViewer = document.getElementById("viewViewer");
 const viewTitle = document.getElementById("viewTitle");
@@ -2227,6 +2499,8 @@ async function loadOrders(){
     div.onclick = ()=>selectOrder(o);
     ordersList.appendChild(div);
   });
+
+  renderCollapsedPreview(orders, collapsedOrdersPreviewEl, collapsedOrdersCountEl, activeOrder?.id);
 }
 
 async function selectOrder(o){
@@ -3427,6 +3701,8 @@ async function loadViewOrders(){
     div.onclick = () => selectViewOrder(o);
     viewOrdersListEl.appendChild(div);
   });
+
+  renderCollapsedPreview(viewOrders, collapsedViewPreviewEl, collapsedViewCountEl, viewActiveOrder?.id);
 }
 
 async function setViewPlacedToggleUI(order){
@@ -3972,5 +4248,6 @@ function applyCustomerPrefill(){
 </script>
 </body>
 </html>
+
 
 

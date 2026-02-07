@@ -20,13 +20,25 @@
   --space-5:36px;
   --space-6:48px;
 
+  /* Design System v2 scales */
+  --radius-1:8px;
+  --radius-2:16px;
+  --radius-3:28px;
   --radius-sm:8px;
   --radius-md:16px;
   --radius-lg:28px;
 
+  --surface-1:#FFFFFF;
+  --surface-2:#FBFDFC;
+  --surface-3:#F2F6F4;
+  --divider-soft:#E8EEEB;
+  --text-soft:#4B5563;
+
   --shadow-sm:0 1px 3px rgba(15,23,42,.06);
   --shadow-md:0 8px 20px rgba(15,23,42,.10);
   --shadow-lg:0 16px 36px rgba(15,23,42,.14);
+  --shadow-layer-1:0 1px 0 rgba(255,255,255,.85) inset, 0 8px 18px rgba(15,23,42,.06);
+  --shadow-layer-2:0 1px 0 rgba(255,255,255,.9) inset, 0 14px 28px rgba(15,23,42,.10);
   --shadow-card:var(--shadow-md);
   --focus-ring:0 0 0 3px rgba(79,138,123,.25);
 
