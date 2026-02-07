@@ -104,6 +104,50 @@
     body.embed .sidebar,
     body.embed .sidebarOverlay{display:none !important}
     body.embed .wrap{padding:0;max-width:none}
+
+    /* ===== Page polish v2 ===== */
+    body[data-page="homepickup"] .wrap{max-width:1280px}
+    body[data-page="homepickup"] .grid{
+      grid-template-columns:330px 1fr;
+      gap:16px;
+      align-items:start;
+    }
+    body[data-page="homepickup"] .grid > aside.card{
+      position:sticky;
+      top:92px;
+      border-radius:20px 20px 10px 20px;
+      background:linear-gradient(180deg,#fff 0%,#f7fbf9 100%);
+    }
+    body[data-page="homepickup"] .grid > main.card{
+      border-radius:24px 24px 12px 24px;
+    }
+    body[data-page="homepickup"] #ordersList{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top:0 !important;
+    }
+    body[data-page="homepickup"] #ordersList .orderItem{
+      border-radius:14px;
+      padding:11px 12px;
+      box-shadow:0 6px 12px rgba(15,23,42,.04);
+    }
+    body[data-page="homepickup"] #ordersList .orderItem.active{
+      border-radius:18px;
+      box-shadow:0 12px 20px rgba(79,138,123,.16);
+    }
+    body[data-page="homepickup"] .tableWrap{
+      margin-top:6px;
+      padding-top:2px;
+    }
+    body[data-page="homepickup"] .thumbs img{
+      border-radius:12px;
+      box-shadow:0 6px 10px rgba(15,23,42,.08);
+    }
+    @media(max-width:900px){
+      body[data-page="homepickup"] .grid{grid-template-columns:1fr}
+      body[data-page="homepickup"] .grid > aside.card{position:static}
+    }
   </style>
 </head>
 <body data-page="homepickup">

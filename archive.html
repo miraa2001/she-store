@@ -61,6 +61,43 @@
     body.embed .sidebar,
     body.embed .sidebarOverlay{display:none !important}
     body.embed .wrap{padding:0;max-width:none}
+
+    /* ===== Page polish v2 ===== */
+    body[data-page="archive"] .wrap{max-width:1280px}
+    body[data-page="archive"] .grid{
+      grid-template-columns:340px 1fr;
+      gap:16px;
+      align-items:start;
+    }
+    body[data-page="archive"] .grid > aside.card{
+      position:sticky;
+      top:92px;
+      border-radius:20px 20px 10px 20px;
+      background:linear-gradient(180deg,#fff 0%,#f7fbf9 100%);
+    }
+    body[data-page="archive"] .grid > main.card{
+      border-radius:24px 24px 12px 24px;
+    }
+    body[data-page="archive"] #ordersList{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top:0 !important;
+    }
+    body[data-page="archive"] .ordersMeta{
+      gap:8px;
+    }
+    body[data-page="archive"] #cleanupMsg{
+      margin-top:8px !important;
+      padding:8px 10px;
+      border:1px dashed #d3e1dc;
+      border-radius:11px;
+      background:#f5faf8;
+    }
+    @media(max-width:900px){
+      body[data-page="archive"] .grid{grid-template-columns:1fr}
+      body[data-page="archive"] .grid > aside.card{position:static}
+    }
   </style>
 </head>
 <body data-page="archive">

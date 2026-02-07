@@ -120,6 +120,129 @@
     #monthPie{height:180px !important}
     #monthLine{height:260px !important}
     canvas{width:100% !important}
+
+    /* ===== Page polish v2 ===== */
+    body[data-page="finance"] .wrap{max-width:1280px}
+    body[data-page="finance"] .tabs{
+      border-radius:16px 16px 10px 16px;
+      padding:7px;
+      gap:8px;
+    }
+    body[data-page="finance"] .tabBtn{
+      border-radius:12px 12px 8px 12px;
+      padding:10px 14px;
+    }
+    body[data-page="finance"] .tabBtn.active{
+      position:relative;
+      background:#eaf4f1;
+      color:#25584c;
+      box-shadow:inset 0 0 0 1px #b9d5cc;
+    }
+    body[data-page="finance"] .tabBtn.active::after{
+      content:"";
+      position:absolute;
+      right:8px;
+      top:7px;
+      bottom:7px;
+      width:3px;
+      border-radius:999px;
+      background:var(--brand);
+    }
+    body[data-page="finance"] .grid{
+      grid-template-columns:340px 1fr;
+      gap:16px;
+      align-items:start;
+    }
+    body[data-page="finance"] .grid > aside.card{
+      position:sticky;
+      top:92px;
+      border-radius:20px 20px 10px 20px;
+      background:linear-gradient(180deg,#fff 0%,#f7fbf9 100%);
+    }
+    body[data-page="finance"] .grid > main.card{
+      border-radius:24px 24px 12px 24px;
+    }
+    body[data-page="finance"] #ordersList{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top:0 !important;
+    }
+    body[data-page="finance"] .kpi{
+      border:1px solid #d8e3de;
+      border-radius:14px;
+      background:linear-gradient(180deg,#fff 0%,#f9fcfb 100%);
+      box-shadow:0 8px 12px rgba(15,23,42,.04);
+      padding:12px;
+    }
+    body[data-page="finance"] .kpi .label{
+      color:#697671;
+      font-size:12px;
+      font-weight:600;
+    }
+    body[data-page="finance"] .kpi .value{
+      margin-top:5px;
+      font-size:20px;
+      font-weight:700;
+    }
+    body[data-page="finance"] .progress{
+      height:10px;
+      background:#e8efec;
+      border:1px solid #d4dfda;
+      border-radius:999px;
+      overflow:hidden;
+    }
+    body[data-page="finance"] .progress span{
+      background:linear-gradient(90deg,#4f8a7b 0%,#6aa394 100%);
+      border-radius:999px;
+    }
+    body[data-page="finance"] .segmented{
+      border-radius:999px;
+      border:1px solid #d2dfda;
+      background:#fff;
+      box-shadow:0 6px 10px rgba(15,23,42,.06);
+    }
+    body[data-page="finance"] .segmented button{
+      border-radius:999px;
+      margin:4px;
+      padding:8px 14px;
+      font-weight:600;
+      color:#5c6964;
+    }
+    body[data-page="finance"] .segmented button.active{
+      background:#eaf4f1;
+      color:#25584c;
+      box-shadow:inset 0 0 0 1px #b9d5cc;
+    }
+    body[data-page="finance"] .monthPicker{
+      border-radius:18px;
+      background:linear-gradient(180deg,#fff 0%,#f8fcfa 100%);
+      box-shadow:0 10px 16px rgba(15,23,42,.05);
+    }
+    body[data-page="finance"] .monthBtn{
+      border-radius:11px;
+      border:1px solid #d6e2dd;
+    }
+    body[data-page="finance"] .monthBtn.active{
+      background:#eaf4f1;
+      color:#25584c;
+      border-color:#b9d5cc;
+    }
+    body[data-page="finance"] .monthCharts{
+      border-radius:22px;
+      background:linear-gradient(180deg,#fff 0%,#f9fcfb 100%);
+      box-shadow:0 12px 18px rgba(15,23,42,.06);
+    }
+    body[data-page="finance"] .chartBox{
+      border:1px solid #d9e3de;
+      border-radius:14px;
+      background:#fff;
+      box-shadow:inset 0 0 0 1px #eef4f1;
+    }
+    @media(max-width:900px){
+      body[data-page="finance"] .grid{grid-template-columns:1fr}
+      body[data-page="finance"] .grid > aside.card{position:static}
+    }
   </style>
 </head>
 <body data-page="finance">
