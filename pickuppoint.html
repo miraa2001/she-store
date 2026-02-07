@@ -10,27 +10,27 @@
   <script src="assets/ui.js" defer></script>
 
   <style>
-    body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa;color:#111}
+    body{font-family:system-ui,Tahoma,Arial;margin:0;background:var(--color-bg);color:var(--color-text)}
     .wrap{max-width:1100px;margin:auto;padding:16px}
     .grid{display:grid;grid-template-columns:320px 1fr;gap:12px}
     .grid > *{min-width:0}
     @media(max-width:900px){
       .grid{grid-template-columns:1fr}
     }
-    .card{background:#fff;border:1px solid #e7e7e7;border-radius:14px;padding:12px}
+    .card{background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:12px}
     .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-    .btn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
-    .btn.primary{background:#111;color:#fff;border-color:#111}
-    .muted{color:#666;font-size:13px}
-    input{padding:10px;border:1px solid #e7e7e7;border-radius:10px;font-family:inherit}
-    .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px;color:#444}
+    .btn{border:1px solid var(--color-border);background:var(--color-card);padding:10px 14px;border-radius:var(--radius-lg);cursor:pointer}
+    .btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+    .muted{color:var(--color-muted);font-size:13px}
+    input{padding:10px;border:1px solid var(--color-border);border-radius:var(--radius-md);font-family:inherit}
+    .pill{display:inline-block;padding:6px 10px;border:1px solid var(--color-border);border-radius:999px;font-size:12px;color:var(--color-text);background:#f1f4f2}
     .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
     .brand b{font-size:20px}
-    .menuBtn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
+    .menuBtn{border:1px solid var(--color-border);background:var(--color-card);padding:10px 12px;border-radius:var(--radius-lg);cursor:pointer}
     .sidebarOverlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:50}
     .sidebar{
-      position:fixed;top:0;right:0;height:100vh;width:min(280px,82vw);
-      background:#fff;border-left:1px solid #eee;z-index:60;
+      position:fixed;top:0;right:0;height:100vh;width:min(220px,82vw);
+      background:var(--color-card);border-left:1px solid var(--color-border);z-index:60;
       transform:translateX(100%);transition:transform .2s ease;
       display:flex;flex-direction:column;padding:14px;box-sizing:border-box
     }
@@ -45,15 +45,15 @@
       display:flex;align-items:center;justify-content:center;color:#b00020;border-color:#f2c2c2
     }
     .sidebar a,.sidebar button{
-      width:100%;text-align:right;border:1px solid #e7e7e7;background:#fff;
-      padding:10px 12px;border-radius:10px;cursor:pointer;margin-top:8px;font-family:inherit;
+      width:100%;text-align:right;border:1px solid var(--color-border);background:var(--color-card);
+      padding:10px 12px;border-radius:var(--radius-md);cursor:pointer;margin-top:8px;font-family:inherit;
       font-size:14px;line-height:1.3;box-sizing:border-box
     }
     .sidebar a{color:#111;text-decoration:none;display:block}
     .sidebar .danger{border-color:#f2c2c2;color:#b00020}
 
-    .orderItem{border:1px solid #e7e7e7;border-radius:12px;padding:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
-    .orderItem.active{border-color:#111}
+    .orderItem{border:1px solid var(--color-border);border-radius:var(--radius-md);padding:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+    .orderItem.active{border-color:var(--brand);background:var(--brand-tint)}
     .orderItem small{color:#666}
     .orderGroupMeta{display:flex;gap:8px;align-items:center}
 
@@ -61,26 +61,26 @@
     table{width:max-content;min-width:100%;border-collapse:collapse;direction:rtl;margin-left:auto}
     body.ios-chrome .tableWrap{direction:rtl}
     body.ios-chrome table{direction:rtl}
-    th,td{border-bottom:1px solid #eee;padding:10px;text-align:right;vertical-align:middle}
-    th{color:#666;font-size:13px}
+    th,td{border-bottom:1px solid var(--color-border);padding:10px;text-align:right;vertical-align:middle}
+    th{color:var(--color-muted);font-size:13px}
     .chk{width:18px;height:18px}
     .highlight{background:#fff8d6}
     .searchBox{width:100%;max-width:420px}
-    .searchResults{margin-top:8px;border:1px solid #eee;border-radius:12px;overflow:hidden}
+    .searchResults{margin-top:8px;border:1px solid var(--color-border);border-radius:var(--radius-md);overflow:hidden}
     .searchResults button{
-      width:100%;text-align:right;background:#fff;border:none;padding:10px;cursor:pointer;border-bottom:1px solid #eee
+      width:100%;text-align:right;background:var(--color-card);border:none;padding:10px;cursor:pointer;border-bottom:1px solid var(--color-border)
     }
     .searchResults button:last-child{border-bottom:none}
-    .searchResults button:hover{background:#fafafa}
+    .searchResults button:hover{background:var(--color-bg)}
     .editCol{width:1%;white-space:nowrap;text-align:center}
     .editCol .btn{
       display:inline-flex;align-items:center;justify-content:center;
       padding:6px 10px;line-height:1;height:32px
     }
     .globalSummary{
-      background:#f4f7ff;
-      border:1px solid #dfe6ff;
-      border-radius:14px;
+      background:var(--color-bg);
+      border:1px solid var(--color-border);
+      border-radius:var(--radius-md);
       padding:10px 12px;
       margin-bottom:12px
     }
@@ -92,7 +92,7 @@
     body.embed .wrap{padding:0;max-width:none}
   </style>
 </head>
-<body>
+<body data-page="pickuppoint">
 
 <div class="sidebarOverlay" id="sidebarOverlay"></div>
 <aside class="sidebar" id="sidebar">
@@ -288,13 +288,13 @@ function renderSidebar(){
   };
 
   if(myEmail === EMAIL_RAHAF){
-    link("\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0637\u0644\u0628\u0627\u062a", "./index.html?tab=orders");
+    link("\u0627\u0644\u0637\u0644\u0628\u064a\u0627\u062a", "./index.html");
     link("\u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645 \u0648\u0627\u0644\u062a\u062d\u0635\u064a\u0644", "./pickup-dashboard.html");
     link("\u0627\u0644\u0623\u0631\u0634\u064a\u0641", "./archive.html");
     link("\u0627\u0644\u0645\u0627\u0644\u064a\u0629", "./finance.html");
   }
   if(myEmail === EMAIL_REEM || myEmail === EMAIL_RAWAND){
-    link("\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0637\u0644\u0628\u0627\u062a", "./index.html?tab=view");
+    link("\u0627\u0644\u0637\u0644\u0628\u064a\u0627\u062a", "./index.html");
     link("\u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645 \u0648\u0627\u0644\u062a\u062d\u0635\u064a\u0644", "./pickup-dashboard.html");
   }
 
@@ -944,3 +944,4 @@ async function runSearch(){
 </script>
 </body>
 </html>
+

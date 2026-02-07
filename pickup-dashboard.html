@@ -8,18 +8,18 @@
   <link rel="stylesheet" href="assets/base.css">
   <script src="assets/ui.js" defer></script>
   <style>
-    body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa;color:#111}
+    body{font-family:system-ui,Tahoma,Arial;margin:0;background:var(--color-bg);color:var(--color-text)}
     .wrap{max-width:1200px;margin:auto;padding:16px}
     .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
     .brand b{font-size:20px}
-    .muted{color:#666;font-size:13px}
+    .muted{color:var(--color-muted);font-size:13px}
 
-    .menuBtn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
+    .menuBtn{border:1px solid var(--color-border);background:var(--color-card);padding:10px 12px;border-radius:var(--radius-lg);cursor:pointer}
     .menuBtn.danger{border-color:#f2c2c2;color:#b00020}
     .sidebarOverlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:50}
     .sidebar{
-      position:fixed;top:0;right:0;height:100vh;width:min(280px,82vw);
-      background:#fff;border-left:1px solid #eee;z-index:60;
+      position:fixed;top:0;right:0;height:100vh;width:min(220px,82vw);
+      background:var(--color-card);border-left:1px solid var(--color-border);z-index:60;
       transform:translateX(100%);transition:transform .2s ease;
       display:flex;flex-direction:column;padding:14px;box-sizing:border-box
     }
@@ -34,30 +34,31 @@
       display:flex;align-items:center;justify-content:center;color:#b00020;border-color:#f2c2c2
     }
     .sidebar a,.sidebar button{
-      width:100%;text-align:right;border:1px solid #e7e7e7;background:#fff;
-      padding:10px 12px;border-radius:10px;cursor:pointer;margin-top:8px;font-family:inherit;
+      width:100%;text-align:right;border:1px solid var(--color-border);background:var(--color-card);
+      padding:10px 12px;border-radius:var(--radius-md);cursor:pointer;margin-top:8px;font-family:inherit;
       font-size:14px;line-height:1.3;box-sizing:border-box
     }
     .sidebar a{color:#111;text-decoration:none;display:block}
     .sidebar .danger{border-color:#f2c2c2;color:#b00020}
 
     .tabs{
-      display:flex;gap:6px;background:#111;padding:6px;border-radius:12px;margin:8px 0 14px
+      display:flex;gap:6px;background:var(--color-card);padding:6px;border-radius:var(--radius-lg);
+      margin:8px 0 14px;border:1px solid var(--color-border)
     }
     .tabBtn{
-      border:none;background:#222;color:#eaeaea;padding:10px 16px;border-radius:10px;
+      border:none;background:transparent;color:var(--color-muted);padding:10px 16px;border-radius:var(--radius-lg);
       cursor:pointer;font-weight:600;font-family:inherit
     }
-    .tabBtn.active{background:#fff;color:#111}
+    .tabBtn.active{background:var(--brand);color:#fff}
     .tabPanel{display:none}
     .tabPanel.active{display:block}
     .panelFrame{
-      width:100%;border:none;border-radius:14px;
-      height:600px;min-height:300px;background:#fff;display:block
+      width:100%;border:none;border-radius:var(--radius-lg);
+      height:600px;min-height:300px;background:var(--color-card);display:block
     }
   </style>
 </head>
-<body>
+<body data-page="pickup-dashboard">
 
 <div class="sidebarOverlay" id="sidebarOverlay"></div>
 <aside class="sidebar" id="sidebar">
@@ -140,13 +141,13 @@ function renderSidebar(role){
   };
 
   if(role === "rahaf"){
-    link("إدارة الطلبات", "./index.html?tab=orders");
+    link("الطلبيات", "./index.html");
     link("الاستلام والتحصيل", "./pickup-dashboard.html");
     link("الأرشيف", "./archive.html");
     link("المالية", "./finance.html");
   }
   if(role === "reem"){
-    link("عرض الطلبيات", "./index.html?tab=view");
+    link("الطلبيات", "./index.html");
     link("الاستلام والتحصيل", "./pickup-dashboard.html");
   }
   if(role === "laaura"){
@@ -283,3 +284,4 @@ async function guard(){
 </script>
 </body>
 </html>
+

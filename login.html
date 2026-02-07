@@ -9,20 +9,20 @@
   <link rel="stylesheet" href="assets/base.css">
   <script src="assets/ui.js" defer></script>
   <style>
-    body{font-family:system-ui,Tahoma,Arial;margin:0;background:#0f0f0f;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-    .card{width:min(420px, 95vw);background:#151515;border:1px solid #2a2a2a;border-radius:18px;padding:18px}
+    body{font-family:system-ui,Tahoma,Arial;margin:0;background:var(--color-bg);color:var(--color-text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+    .card{width:min(420px, 95vw);background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:18px}
     .login-hero{width:180px;max-width:70%;display:block;margin:4px auto 12px;border-radius:16px}
     .title{font-size:20px;font-weight:700;margin-bottom:6px}
-    .muted{color:#bbb;font-size:13px;margin-bottom:14px;line-height:1.6}
+    .muted{color:var(--color-muted);font-size:13px;margin-bottom:14px;line-height:1.6}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    input{width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0f0f0f;color:#fff;outline:none;box-sizing:border-box;display:block}
-    input:focus{border-color:#777}
-    .btn{width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#fff;color:#111;cursor:pointer;font-weight:700;box-sizing:border-box;display:block}
+    input{width:100%;padding:12px;border-radius:var(--radius-md);border:1px solid var(--color-border);background:var(--color-card);color:var(--color-text);outline:none;box-sizing:border-box;display:block}
+    input:focus{border-color:var(--brand);box-shadow:var(--focus-ring)}
+    .btn{width:100%;padding:12px;border-radius:var(--radius-lg);border:1px solid var(--brand);background:var(--brand);color:#fff;cursor:pointer;font-weight:700;box-sizing:border-box;display:block}
     .btn:disabled{opacity:.6;cursor:not-allowed}
     .msg{margin-top:10px;font-size:13px;color:#ffd1d1}
   </style>
 </head>
-<body>
+<body data-page="login">
 
   <div class="card">
     <img src="assets/woman.png" alt="صورة لطيفة" class="login-hero">

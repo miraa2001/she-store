@@ -3,48 +3,82 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>إدارة الطلبات</title>
+  <title>الطلبيات</title>
   <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/8863/8863863.png" />
   <link rel="stylesheet" href="assets/tokens.css">
   <link rel="stylesheet" href="assets/base.css">
   <script src="assets/ui.js" defer></script>
 
   <style>
-    body{font-family:system-ui,Tahoma,Arial;margin:0;background:#fafafa;color:#111}
+    body{font-family:system-ui,Tahoma,Arial;margin:0;background:var(--color-bg);color:var(--color-text)}
     .wrap{max-width:1100px;margin:auto;padding:16px;overflow-x:hidden}
 
     /* ===== Image Lightbox ===== */
 
 /* ===== Sidebar ===== */
-    .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
     .brand b{font-size:20px}
-    .muted{color:#666;font-size:13px}
+    .muted{color:var(--color-muted);font-size:13px}
 
     .menuBtn{
-      border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer
+      border:1px solid var(--color-border);background:var(--color-card);padding:10px 12px;border-radius:var(--radius-lg);cursor:pointer
     }
     .tabs{
-      display:flex;gap:6px;background:#111;padding:6px;border-radius:12px;margin:8px 0 14px
+      display:flex;gap:6px;background:var(--color-card);padding:6px;border-radius:var(--radius-lg);
+      margin:8px 0 14px;border:1px solid var(--color-border)
     }
+    #navTabs.merged .tabLink[data-tab="view"]{display:none}
+    #navTabs.merged{justify-content:flex-start}
     .tabLink{
-      border:none;background:#222;color:#eaeaea;padding:10px 16px;border-radius:10px;
+      border:none;background:transparent;color:var(--color-muted);padding:10px 16px;border-radius:var(--radius-lg);
       cursor:pointer;font-weight:600;font-family:inherit;text-decoration:none;display:inline-block
     }
-    .tabLink.active{background:#fff;color:#111}
+    .tabLink.active{background:var(--brand);color:#fff}
     .tabPanel{display:block}
 
     /* ===== View panel ===== */
     .viewNav{display:flex;justify-content:space-between;align-items:center;margin:12px 0;gap:10px}
+    .modeSwitch{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      background:var(--color-card);
+      border:1px solid var(--color-border);
+      padding:4px;
+      border-radius:999px;
+    }
+    .modeBtn{
+      border:none;
+      background:transparent;
+      padding:8px 14px;
+      border-radius:999px;
+      cursor:pointer;
+      font-weight:600;
+      color:var(--color-muted);
+      font-family:inherit;
+    }
+    .modeBtn.active{background:var(--brand);color:#fff}
+    .filtersPanel{
+      border:1px solid var(--color-border);
+      border-radius:var(--radius-lg);
+      padding:var(--space-2);
+      background:var(--color-card);
+      margin:12px 0;
+    }
+    .filtersHeader{display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .filtersBody{margin-top:12px;display:none}
+    .filtersRow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .filtersRow label{font-size:12px;color:var(--color-muted)}
     .viewPanel .thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-    .viewPanel .thumbs img{width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid #eee;cursor:pointer}
+    .viewPanel .thumbs img{width:96px;height:96px;object-fit:cover;border-radius:var(--radius-md);border:1px solid var(--color-border);cursor:pointer}
     .viewContent{font-size:18px;line-height:1.7}
     .viewContent b{font-size:19px}
     .listTable{width:100%;border-collapse:collapse;margin-top:12px}
-    .listTable th,.listTable td{border-bottom:1px solid #eee;padding:10px;text-align:right;vertical-align:top}
-    .listTable th{color:#666;font-size:13px}
+    .listTable th,.listTable td{border-bottom:1px solid var(--color-border);padding:10px;text-align:right;vertical-align:top}
+    .listTable th{color:var(--color-muted);font-size:13px}
     .listThumbs{display:flex;gap:6px;flex-wrap:wrap}
-    .listThumbs img{width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid #eee;cursor:pointer}
-    #viewListView{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+    .listThumbs img{width:64px;height:64px;object-fit:cover;border-radius:var(--radius-md);border:1px solid var(--color-border);cursor:pointer}
+    #viewListView{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-2)}
     #viewListView .listTable{min-width:720px}
     .toggleRow{display:flex;gap:10px;align-items:center;margin-top:8px}
     .toggleRow input{width:18px;height:18px}
@@ -52,10 +86,10 @@
     .iconBtn img{width:22px;height:22px;display:block}
     .priceRow{display:flex;align-items:center;justify-content:space-between;gap:8px}
     .waBtn{font-family:inherit}
-    .waBtn:hover{border-color:#111}
+    .waBtn:hover{border-color:var(--color-text)}
     .bagField{display:inline-flex;flex-direction:column;gap:6px}
     .bagDisplay{display:flex;align-items:center;gap:8px}
-    .bagValue{display:inline-flex;align-items:center;border:1px solid #e7e7e7;border-radius:10px;padding:8px 10px;background:#fff;font-size:14px}
+    .bagValue{display:inline-flex;align-items:center;border:1px solid var(--color-border);border-radius:var(--radius-md);padding:8px 10px;background:var(--color-card);font-size:14px}
     .bagEditor{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
     .bagActions{display:flex;gap:8px;align-items:center}
     .bagMsg{font-size:13px;color:#2e7d32}
@@ -66,8 +100,8 @@
       display:none;z-index:50;pointer-events:none
     }
     .sidebar{
-      position:fixed;top:0;right:0;height:100vh;width:min(280px, 82vw);
-      background:#fff;border-left:1px solid #eee;z-index:60;
+      position:fixed;top:0;right:0;height:100vh;width:min(220px, 82vw);
+      background:var(--color-card);border-left:1px solid var(--color-border);z-index:60;
       transform:translateX(100%);transition:transform .2s ease;
       display:flex;flex-direction:column;
       padding:14px;
@@ -88,8 +122,8 @@
       max-width:100%;
       display:block;
       text-align:right;
-      border:1px solid #e7e7e7;background:#fff;
-      padding:10px 12px;border-radius:10px;cursor:pointer;
+      border:1px solid var(--color-border);background:var(--color-card);
+      padding:10px 12px;border-radius:var(--radius-md);cursor:pointer;
       margin-top:8px;
       font-family:inherit;
       font-size:14px;
@@ -109,11 +143,11 @@
       padding:8px 6px;min-height:200px
     }
     .listCollapsed .miniBtn{
-      width:44px;height:44px;border-radius:14px;border:1px solid #e5e5e5;
-      background:#fff;display:flex;align-items:center;justify-content:center;
+      width:44px;height:44px;border-radius:var(--radius-md);border:1px solid var(--color-border);
+      background:var(--color-card);display:flex;align-items:center;justify-content:center;
       font-size:20px;cursor:pointer
     }
-    .listCollapsed .miniLabel{font-size:11px;color:#666;text-align:center}
+    .listCollapsed .miniLabel{font-size:11px;color:var(--color-muted);text-align:center}
     @media(max-width:900px){
       .grid{grid-template-columns:1fr}
       .grid.list-collapsed{grid-template-columns:1fr}
@@ -122,8 +156,8 @@
     @media(max-width:900px){.grid{grid-template-columns:1fr}}
     .orderDetail{max-height:calc(100vh - 220px);overflow:auto;position:relative;padding-inline-end:2px}
     .orderSticky{
-      position:sticky;top:0;background:#fff;z-index:5;
-      padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid #eee
+      position:sticky;top:0;background:var(--color-card);z-index:5;
+      padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid var(--color-border)
     }
     @media(max-width:900px){
       .orderDetail{max-height:none;overflow:visible}
@@ -132,7 +166,7 @@
     .actionCell{position:relative}
     .actionMenu{
       position:absolute;inset-inline-end:0;top:36px;min-width:160px;
-      background:#fff;border:1px solid #e7e7e7;border-radius:12px;
+      background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-md);
       box-shadow:0 8px 16px rgba(0,0,0,.08);padding:6px;display:none;z-index:20
     }
     .actionMenu.open{display:block}
@@ -140,16 +174,16 @@
       width:100%;text-align:right;border:none;background:transparent;padding:8px;border-radius:8px;
       font-family:inherit;cursor:pointer
     }
-    .actionMenu button:hover{background:#f6f8fb}
+    .actionMenu button:hover{background:var(--table-row-hover)}
     .actionMenu .danger{color:#b00020}
 
-    .card{background:#fff;border:1px solid #e7e7e7;border-radius:14px;padding:12px}
-    .btn{border:1px solid #e7e7e7;background:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
-    .btn.primary{background:#111;color:#fff;border-color:#111}
+    .card{background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:12px}
+    .btn{border:1px solid var(--color-border);background:var(--color-card);padding:10px 14px;border-radius:var(--radius-lg);cursor:pointer}
+    .btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
     .btn.danger{border-color:#f2c2c2;color:#b00020}
     .dangerText{color:#b00020;font-size:13px}
-    input, select, textarea{padding:10px;border:1px solid #e7e7e7;border-radius:10px;font-family:inherit}
-    input[readonly]{background:#f4f4f4;color:#666}
+    input, select, textarea{padding:10px;border:1px solid var(--color-border);border-radius:var(--radius-md);font-family:inherit}
+    input[readonly]{background:#f4f4f4;color:var(--color-muted)}
     textarea{width:100%;min-height:84px;resize:vertical;box-sizing:border-box}
     .tableWrap{
       overflow-x:auto;overflow-y:hidden;
@@ -162,21 +196,33 @@
       overflow-x:auto;overflow-y:hidden;
       max-width:100%;width:100%;
       height:12px;margin:0 0 6px;
-      border:1px solid #eee;border-radius:10px;
-      background:#fafafa
+      border:1px solid var(--color-border);border-radius:var(--radius-md);
+      background:var(--color-bg)
     }
     .tableScrollTop .tableScrollInner{height:1px}
     @media(max-width:900px){
       .tableScrollTop{display:none}
     }
     table{width:100%;border-collapse:collapse;min-width:860px;direction:rtl}
-    th,td{border-bottom:1px solid #eee;padding:10px;text-align:right;vertical-align:top}
+    th,td{border-bottom:1px solid var(--color-border);padding:10px;text-align:right;vertical-align:top}
     td a{word-break:break-all;overflow-wrap:anywhere}
-    th{color:#666;font-size:13px}
+    th{color:var(--color-muted);font-size:13px}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .orderItem{border:1px solid #e7e7e7;border-radius:12px;padding:10px;cursor:pointer;display:flex;justify-content:space-between}
-    .orderItem.active{border-color:#111}
-    .thumbs img{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid #eee;cursor:pointer}
+    .orderItem{border:1px solid var(--color-border);border-radius:var(--radius-md);padding:10px;cursor:pointer;display:flex;justify-content:space-between}
+    .orderItem.active{border-color:var(--brand);background:var(--brand-tint)}
+    .orderGroupLabel{
+      display:inline-flex;
+      align-items:center;
+      padding:4px 8px;
+      margin:10px 0 6px;
+      border:1px solid var(--color-border);
+      border-radius:var(--radius-md);
+      background:var(--color-bg);
+      color:var(--color-muted);
+      font-size:12px;
+      font-weight:600;
+    }
+    .thumbs img{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid var(--color-border);cursor:pointer}
     .editThumb img{cursor:pointer}
     #lightbox{
       position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;
@@ -204,66 +250,66 @@
       .lightboxCount{top:12px;left:12px;font-size:12px}
     }
 
-    .pill{display:inline-block;padding:4px 8px;border:1px solid #e7e7e7;border-radius:999px;font-size:12px}
-    .countPill{background:#f8fafc;color:#374151;font-weight:600;min-width:44px;text-align:center}
+    .pill{display:inline-block;padding:6px 10px;border:1px solid var(--color-border);border-radius:999px;font-size:12px;background:#f1f4f2;color:var(--color-text)}
+    .countPill{background:#f1f4f2;color:var(--color-text);font-weight:600;min-width:44px;text-align:center}
     .searchBox{width:100%;max-width:420px}
-    .searchResults{margin-top:8px;border:1px solid #eee;border-radius:12px;overflow:hidden}
+    .searchResults{margin-top:8px;border:1px solid var(--color-border);border-radius:var(--radius-md);overflow:hidden}
     .searchResults button{
-      width:100%;text-align:right;background:#fff;border:none;padding:10px;cursor:pointer;border-bottom:1px solid #eee;
+      width:100%;text-align:right;background:var(--color-card);border:none;padding:10px;cursor:pointer;border-bottom:1px solid var(--color-border);
       font-family:inherit
     }
     .searchResults button:last-child{border-bottom:none}
-    .searchResults button:hover{background:#fafafa}
-    .highlight{background:#fff8d6;padding:6px 8px;border-radius:10px}
+    .searchResults button:hover{background:var(--color-bg)}
+    .highlight{background:#fff8d6;padding:6px 8px;border-radius:var(--radius-md)}
     tr.highlight td{background:#fff8d6}
 
     .dropZone{
-      border:2px dashed #d8d8d8;border-radius:14px;padding:12px;background:#fff;outline:none;
+      border:2px dashed var(--color-border);border-radius:var(--radius-lg);padding:12px;background:var(--color-card);outline:none;
     }
     .dropZone.dragover{border-color:#111;background:#f4f4f4}
     .preview{display:flex;gap:8px;flex-wrap:wrap}
     .preview .thumb{
-      width:70px;height:70px;border-radius:12px;border:1px solid #eee;overflow:hidden;position:relative;background:#fafafa;
+      width:70px;height:70px;border-radius:var(--radius-md);border:1px solid var(--color-border);overflow:hidden;position:relative;background:var(--color-bg);
     }
     .preview .thumb img{width:100%;height:100%;object-fit:cover;display:block}
     .preview .thumb button{
       position:absolute;top:6px;left:6px;border:none;background:rgba(0,0,0,.55);color:#fff;
-      width:26px;height:26px;border-radius:10px;cursor:pointer;
+      width:26px;height:26px;border-radius:var(--radius-sm);cursor:pointer;
     }
     .autoWrap{position:relative;display:flex;align-items:center;gap:6px;flex:1;min-width:220px}
     .autoList{
-      position:absolute;top:100%;right:0;left:0;background:#fff;border:1px solid #eee;border-radius:12px;
+      position:absolute;top:100%;right:0;left:0;background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-md);
       box-shadow:0 6px 18px rgba(0,0,0,.08);z-index:20;max-height:220px;overflow:auto;display:none
     }
     .autoList button{
-      width:100%;text-align:right;border:none;background:#fff;padding:8px 10px;cursor:pointer;
-      border-bottom:1px solid #f1f1f1;font-family:inherit
+      width:100%;text-align:right;border:none;background:var(--color-card);padding:8px 10px;cursor:pointer;
+      border-bottom:1px solid var(--color-border);font-family:inherit
     }
     .autoList button:last-child{border-bottom:none}
-    .autoList button:hover{background:#fafafa}
+    .autoList button:hover{background:var(--color-bg)}
     .autoAdd{color:#0f5adb;font-weight:600}
 
     .inlineEditRow td{ background:#fcfcfc; }
-    .inlineEditBox{border:1px solid #eee;border-radius:12px;padding:10px}
+    .inlineEditBox{border:1px solid var(--color-border);border-radius:var(--radius-md);padding:10px}
     .editImgsRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
-    .editThumb{width:78px;height:78px;border-radius:12px;border:1px solid #eee;overflow:hidden;position:relative;background:#fafafa}
+    .editThumb{width:78px;height:78px;border-radius:var(--radius-md);border:1px solid var(--color-border);overflow:hidden;position:relative;background:var(--color-bg)}
     .editThumb img{width:100%;height:100%;object-fit:cover;display:block}
     .editThumb button{
       position:absolute;top:6px;left:6px;border:none;background:rgba(0,0,0,.55);color:#fff;
-      width:26px;height:26px;border-radius:10px;cursor:pointer
+      width:26px;height:26px;border-radius:var(--radius-sm);cursor:pointer
     }
     .editThumb.removing{opacity:.35;filter:grayscale(1)}
-    .miniDropZone{border:2px dashed #d8d8d8;border-radius:12px;padding:10px;background:#fff;outline:none;flex:1;min-width:240px}
+    .miniDropZone{border:2px dashed var(--color-border);border-radius:var(--radius-md);padding:10px;background:var(--color-card);outline:none;flex:1;min-width:240px}
     .miniDropZone.dragover{border-color:#111;background:#f4f4f4}
     .miniPreview{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-    .miniPreview .thumb{width:70px;height:70px;border-radius:12px;border:1px solid #eee;overflow:hidden;position:relative;background:#fafafa}
+    .miniPreview .thumb{width:70px;height:70px;border-radius:var(--radius-md);border:1px solid var(--color-border);overflow:hidden;position:relative;background:var(--color-bg)}
     .miniPreview .thumb img{width:100%;height:100%;object-fit:cover}
     .miniPreview .thumb button{
-      position:absolute;top:6px;left:6px;border:none;background:rgba(0,0,0,.55);color:#fff;width:26px;height:26px;border-radius:10px;cursor:pointer
+      position:absolute;top:6px;left:6px;border:none;background:rgba(0,0,0,.55);color:#fff;width:26px;height:26px;border-radius:var(--radius-sm);cursor:pointer
     }
   </style>
 </head>
-<body>
+<body data-page="index">
 
 <div class="sidebarOverlay" id="sidebarOverlay"></div>
 <aside class="sidebar" id="sidebar">
@@ -277,14 +323,18 @@
 <div class="wrap">
   <div class="topbar">
     <div class="brand">
-      <b>إدارة الطلبات</b>
-      <div class="muted">إضافة / حذف / تعديل</div>
+      <b>الطلبيات</b>
+      <div class="muted">عرض / تعديل / إضافة</div>
+    </div>
+    <div class="modeSwitch" id="modeSwitch" style="display:none">
+      <button class="modeBtn active" type="button" id="modeEditBtn" data-mode="edit">تعديل / إضافة</button>
+      <button class="modeBtn" type="button" id="modeViewBtn" data-mode="view">عرض فقط</button>
     </div>
     <button class="menuBtn" id="openSidebarBtn" type="button" aria-label="فتح القائمة">☰</button>
   </div>
 
   <div class="tabs" id="navTabs" style="display:none">
-    <button class="tabLink active" type="button" data-tab="orders">إدارة الطلبات</button>
+    <button class="tabLink active" type="button" data-tab="orders">الطلبيات</button>
     <button class="tabLink" type="button" data-tab="view">عرض الطلبيات</button>
     <button class="tabLink" type="button" data-tab="customers">العملاء</button>
   </div>
@@ -423,6 +473,37 @@
       </div>
 
         <hr>
+
+        <div class="filtersPanel" id="filtersPanel">
+          <div class="filtersHeader">
+            <b>فلاتر المشتريات</b>
+            <button class="btn" id="filtersToggleBtn" type="button">إظهار الفلاتر</button>
+          </div>
+          <div class="filtersBody" id="filtersBody">
+            <div class="filtersRow">
+              <label for="filterPickup">مكان الاستلام</label>
+              <select id="filterPickup">
+                <option value="all">الكل</option>
+                <option value="من البيت">من البيت</option>
+                <option value="توصيل">توصيل</option>
+                <option value="من نقطة الاستلام">من نقطة الاستلام</option>
+              </select>
+
+              <label for="sortSelect">ترتيب حسب</label>
+              <select id="sortSelect">
+                <option value="default">الترتيب الافتراضي</option>
+                <option value="name_asc">الاسم (أ-ي)</option>
+                <option value="name_desc">الاسم (ي-أ)</option>
+                <option value="qty_asc">العدد (تصاعدي)</option>
+                <option value="qty_desc">العدد (تنازلي)</option>
+                <option value="price_asc">السعر (تصاعدي)</option>
+                <option value="price_desc">السعر (تنازلي)</option>
+              </select>
+
+              <button class="btn" id="filtersResetBtn" type="button">إعادة ضبط</button>
+            </div>
+          </div>
+        </div>
 
         <div class="tableScrollTop" id="ordersTableScrollTop"><div class="tableScrollInner" id="ordersTableScrollInner"></div></div>
         <div class="tableWrap" id="ordersTableWrap">
@@ -903,13 +984,13 @@ function renderSidebar(){
   };
 
   if(myEmail === EMAIL_RAHAF){
-    link("إدارة الطلبات", "./index.html?tab=orders");
+    link("الطلبيات", "./index.html");
     link("الاستلام والتحصيل", "./pickup-dashboard.html");
     link("الأرشيف", "./archive.html");
     link("المالية", "./finance.html");
   }
   if(myEmail === EMAIL_REEM || myEmail === EMAIL_RAWAND){
-    link("عرض الطلبيات", "./index.html?tab=view");
+    link("الطلبيات", "./index.html");
     link("الاستلام والتحصيل", "./pickup-dashboard.html");
   }
 
@@ -925,6 +1006,20 @@ const tabButtons = Array.from(document.querySelectorAll(".tabLink"));
 const ordersPanel = document.getElementById("ordersPanel");
 const viewPanel = document.getElementById("viewPanel");
 const customersPanel = document.getElementById("customersPanel");
+const modeSwitch = document.getElementById("modeSwitch");
+const modeEditBtn = document.getElementById("modeEditBtn");
+const modeViewBtn = document.getElementById("modeViewBtn");
+const filtersPanel = document.getElementById("filtersPanel");
+const filtersToggleBtn = document.getElementById("filtersToggleBtn");
+const filtersBody = document.getElementById("filtersBody");
+const filterPickup = document.getElementById("filterPickup");
+const sortSelect = document.getElementById("sortSelect");
+const filtersResetBtn = document.getElementById("filtersResetBtn");
+let currentRole = "";
+let currentMode = "edit";
+let filtersOpen = false;
+let filterPickupValue = "all";
+let sortMode = "default";
 
 function showTab(tab){
   const isOrders = tab === "orders";
@@ -936,22 +1031,72 @@ function showTab(tab){
   tabButtons.forEach(btn=>{
     btn.classList.toggle("active", btn.dataset.tab === tab);
   });
+  if(modeSwitch){
+    modeSwitch.style.display = (currentRole === "rahaf" && !isCustomers) ? "inline-flex" : "none";
+  }
+  if(isOrders){
+    currentMode = "edit";
+    if(modeEditBtn) modeEditBtn.classList.add("active");
+    if(modeViewBtn) modeViewBtn.classList.remove("active");
+    document.body.dataset.mode = "edit";
+  }
+  if(isView){
+    currentMode = "view";
+    if(modeViewBtn) modeViewBtn.classList.add("active");
+    if(modeEditBtn) modeEditBtn.classList.remove("active");
+    document.body.dataset.mode = "view";
+  }
+}
+
+function setMode(mode){
+  currentMode = mode;
+  if(modeEditBtn) modeEditBtn.classList.toggle("active", mode === "edit");
+  if(modeViewBtn) modeViewBtn.classList.toggle("active", mode === "view");
+  showTab(mode === "edit" ? "orders" : "view");
+}
+
+function setFiltersOpen(open){
+  filtersOpen = !!open;
+  if(filtersBody) filtersBody.style.display = filtersOpen ? "block" : "none";
+  if(filtersToggleBtn) filtersToggleBtn.textContent = filtersOpen ? "إخفاء الفلاتر" : "إظهار الفلاتر";
 }
 
 function setupTabs(role){
+  currentRole = role || "";
   if(role === "reem"){
     if(navTabs) navTabs.style.display = "none";
-    showTab("view");
+    setMode("view");
     return;
   }
-  if(navTabs) navTabs.style.display = "flex";
+  if(navTabs){
+    navTabs.style.display = "flex";
+    navTabs.classList.add("merged");
+  }
   const param = new URLSearchParams(window.location.search).get("tab");
-  const initial = ["orders","view","customers"].includes(param) ? param : "orders";
-  showTab(initial);
+  if(param === "customers"){
+    showTab("customers");
+  }else{
+    setMode("edit");
+  }
 }
 
 tabButtons.forEach(btn=>{
   btn.addEventListener("click", ()=> showTab(btn.dataset.tab));
+});
+if(modeEditBtn) modeEditBtn.addEventListener("click", ()=> setMode("edit"));
+if(modeViewBtn) modeViewBtn.addEventListener("click", ()=> setMode("view"));
+if(filtersToggleBtn) filtersToggleBtn.addEventListener("click", ()=> setFiltersOpen(!filtersOpen));
+if(filterPickup) filterPickup.addEventListener("change", ()=>{
+  filterPickupValue = filterPickup.value || "all";
+  renderPurchasesTableWith(getFilteredPurchases());
+});
+if(sortSelect) sortSelect.addEventListener("change", ()=>{
+  sortMode = sortSelect.value || "default";
+  renderPurchasesTableWith(getFilteredPurchases());
+});
+if(filtersResetBtn) filtersResetBtn.addEventListener("click", ()=>{
+  resetPurchaseFilters();
+  renderPurchasesTableWith(getFilteredPurchases());
 });
 const ordersList = document.getElementById("ordersList");
 const newOrderBtn = document.getElementById("newOrderBtn");
@@ -2058,7 +2203,24 @@ async function loadOrders(){
 
   orders = data || [];
   ordersList.innerHTML="";
+  let lastGroup = "";
+  const monthLabel = (iso)=>{
+    if(!iso) return "—";
+    const d = new Date(iso);
+    if(Number.isNaN(d.getTime())) return "—";
+    const mm = String(d.getMonth()+1).padStart(2,"0");
+    const yyyy = d.getFullYear();
+    return `${mm}/${yyyy}`;
+  };
   orders.forEach(o=>{
+    const group = monthLabel(o.created_at);
+    if(group !== lastGroup){
+      const label = document.createElement("div");
+      label.className = "orderGroupLabel";
+      label.textContent = group;
+      ordersList.appendChild(label);
+      lastGroup = group;
+    }
     const div=document.createElement("div");
     div.className="orderItem"+(activeOrder?.id===o.id?" active":"");
     div.innerHTML = `<span>${escapeHtml(o.order_name || "")}</span><span class="pill">فتح</span>`;
@@ -2086,6 +2248,8 @@ async function selectOrder(o){
     exportPdfBtn.onclick = ()=> exportOrderPdf(activeOrder.id, exportPdfBtn);
   }
   clearDuplicateWarning();
+  resetPurchaseFilters();
+  setFiltersOpen(false);
 
   // important: on mobile, close sidebar if open so it doesn't cover orders
   if(isMobile()) closeSidebar();
@@ -2515,28 +2679,46 @@ async function saveInlineEdit(purchaseId){
 }
 
 /* ===== Purchases table + inline edit UI ===== */
-async function loadPurchases(){
-  if(!activeOrder) return;
+function resetPurchaseFilters(){
+  filterPickupValue = "all";
+  sortMode = "default";
+  if(filterPickup) filterPickup.value = "all";
+  if(sortSelect) sortSelect.value = "default";
+}
 
-  const { data, error } = await sb
-    .from("purchases")
-    .select("*,purchase_links(url),purchase_images(id,storage_path)")
-    .eq("order_id", activeOrder.id)
-    .order("created_at", { ascending:false });
+function getFilteredPurchases(){
+  let list = Array.isArray(activePurchases) ? [...activePurchases] : [];
+  const pickup = filterPickup ? (filterPickup.value || "all") : filterPickupValue;
+  if(pickup !== "all"){
+    list = list.filter(p=> (p.pickup_point || "من نقطة الاستلام") === pickup);
+  }
 
-  if(error){ console.error(error); return; }
+  const mode = sortSelect ? (sortSelect.value || "default") : sortMode;
+  const byNameAsc = (a,b)=> String(a.customer_name||"").localeCompare(String(b.customer_name||""), "ar");
+  const byNameDesc = (a,b)=> -byNameAsc(a,b);
+  const byQtyAsc = (a,b)=> (Number(a.qty||0) - Number(b.qty||0));
+  const byQtyDesc = (a,b)=> (Number(b.qty||0) - Number(a.qty||0));
+  const byPriceAsc = (a,b)=> (parsePrice(a.price) - parsePrice(b.price));
+  const byPriceDesc = (a,b)=> (parsePrice(b.price) - parsePrice(a.price));
 
-  activePurchases = data || [];
+  switch(mode){
+    case "name_asc": list.sort(byNameAsc); break;
+    case "name_desc": list.sort(byNameDesc); break;
+    case "qty_asc": list.sort(byQtyAsc); break;
+    case "qty_desc": list.sort(byQtyDesc); break;
+    case "price_asc": list.sort(byPriceAsc); break;
+    case "price_desc": list.sort(byPriceDesc); break;
+    default: break;
+  }
+  return list;
+}
 
-  // ✅ restore totals per order
-  const purchasesCount = (data||[]).length;
-  const totalItems = (data||[]).reduce((sum,p)=> sum + Number(p.qty || 0), 0);
-  const totalPrice = (data||[]).reduce((sum,p)=> sum + parsePrice(p.price), 0);
-  orderStats.textContent = `عدد المشتريات: ${purchasesCount} — مجموع القطع: ${totalItems} — مجموع الأسعار: ${formatILS(totalPrice)} ₪`;
-
+function renderPurchasesTableWith(list){
+  if(!tbody) return;
+  const dataList = Array.isArray(list) ? list : [];
   tbody.innerHTML="";
 
-  (data||[]).forEach(p=>{
+  dataList.forEach(p=>{
     const imgs=(p.purchase_images||[]).map(i=>{
       const url=sb.storage.from(BUCKET).getPublicUrl(i.storage_path).data.publicUrl;
       return `<img src="${escapeAttr(url)}" alt="صورة" data-customer="${escapeAttr(p.customer_name || "")}">`;
@@ -2623,69 +2805,64 @@ async function loadPurchases(){
               <span class="muted" style="min-width:90px">المدفوع</span>
               <input data-f="paid" type="number" step="0.01" min="0" placeholder="المدفوع" value="${escapeAttr(p.paid_price ?? p.price ?? "")}" style="flex:1">
             </div>
-          </div>
 
-          <div class="row" style="margin-top:10px">
-            <span class="muted">حجم الكيس</span>
-            <select data-f="bag">
-              <option value="كيس كبير" ${sel(p.bag_size || "كيس صغير","كيس كبير")}>كيس كبير</option>
-              <option value="كيس صغير" ${sel(p.bag_size || "كيس صغير","كيس صغير")}>كيس صغير</option>
-            </select>
-          </div>
+            <div class="row" style="align-items:center; gap:8px">
+              <span class="muted" style="min-width:90px">حجم الكيس</span>
+              <select data-f="bag">
+                <option value="كيس كبير" ${sel(p.bag_size,'كيس كبير')}>كيس كبير</option>
+                <option value="كيس صغير" ${sel(p.bag_size,'كيس صغير')}>كيس صغير</option>
+              </select>
+            </div>
 
-          <div class="row" style="margin-top:10px">
-            <input data-l="1" placeholder="رابط 1" value="${escapeAttr(links[0])}">
-            <input data-l="2" placeholder="رابط 2" value="${escapeAttr(links[1])}">
-            <input data-l="3" placeholder="رابط 3" value="${escapeAttr(links[2])}">
-            <input data-l="4" placeholder="رابط 4" value="${escapeAttr(links[3])}">
-            <input data-l="5" placeholder="رابط 5" value="${escapeAttr(links[4])}">
-          </div>
+            <div class="row" style="margin-top:10px">
+              <input data-l="1" placeholder="رابط 1" value="${escapeAttr(links[0])}">
+              <input data-l="2" placeholder="رابط 2" value="${escapeAttr(links[1])}">
+              <input data-l="3" placeholder="رابط 3" value="${escapeAttr(links[2])}">
+              <input data-l="4" placeholder="رابط 4" value="${escapeAttr(links[3])}">
+              <input data-l="5" placeholder="رابط 5" value="${escapeAttr(links[4])}">
+            </div>
 
-          <div class="row" style="margin-top:10px">
-            <span class="muted">مكان الاستلام</span>
-            <select data-f="pickup">
-              <option value="من البيت" ${sel(pickupTxt,'من البيت')}>من البيت</option>
-              <option value="توصيل" ${sel(pickupTxt,'توصيل')}>توصيل</option>
-              <option value="من نقطة الاستلام" ${sel(pickupTxt,'من نقطة الاستلام')}>من نقطة الاستلام</option>
-            </select>
-          </div>
+            <div class="row" style="margin-top:10px">
+              <span class="muted">مكان الاستلام</span>
+              <select data-f="pickup">
+                <option value="من البيت" ${sel(pickupTxt,'من البيت')}>من البيت</option>
+                <option value="توصيل" ${sel(pickupTxt,'توصيل')}>توصيل</option>
+                <option value="من نقطة الاستلام" ${sel(pickupTxt,'من نقطة الاستلام')}>من نقطة الاستلام</option>
+              </select>
+            </div>
 
-          <div class="editImgsRow">
-            <div style="flex:1;min-width:260px">
-              <div class="muted">الصور الحالية (اضغطي 🗑 للتحديد/التراجع)</div>
-              <div class="editImgsRow" style="margin-top:8px">
-                ${existingThumbs || `<div class="muted">لا يوجد صور</div>`}
+            <div class="editImgsRow">
+              <div style="flex:1;min-width:260px">
+                <div class="muted">الصور الحالية (اضغطي 🗑 للتحديد/التراجع)</div>
+                <div class="editImgsRow" style="margin-top:8px">
+                  ${existingThumbs || `<div class="muted">لا يوجد صور</div>`}
+                </div>
+              </div>
+
+              <div class="miniDropZone" data-mini-drop="${p.id}" tabindex="0" title="اسحبي/الصقي الصور هنا">
+                <b>إضافة صور</b>
+                <div class="muted" style="margin-top:6px">سحب/إفلات أو لصق (Ctrl+V) أو اختيار ملفات</div>
+                <div class="row" style="margin-top:8px">
+                  <button class="btn" type="button" data-mini-pick="${p.id}">اختيار صور</button>
+                  <span class="pill">حد أقصى 10</span>
+                </div>
+                <input type="file" accept="image/*" multiple style="display:none" data-mini-file="${p.id}">
+                <div class="miniPreview" data-new-preview="${p.id}"></div>
               </div>
             </div>
 
-            <div class="miniDropZone" data-mini-drop="${p.id}" tabindex="0" title="اسحبي/الصقي الصور هنا">
-              <b>إضافة صور</b>
-              <div class="muted" style="margin-top:6px">سحب/إفلات أو لصق (Ctrl+V) أو اختيار ملفات</div>
-              <div class="row" style="margin-top:8px">
-                <button class="btn" type="button" data-mini-pick="${p.id}">اختيار صور</button>
-                <span class="pill">حد أقصى 10</span>
+            <div style="margin-top:10px">
+              <div class="muted" style="margin-bottom:6px">ملاحظة</div>
+              <textarea data-f="note" placeholder="اكتبي أي ملاحظة...">${escapeHtml(noteTxt)}</textarea>
+            </div>
+
+            <div class="row" style="margin-top:10px;justify-content:space-between">
+              <div class="row">
+                <button class="btn primary" data-save="${p.id}" type="button">حفظ</button>
+                <button class="btn" data-cancel="${p.id}" type="button">إلغاء</button>
               </div>
-              <input type="file" accept="image/*" multiple style="display:none" data-mini-file="${p.id}">
-              <div class="miniPreview" data-new-preview="${p.id}"></div>
+              <span class="muted" data-msg="${p.id}"></span>
             </div>
-          </div>
-
-          <div class="row" style="margin-top:10px;align-items:center;gap:8px">
-            <button class="btn" type="button" data-ai-analyze="${p.id}">تحليل الأسعار من الصور</button>
-            <span class="muted" data-ai-status="${p.id}"></span>
-          </div>
-
-          <div style="margin-top:10px">
-            <div class="muted" style="margin-bottom:6px">ملاحظة</div>
-            <textarea data-f="note" placeholder="اكتبي أي ملاحظة...">${escapeHtml(noteTxt)}</textarea>
-          </div>
-
-          <div class="row" style="margin-top:10px;justify-content:space-between">
-            <div class="row">
-              <button class="btn primary" data-save="${p.id}" type="button">حفظ</button>
-              <button class="btn" data-cancel="${p.id}" type="button">إلغاء</button>
-            </div>
-            <span class="muted" data-msg="${p.id}"></span>
           </div>
         </div>
       </td>
@@ -2714,11 +2891,7 @@ async function loadPurchases(){
   });
 
   bindActionMenuHandlers();
-  tbody.querySelectorAll("button[data-cancel]").forEach(btn=> btn.onclick=()=>{
-    const id = btn.dataset.cancel;
-    resetEditRow(id);
-    closeEditRow(id);
-  });
+  tbody.querySelectorAll("button[data-cancel]").forEach(btn=> btn.onclick=()=>{ const id = btn.dataset.cancel; resetEditRow(id); closeEditRow(id); });
   tbody.querySelectorAll("button[data-save]").forEach(btn=> btn.onclick=()=>saveInlineEdit(btn.dataset.save));
 
   tbody.querySelectorAll('tr[data-edit-row]').forEach(row=>{
@@ -2728,41 +2901,44 @@ async function loadPurchases(){
         e.preventDefault();
         resetEditRow(id);
         closeEditRow(id);
-      } else if(e.key === "Enter" && e.target.tagName !== "TEXTAREA"){
-        e.preventDefault();
-        saveInlineEdit(id);
       }
     };
   });
 
-  tbody.querySelectorAll("[data-existing-thumb]").forEach(thumb=>{
-    const purchaseId=thumb.dataset.existingThumb;
-    const imgId=thumb.dataset.imgid;
-    const path=thumb.dataset.path;
-    const btn=thumb.querySelector("button[data-toggle-del]");
-    if(!btn) return;
-    btn.onclick=()=>{
-      const state=editImageState.get(purchaseId);
-      if(!state) return;
-      const already=state.deleteImgIds.has(imgId);
-      if(already){ state.deleteImgIds.delete(imgId); state.deletePaths.delete(path); thumb.classList.remove("removing"); }
-      else { state.deleteImgIds.add(imgId); state.deletePaths.add(path); thumb.classList.add("removing"); }
-      updateEditCounts(purchaseId);
-      setEditAiStatus(purchaseId, "");
+  tbody.querySelectorAll("input[data-f='paid']").forEach(input=>{
+    input.addEventListener("input", ()=>{ input.dataset.manual = "1"; });
+  });
+
+  tbody.querySelectorAll("[data-toggle-del]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const id = btn.dataset.toggleDel;
+      const imgId = btn.closest("[data-existing-thumb]")?.dataset.imgid;
+      const path = btn.closest("[data-existing-thumb]")?.dataset.path;
+      if(!id || !imgId) return;
+      toggleDeleteExistingImage(id, imgId, path);
     };
   });
 
-  tbody.querySelectorAll("[data-mini-pick]").forEach(btn=>{
-    const purchaseId=btn.dataset.miniPick;
-    btn.onclick=()=>{ const fileInput=tbody.querySelector(`[data-mini-file="${purchaseId}"]`); if(fileInput) fileInput.click(); };
+  tbody.querySelectorAll("[data-mini-file]").forEach(input=>{
+    input.addEventListener("change", ()=>{
+      const purchaseId = input.dataset.miniFile;
+      if(!purchaseId) return;
+      addEditFiles(purchaseId, input.files);
+      input.value="";
+    });
   });
-  tbody.querySelectorAll("[data-mini-file]").forEach(inp=>{
-    const purchaseId=inp.dataset.miniFile;
-    inp.onchange=()=>{ addEditFiles(purchaseId, inp.files); inp.value=""; };
+
+  tbody.querySelectorAll("[data-mini-pick]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const purchaseId = btn.dataset.miniPick;
+      const fileInput = tbody.querySelector(`[data-mini-file="${purchaseId}"]`);
+      if(fileInput) fileInput.click();
+    });
   });
 
   tbody.querySelectorAll("[data-mini-drop]").forEach(zone=>{
-    const purchaseId=zone.dataset.miniDrop;
+    const purchaseId = zone.dataset.miniDrop;
+    if(!purchaseId) return;
     ["dragenter","dragover"].forEach(evt=>{
       zone.addEventListener(evt,(e)=>{ e.preventDefault(); e.stopPropagation(); zone.classList.add("dragover"); });
     });
@@ -2774,7 +2950,7 @@ async function loadPurchases(){
     zone.addEventListener("click",()=>{ activeEditPasteTarget=purchaseId; });
   });
 
-  (data||[]).forEach(p=>updateEditCounts(p.id));
+  dataList.forEach(p=>updateEditCounts(p.id));
 
   if(highlightPurchaseId){
     const row = tbody.querySelector(`tr[data-purchase-id="${highlightPurchaseId}"]`);
@@ -2789,6 +2965,26 @@ async function loadPurchases(){
   }
 
   syncOrdersTableScroll();
+}
+async function loadPurchases(){
+  if(!activeOrder) return;
+
+  const { data, error } = await sb
+    .from("purchases")
+    .select("*,purchase_links(url),purchase_images(id,storage_path)")
+    .eq("order_id", activeOrder.id)
+    .order("created_at", { ascending:false });
+
+  if(error){ console.error(error); return; }
+
+  activePurchases = data || [];
+
+  // ✅ restore totals per order
+  const purchasesCount = (data||[]).length;
+  const totalItems = (data||[]).reduce((sum,p)=> sum + Number(p.qty || 0), 0);
+  const totalPrice = (data||[]).reduce((sum,p)=> sum + parsePrice(p.price), 0);
+  orderStats.textContent = `عدد المشتريات: ${purchasesCount} — مجموع القطع: ${totalItems} — مجموع الأسعار: ${formatILS(totalPrice)} ₪`;
+  renderPurchasesTableWith(getFilteredPurchases());
 }
 
 document.addEventListener("paste",(e)=>{
@@ -3776,4 +3972,5 @@ function applyCustomerPrefill(){
 </script>
 </body>
 </html>
+
 
