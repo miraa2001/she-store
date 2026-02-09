@@ -142,6 +142,10 @@
     .grid.list-collapsed{grid-template-columns:46px 1fr}
     .grid.list-collapsed .listFull{display:none}
     .grid.list-collapsed .listCollapsed{display:flex}
+    #ordersGrid > main.card{
+      width:100%;
+      justify-self:stretch;
+    }
     #ordersGrid.list-collapsed > aside.card,
     #viewGrid.list-collapsed > aside.card{
       border:none;
@@ -341,6 +345,10 @@
         box-shadow:none;
         padding:0;
       }
+      #ordersGrid > main.card{
+        width:100%;
+        justify-self:stretch;
+      }
       #ordersGrid.list-collapsed .listCollapsed,
       #viewGrid.list-collapsed .listCollapsed{
         width:100%;
@@ -457,6 +465,32 @@
     th,td{border-bottom:1px solid var(--color-border);padding:10px;text-align:right;vertical-align:top}
     td a{word-break:break-all;overflow-wrap:anywhere}
     th{color:var(--color-muted);font-size:13px}
+    #ordersTableWrap table{min-width:760px}
+    #ordersTableWrap th:nth-child(7),
+    #ordersTableWrap td:nth-child(7){
+      max-width:240px;
+      white-space:normal;
+      word-break:break-word;
+    }
+    #ordersTableWrap th:last-child,
+    #ordersTableWrap td.actionCell{
+      width:86px;
+      min-width:86px;
+      text-align:center;
+      padding-inline:6px;
+      white-space:nowrap;
+    }
+    @media(max-width:700px){
+      #ordersTableWrap table{min-width:680px}
+      #ordersTableWrap th:nth-child(7),
+      #ordersTableWrap td:nth-child(7){max-width:150px}
+      #ordersTableWrap th:last-child,
+      #ordersTableWrap td.actionCell{
+        width:72px;
+        min-width:72px;
+        padding-inline:4px;
+      }
+    }
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     .orderItem{border:1px solid var(--color-border);border-radius:var(--radius-md);padding:10px;cursor:pointer;display:flex;justify-content:space-between}
     .orderItem.active{border-color:var(--brand);background:var(--brand-tint)}
@@ -557,6 +591,178 @@
     .miniPreview .thumb button{
       position:absolute;top:6px;left:6px;border:none;background:rgba(0,0,0,.55);color:#fff;width:26px;height:26px;border-radius:var(--radius-sm);cursor:pointer
     }
+
+    body.modal-open{overflow:hidden}
+    #addPurchaseModalBackdrop{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      background:rgba(0,0,0,.45);
+      z-index:1200;
+    }
+    #addPurchaseModalBackdrop.open{display:flex}
+    #addPurchaseModalCard{
+      width:min(720px, calc(100vw - 32px));
+      max-height:calc(100vh - 32px);
+      max-height:calc(100dvh - 32px);
+      background:#fff;
+      border-radius:16px;
+      box-shadow:0 24px 64px rgba(0,0,0,.24);
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+    }
+    .addPurchaseModalHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      direction:ltr;
+      padding:14px 16px;
+      border-bottom:1px solid var(--color-border);
+      background:#fff;
+      position:sticky;
+      top:0;
+      z-index:2;
+    }
+    .addPurchaseModalHeader b{
+      font-size:18px;
+      line-height:1.2;
+    }
+    #closeAddPurchaseModalBtn{
+      width:34px;
+      height:34px;
+      border-radius:10px;
+      border:1px solid var(--color-border);
+      background:#fff;
+      cursor:pointer;
+      font-size:18px;
+      line-height:1;
+    }
+    #closeAddPurchaseModalBtn:hover{background:#f7f7f7}
+    #addPurchaseModalBody{
+      padding:16px;
+      overflow:auto;
+    }
+    @media(max-width:700px){
+      #addPurchaseModalBackdrop{
+        align-items:flex-start;
+        padding:12px;
+        padding-top:calc(8px + env(safe-area-inset-top));
+        padding-bottom:calc(8px + env(safe-area-inset-bottom));
+      }
+      #addPurchaseModalCard{
+        width:calc(100vw - 24px);
+        max-height:calc(100vh - 16px);
+        max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
+        border-radius:14px;
+      }
+      .addPurchaseModalHeader{
+        padding:10px 12px;
+      }
+      #addPurchaseModalBody{
+        padding:12px;
+      }
+    }
+    #openAddPurchaseModalBtn:hover{filter:brightness(.98)}
+
+    /* From Uiverse.io by ilkhoeri */
+    .action_has {
+      --color: 0 0% 60%;
+      --color-has: 0 0% 0%;
+      --sz: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: calc(var(--sz) * 2.5);
+      width: calc(var(--sz) * 2.5);
+      padding: 0.4rem 0.5rem;
+      border-radius: 0.375rem;
+      border: 0.0625rem solid hsl(var(--color));
+      background: #fff;
+      color: inherit;
+    }
+    .has_saved:hover {
+      border-color: hsl(var(--color-has));
+    }
+    .has_liked:hover svg,
+    .has_saved:hover svg {
+      color: hsl(var(--color-has));
+    }
+    .has_liked svg,
+    .has_saved svg {
+      overflow: visible;
+      height: calc(var(--sz) * 1.75);
+      width: calc(var(--sz) * 1.75);
+      --ease: cubic-bezier(0.5, 0, 0.25, 1);
+      --zoom-from: 1.75;
+      --zoom-via: 0.75;
+      --zoom-to: 1;
+      --duration: 1s;
+    }
+    .has_saved:hover path[data-path="box"] {
+      transition: all 0.3s var(--ease);
+      animation: has-saved var(--duration) var(--ease) forwards;
+      fill: hsl(var(--color-has) / 0.35);
+    }
+    .has_saved:hover path[data-path="line-top"] {
+      animation: has-saved-line-top var(--duration) var(--ease) forwards;
+    }
+    .has_saved:hover path[data-path="line-bottom"] {
+      animation: has-saved-line-bottom var(--duration) var(--ease) forwards,
+        has-saved-line-bottom-2 calc(var(--duration) * 1) var(--ease)
+          calc(var(--duration) * 0.75);
+    }
+    @keyframes has-saved-line-top {
+      33.333% {
+        transform: rotate(0deg) translate(1px, 2px) scale(var(--zoom-from));
+        d: path("M 3 5 L 3 8 L 3 8");
+      }
+      66.666% {
+        transform: rotate(20deg) translate(2px, -2px) scale(var(--zoom-via));
+      }
+      99.999% {
+        transform: rotate(0deg) translate(0px, 0px) scale(var(--zoom-to));
+      }
+    }
+    @keyframes has-saved-line-bottom {
+      33.333% {
+        transform: rotate(0deg) translate(1px, 2px) scale(var(--zoom-from));
+        d: path("M 17 20 L 17 13 L 7 13 L 7 20");
+      }
+      66.666% {
+        transform: rotate(20deg) translate(2px, -2px) scale(var(--zoom-via));
+      }
+      99.999% {
+        transform: rotate(0deg) translate(0px, 0px) scale(var(--zoom-to));
+        d: path("M 17 21 L 17 21 L 7 21 L 7 21");
+      }
+    }
+    @keyframes has-saved-line-bottom-2 {
+      from {
+        d: path("M 17 21 L 17 21 L 7 21 L 7 21");
+      }
+      to {
+        transform: rotate(0deg) translate(0px, 0px) scale(var(--zoom-to));
+        d: path("M 17 20 L 17 13 L 7 13 L 7 20");
+        fill: white;
+      }
+    }
+    @keyframes has-saved {
+      33.333% {
+        transform: rotate(0deg) translate(1px, 2px) scale(var(--zoom-from));
+      }
+      66.666% {
+        transform: rotate(20deg) translate(2px, -2px) scale(var(--zoom-via));
+      }
+      99.999% {
+        transform: rotate(0deg) translate(0px, 0px) scale(var(--zoom-to));
+      }
+    }
   </style>
 </head>
 <body data-page="index">
@@ -645,10 +851,11 @@
 
             <div class="row" id="arrivedRow" style="margin-top:8px;display:none">
               <div class="row" style="gap:8px;align-items:center">
-                <label class="row" style="gap:8px;cursor:pointer">
+                <label class="container">
                   <input type="checkbox" id="arrivedToggle">
-                  <span>تم وصول الطلب</span>
+                  <div class="checkmark"></div>
                 </label>
+                <label for="arrivedToggle" style="cursor:pointer">تم وصول الطلب</label>
                 <span id="arrivedBadge"></span>
               </div>
               <div class="row" style="gap:8px">
@@ -658,72 +865,9 @@
             </div>
           </div>
 
-          <div class="orderContent" id="addPurchaseSection">
-            <b>إضافة مشترى</b>
-        <div class="row">
-          <div class="autoWrap">
-            <input id="customer" placeholder="اسم الزبون" autocomplete="off">
-            <button class="btn" id="customerClearBtn" type="button" style="display:none">تغيير</button>
-            <div class="autoList" id="customerList"></div>
+          <div class="row" style="margin:8px 0 12px">
+            <button class="btn primary" id="openAddPurchaseModalBtn" type="button">+ إضافة مشترى</button>
           </div>
-          <input id="qty" type="number" value="1" placeholder="العدد">
-          <input id="price" type="number" placeholder="السعر">
-        </div>
-
-        <div class="row" id="links" style="margin-top:8px"></div>
-
-        <div class="row" style="margin-top:8px">
-          <label class="muted" for="bagSize">حجم الكيس</label>
-          <select id="bagSize">
-            <option value="كيس كبير">كيس كبير</option>
-            <option value="كيس صغير" selected>كيس صغير</option>
-          </select>
-        </div>
-
-        <div class="row" style="margin-top:10px">
-          <label class="muted" for="pickupPoint">مكان الاستلام</label>
-          <select id="pickupPoint">
-            <option value="من البيت">من البيت</option>
-            <option value="توصيل">توصيل</option>
-            <option value="من نقطة الاستلام" selected>من نقطة الاستلام</option>
-          </select>
-        </div>
-
-        <div style="margin-top:8px">
-          <div id="dropZone" class="dropZone" tabindex="0">
-            <b>صور المشترى</b>
-            <div class="muted" style="margin-top:6px">
-              اسحبي وافلتي الصور هون، أو اضغطي لاختيار ملفات، أو الصقي (Ctrl+V)
-              <br>(حد أقصى: 10 صور)
-            </div>
-
-            <div class="row" style="margin-top:10px">
-              <button class="btn" id="pickImagesBtn" type="button">اختيار صور</button>
-              <span class="pill" id="imgCount">0/10</span>
-            </div>
-
-            <div id="preview" class="preview" style="margin-top:10px"></div>
-            <div class="row" style="margin-top:10px;align-items:center;gap:8px">
-              <button class="btn" id="analyzeImagesBtn" type="button">تحليل الأسعار من الصور</button>
-              <span class="muted" id="aiStatus"></span>
-            </div>
-            <input id="images" type="file" multiple accept="image/*" style="display:none">
-          </div>
-
-          <div style="margin-top:10px">
-          <div class="muted" style="margin-bottom:6px">ملاحظة</div>
-          <textarea id="note" placeholder="اكتبي أي ملاحظة..."></textarea>
-        </div>
-
-        <div class="row" style="margin-top:10px">
-          <div id="duplicateWarning" class="dangerText" style="display:none">⛔ يوجد مشترى بنفس الاسم في هذه الطلبية</div>
-        </div>
-
-        <div class="row" style="margin-top:6px">
-          <button class="btn primary" id="addBtn">إضافة</button>
-          <span class="muted" id="addStatus"></span>
-        </div>
-      </div>
 
         <hr>
 
@@ -768,9 +912,7 @@
               <th>السعر</th>
               <th>المدفوع</th>
               <th>حجم الكيس</th>
-              <th>روابط</th>
               <th>مكان الاستلام</th>
-              <th>صور</th>
               <th>ملاحظة</th>
               <th>إجراءات</th>
             </tr>
@@ -821,10 +963,11 @@
               <b id="viewTitle"></b>
 
               <div id="viewPlacedToggleWrap" class="toggleRow" style="display:none">
-                <label class="toggleRow" style="cursor:pointer">
+                <label class="container">
                   <input type="checkbox" id="viewPlacedAtPickupToggle">
-                  <span>تم وضع الطلب في نقطة الاستلام</span>
+                  <div class="checkmark"></div>
                 </label>
+                <label for="viewPlacedAtPickupToggle" style="cursor:pointer">تم وضع الطلب في نقطة الاستلام</label>
                 <span id="viewPlacedToggleMsg" class="muted"></span>
               </div>
             </div>
@@ -924,6 +1067,85 @@
         </thead>
         <tbody id="custTableBody"></tbody>
       </table>
+    </div>
+  </div>
+</div>
+
+<div id="addPurchaseModalBackdrop" aria-hidden="true">
+  <div id="addPurchaseModalCard" role="dialog" aria-modal="true" aria-labelledby="addPurchaseModalTitle">
+    <div class="addPurchaseModalHeader">
+      <b id="addPurchaseModalTitle">Add Purchase</b>
+      <button id="closeAddPurchaseModalBtn" type="button" aria-label="Close">✕</button>
+    </div>
+    <div id="addPurchaseModalBody">
+      <!-- UI-only change; purchase logic unchanged. -->
+      <div class="orderContent" id="addPurchaseSection">
+        <b>إضافة مشترى</b>
+        <div class="row">
+          <div class="autoWrap">
+            <input id="customer" placeholder="اسم الزبون" autocomplete="off">
+            <button class="btn" id="customerClearBtn" type="button" style="display:none">تغيير</button>
+            <div class="autoList" id="customerList"></div>
+          </div>
+          <input id="qty" type="number" value="1" placeholder="العدد">
+          <input id="price" type="number" placeholder="السعر">
+        </div>
+
+        <div class="row" id="links" style="margin-top:8px"></div>
+
+        <div class="row" style="margin-top:8px">
+          <label class="muted" for="bagSize">حجم الكيس</label>
+          <select id="bagSize">
+            <option value="كيس كبير">كيس كبير</option>
+            <option value="كيس صغير" selected>كيس صغير</option>
+          </select>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <label class="muted" for="pickupPoint">مكان الاستلام</label>
+          <select id="pickupPoint">
+            <option value="من البيت">من البيت</option>
+            <option value="توصيل">توصيل</option>
+            <option value="من نقطة الاستلام" selected>من نقطة الاستلام</option>
+          </select>
+        </div>
+
+        <div style="margin-top:8px">
+          <div id="dropZone" class="dropZone" tabindex="0">
+            <b>صور المشترى</b>
+            <div class="muted" style="margin-top:6px">
+              اسحبي وافلتي الصور هون، أو اضغطي لاختيار ملفات، أو الصقي (Ctrl+V)
+              <br>(حد أقصى: 10 صور)
+            </div>
+
+            <div class="row" style="margin-top:10px">
+              <button class="btn" id="pickImagesBtn" type="button">اختيار صور</button>
+              <span class="pill" id="imgCount">0/10</span>
+            </div>
+
+            <div id="preview" class="preview" style="margin-top:10px"></div>
+            <div class="row" style="margin-top:10px;align-items:center;gap:8px">
+              <button class="btn" id="analyzeImagesBtn" type="button">تحليل الأسعار من الصور</button>
+              <span class="muted" id="aiStatus"></span>
+            </div>
+            <input id="images" type="file" multiple accept="image/*" style="display:none">
+          </div>
+
+          <div style="margin-top:10px">
+            <div class="muted" style="margin-bottom:6px">ملاحظة</div>
+            <textarea id="note" placeholder="اكتبي أي ملاحظة..."></textarea>
+          </div>
+
+          <div class="row" style="margin-top:10px">
+            <div id="duplicateWarning" class="dangerText" style="display:none">⛔ يوجد مشترى بنفس الاسم في هذه الطلبية</div>
+          </div>
+
+          <div class="row" style="margin-top:6px">
+            <button class="btn primary" id="addBtn">إضافة</button>
+            <span class="muted" id="addStatus"></span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1430,6 +1652,12 @@ const images = document.getElementById("images");
 const linksWrap = document.getElementById("links");
 const addBtn = document.getElementById("addBtn");
 const addStatus = document.getElementById("addStatus");
+const openAddPurchaseModalBtn = document.getElementById("openAddPurchaseModalBtn");
+const closeAddPurchaseModalBtn = document.getElementById("closeAddPurchaseModalBtn");
+const addPurchaseModalBackdrop = document.getElementById("addPurchaseModalBackdrop");
+const addPurchaseModalCard = document.getElementById("addPurchaseModalCard");
+const addPurchaseSection = document.getElementById("addPurchaseSection");
+let addPurchaseModalOpener = null;
 const deleteOrderBtn = document.getElementById("deleteOrderBtn");
 const duplicateWarning = document.getElementById("duplicateWarning");
 
@@ -1478,6 +1706,50 @@ if(viewOrdersListToggle){
 if(viewOrdersListToggleMini){
   viewOrdersListToggleMini.onclick = ()=> setViewListCollapsed(false);
 }
+
+function openAddPurchaseModal(){
+  if(!addPurchaseModalBackdrop) return;
+  addPurchaseModalOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  addPurchaseModalBackdrop.classList.add("open");
+  addPurchaseModalBackdrop.setAttribute("aria-hidden", "false");
+  document.body.classList.add("modal-open");
+
+  const firstInput = addPurchaseSection?.querySelector?.("input, select, textarea");
+  if(firstInput){
+    requestAnimationFrame(()=> firstInput.focus());
+  }
+}
+
+function closeAddPurchaseModal(){
+  if(!addPurchaseModalBackdrop || !addPurchaseModalBackdrop.classList.contains("open")) return;
+  addPurchaseModalBackdrop.classList.remove("open");
+  addPurchaseModalBackdrop.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("modal-open");
+
+  if(openAddPurchaseModalBtn){
+    openAddPurchaseModalBtn.focus();
+  }else if(addPurchaseModalOpener){
+    addPurchaseModalOpener.focus();
+  }
+}
+
+if(openAddPurchaseModalBtn){
+  openAddPurchaseModalBtn.addEventListener("click", openAddPurchaseModal);
+}
+if(closeAddPurchaseModalBtn){
+  closeAddPurchaseModalBtn.addEventListener("click", closeAddPurchaseModal);
+}
+if(addPurchaseModalBackdrop){
+  addPurchaseModalBackdrop.addEventListener("click", (e)=>{
+    if(e.target === addPurchaseModalBackdrop) closeAddPurchaseModal();
+  });
+}
+document.addEventListener("keydown", (e)=>{
+  if(e.key === "Escape" && addPurchaseModalBackdrop?.classList.contains("open")){
+    closeAddPurchaseModal();
+  }
+});
+
 const viewCounter = document.getElementById("viewCounter");
 const viewPrev = document.getElementById("viewPrev");
 const viewNext = document.getElementById("viewNext");
@@ -1490,6 +1762,55 @@ const viewPlacedToggleMsg = document.getElementById("viewPlacedToggleMsg");
 const viewSearchInput = document.getElementById("viewSearchInput");
 const viewSearchResultsEl = document.getElementById("viewSearchResults");
 const viewSearchCountEl = document.getElementById("viewSearchCount");
+
+const SAVE_BUTTON_ICON = `
+  <svg
+    aria-hidden="true"
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    stroke-linejoin="round"
+    stroke-linecap="round"
+    stroke-width="2"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    fill="none"
+  >
+    <path
+      d="m19,21H5c-1.1,0-2-.9-2-2V5c0-1.1.9-2,2-2h11l5,5v11c0,1.1-.9,2-2,2Z"
+      stroke-linejoin="round"
+      stroke-linecap="round"
+      data-path="box"
+    ></path>
+    <path
+      d="M7 3L7 8L15 8"
+      stroke-linejoin="round"
+      stroke-linecap="round"
+      data-path="line-top"
+    ></path>
+    <path
+      d="M17 20L17 13L7 13L7 20"
+      stroke-linejoin="round"
+      stroke-linecap="round"
+      data-path="line-bottom"
+    ></path>
+  </svg>
+`;
+
+function decorateSaveButtons(scope = document){
+  const root = scope || document;
+  const buttons = root.querySelectorAll("#saveOrderBtn, #custSaveBtn, button[data-save], button[data-bag-save]");
+  buttons.forEach((btn)=>{
+    if(btn.dataset.saveDecorated === "1") return;
+    const label = (btn.getAttribute("aria-label") || btn.textContent || "حفظ").trim();
+    btn.dataset.saveDecorated = "1";
+    btn.classList.add("action_has", "has_saved");
+    btn.setAttribute("aria-label", label);
+    btn.title = label;
+    btn.innerHTML = SAVE_BUTTON_ICON;
+  });
+}
+decorateSaveButtons();
 
 /* ===== Customers panel DOM ===== */
 const custName = document.getElementById("custName");
@@ -1910,11 +2231,63 @@ saveOrderBtn.onclick = async () => {
 };
 
 /* ===== New purchase links inputs ===== */
-for(let i=1;i<=5;i++){
-  const input = document.createElement("input");
-  input.placeholder = `رابط ${i}`;
-  linksWrap.appendChild(input);
+const NEW_PURCHASE_LINKS_LIMIT = 5;
+let newPurchaseLinkCount = 1;
+
+function renderNewPurchaseLinks(){
+  if(!linksWrap) return;
+  linksWrap.innerHTML = "";
+
+  for(let i=1; i<=newPurchaseLinkCount; i++){
+    const input = document.createElement("input");
+    input.type = "url";
+    input.placeholder = `رابط ${i}`;
+    input.dataset.newLink = String(i);
+    input.style.flex = "1";
+    input.style.minWidth = "220px";
+    linksWrap.appendChild(input);
+  }
+
+  const addLinkBtn = document.createElement("button");
+  addLinkBtn.type = "button";
+  addLinkBtn.className = "btn";
+  addLinkBtn.textContent = "+";
+  addLinkBtn.title = "إضافة رابط";
+  addLinkBtn.setAttribute("aria-label", "إضافة رابط");
+  addLinkBtn.style.minWidth = "42px";
+  addLinkBtn.disabled = newPurchaseLinkCount >= NEW_PURCHASE_LINKS_LIMIT;
+  addLinkBtn.onclick = ()=>{
+    if(newPurchaseLinkCount >= NEW_PURCHASE_LINKS_LIMIT) return;
+    newPurchaseLinkCount += 1;
+    renderNewPurchaseLinks();
+    const nextInput = linksWrap.querySelector(`input[data-new-link="${newPurchaseLinkCount}"]`);
+    if(nextInput) nextInput.focus();
+  };
+  linksWrap.appendChild(addLinkBtn);
+
+  if(newPurchaseLinkCount > 1){
+    const removeLinkBtn = document.createElement("button");
+    removeLinkBtn.type = "button";
+    removeLinkBtn.className = "btn";
+    removeLinkBtn.textContent = "−";
+    removeLinkBtn.title = "حذف آخر رابط";
+    removeLinkBtn.setAttribute("aria-label", "حذف آخر رابط");
+    removeLinkBtn.style.minWidth = "42px";
+    removeLinkBtn.onclick = ()=>{
+      if(newPurchaseLinkCount <= 1) return;
+      newPurchaseLinkCount -= 1;
+      renderNewPurchaseLinks();
+    };
+    linksWrap.appendChild(removeLinkBtn);
+  }
 }
+
+function resetNewPurchaseLinks(){
+  newPurchaseLinkCount = 1;
+  renderNewPurchaseLinks();
+}
+
+resetNewPurchaseLinks();
 
 setupCustomerAutocomplete(customer, customerList, customerClearBtn, { applyPickup: true });
 
@@ -3007,11 +3380,6 @@ function renderPurchasesTableWith(list){
   tbody.innerHTML="";
 
   dataList.forEach(p=>{
-    const imgs=(p.purchase_images||[]).map(i=>{
-      const url=sb.storage.from(BUCKET).getPublicUrl(i.storage_path).data.publicUrl;
-      return `<img src="${escapeAttr(url)}" alt="صورة" data-customer="${escapeAttr(p.customer_name || "")}">`;
-    }).join("");
-
     const pickupTxt = p.pickup_point || "من نقطة الاستلام";
     const bagTxt = p.bag_size || "—";
     const noteTxt = p.note || "";
@@ -3027,9 +3395,7 @@ function renderPurchasesTableWith(list){
       <td>${escapeHtml(p.price ?? "")}</td>
       <td>${escapeHtml(p.paid_price ?? "—")}</td>
       <td>${escapeHtml(bagTxt)}</td>
-      <td>${(p.purchase_links||[]).map((l,i)=>`<a href="${escapeAttr(l.url)}" target="_blank" rel="noopener">رابط ${i+1}</a>`).join("<br>") || "—"}</td>
       <td>${escapeHtml(pickupTxt)}</td>
-      <td class="thumbs">${imgs}</td>
       <td>${escapeHtml(noteTxt) || "—"}</td>
       <td class="actionCell">
         <button class="icon-btn" data-actions="${p.id}" aria-label="إجراءات" aria-haspopup="menu" aria-expanded="false">⋯</button>
@@ -3062,7 +3428,7 @@ function renderPurchasesTableWith(list){
     const sel = (v, x) => (v===x ? "selected" : "");
 
     editTr.innerHTML=`
-      <td colspan="10">
+      <td colspan="8">
         <div class="inlineEditBox">
           <div class="row" style="justify-content:space-between">
             <b>تعديل المشترى</b>
@@ -3239,6 +3605,7 @@ function renderPurchasesTableWith(list){
   });
 
   dataList.forEach(p=>updateEditCounts(p.id));
+  decorateSaveButtons(tbody);
 
   if(highlightPurchaseId){
     const row = tbody.querySelector(`tr[data-purchase-id="${highlightPurchaseId}"]`);
@@ -3425,7 +3792,7 @@ addBtn.onclick = async ()=>{
     bagSize.value="كيس صغير";
     note.value="";
     images.value="";
-    linksWrap.querySelectorAll("input").forEach(i=>i.value="");
+    resetNewPurchaseLinks();
     selectedImages=[]; updatePreview();
     clearDuplicateWarning();
 
@@ -3845,6 +4212,7 @@ function renderView(){
       btn.onclick = () => openViewWhatsappForPurchase(btn.dataset.wa);
     });
 
+    decorateSaveButtons(viewContent);
     if(canEditViewBagSize()) viewWireBagSizeEditors(viewContent);
   }
 
@@ -3918,6 +4286,7 @@ function renderViewList(){
       btn.onclick = () => openViewWhatsappForPurchase(btn.dataset.wa);
     });
 
+    decorateSaveButtons(viewListView);
     if(canEditViewBagSize()) viewWireBagSizeEditors(viewListView);
   }
 }
@@ -4113,6 +4482,7 @@ function renderCustList(list){
     custTableBody.appendChild(tr);
     custTableBody.appendChild(editTr);
   });
+  decorateSaveButtons(custTableBody);
 
   custTableBody.querySelectorAll("button[data-edit]").forEach(btn=>{
     btn.onclick = ()=>{

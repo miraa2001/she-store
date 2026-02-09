@@ -565,6 +565,7 @@ function renderTable(){
     const pickupBadge = (typeof statusBadge === "function")
       ? statusBadge(p.picked_up ? "\u062a\u0645 \u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645" : "\u063a\u064a\u0631 \u0645\u0633\u062a\u0644\u0645", p.picked_up ? "success" : "neutral")
       : (p.picked_up ? "\u062a\u0645 \u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645" : "\u063a\u064a\u0631 \u0645\u0633\u062a\u0644\u0645");
+    const pickupInputId = `pickupPointChk-${p.id}`;
     const paidCell = isRahaf
       ? `
         <td data-paid-value-cell="${p.id}">${escapeHtml(p.paid_price ?? "\u2014")}</td>
@@ -581,10 +582,13 @@ function renderTable(){
       ${paidCell}
       <td>${escapeHtml(p.bag_size || "\u2014")}</td>
       <td>
-        <label class="row" style="gap:6px;align-items:center">
-          <input class="chk" type="checkbox" data-id="${p.id}" ${checked}>
-          <span>${pickupBadge}</span>
-        </label>
+        <div class="row" style="gap:6px;align-items:center">
+          <label class="container">
+            <input class="chk" type="checkbox" id="${pickupInputId}" data-id="${p.id}" ${checked}>
+            <div class="checkmark"></div>
+          </label>
+          <label for="${pickupInputId}" style="cursor:pointer">${pickupBadge}</label>
+        </div>
       </td>
       ${isRahaf ? `<td>${escapeHtml(formatDateTime(p.picked_up_at))}</td>` : ``}
     `;

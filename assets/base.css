@@ -392,6 +392,81 @@ body[data-page]:not([data-page="login"]) textarea:focus{
 
 body[data-page]:not([data-page="login"]) textarea{min-height:90px;resize:vertical}
 
+/* Checkbox (Uiverse style, adapted to theme) */
+.container{
+  --input-focus: var(--brand);
+  --input-out-of-focus: #d5e1dc;
+  --bg-color: #fff;
+  --main-color: #2d5f52;
+  position:relative;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:22px;
+  height:22px;
+  flex:0 0 auto;
+}
+
+.container input{
+  position:absolute;
+  opacity:0;
+}
+
+.checkmark{
+  width:20px;
+  height:20px;
+  position:relative;
+  top:0;
+  left:0;
+  border:2px solid var(--main-color);
+  border-radius:5px;
+  box-shadow:2px 2px var(--main-color);
+  background-color:var(--input-out-of-focus);
+  transition:all .3s;
+}
+
+.container input:checked ~ .checkmark{
+  background-color:var(--input-focus);
+}
+
+.checkmark:after{
+  content:"";
+  width:5px;
+  height:11px;
+  position:absolute;
+  top:2px;
+  left:6px;
+  display:none;
+  border:solid var(--bg-color);
+  border-width:0 2px 2px 0;
+  transform:rotate(45deg);
+}
+
+.container input:checked ~ .checkmark:after{
+  display:block;
+}
+
+@media(max-width:900px){
+  .container{
+    width:20px;
+    height:20px;
+  }
+  .checkmark{
+    width:17px;
+    height:17px;
+    border-width:1.5px;
+    box-shadow:1.5px 1.5px var(--main-color);
+  }
+  .checkmark:after{
+    width:4px;
+    height:9px;
+    top:1px;
+    left:5px;
+    border-width:0 1.5px 1.5px 0;
+  }
+}
+
 /* Chips + labels */
 body[data-page]:not([data-page="login"]) .chip,
 body[data-page]:not([data-page="login"]) .pill{

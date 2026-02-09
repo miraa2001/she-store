@@ -549,6 +549,7 @@ function renderPurchases(){
     const pickupBadge = (typeof statusBadge === "function")
       ? statusBadge(p.picked_up ? "تم الاستلام" : "غير مستلم", p.picked_up ? "success" : "neutral")
       : (p.picked_up ? "تم الاستلام" : "غير مستلم");
+    const pickupInputId = `homePickupChk-${p.id}`;
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${highlight}${escapeHtml(p.customer_name || "")}</td>
@@ -556,10 +557,13 @@ function renderPurchases(){
       ${paidCell}
       <td class="thumbs">${imgs || "—"}</td>
       <td>
-        <label class="row" style="gap:6px;align-items:center">
-          <input class="chk" type="checkbox" data-pick="${p.id}" ${p.picked_up ? "checked" : ""}>
-          <span>${pickupBadge}</span>
-        </label>
+        <div class="row" style="gap:6px;align-items:center">
+          <label class="container">
+            <input class="chk" type="checkbox" id="${pickupInputId}" data-pick="${p.id}" ${p.picked_up ? "checked" : ""}>
+            <div class="checkmark"></div>
+          </label>
+          <label for="${pickupInputId}" style="cursor:pointer">${pickupBadge}</label>
+        </div>
       </td>
       <td data-picked-at="${p.id}">${formatDateTime(p.picked_up_at)}</td>
     `;
