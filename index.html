@@ -89,8 +89,85 @@
     .iconBtn{width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center}
     .iconBtn img{width:22px;height:22px;display:block}
     .priceRow{display:flex;align-items:center;justify-content:space-between;gap:8px}
-    .waBtn{font-family:inherit}
-    .waBtn:hover{border-color:var(--color-text)}
+    .waBtn{
+      --wa-h:36px;
+      --wa-expand:176px;
+      --wa-bg:var(--brand);
+      font-family:inherit;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:var(--wa-h);
+      height:var(--wa-h);
+      border:none;
+      border-radius:999px;
+      cursor:pointer;
+      position:relative;
+      overflow:hidden;
+      transition:width .3s ease, border-radius .3s ease, transform .15s ease, filter .2s ease;
+      box-shadow:0 6px 12px rgba(15,23,42,.14);
+      background:var(--wa-bg);
+      color:#fff;
+      padding:0;
+    }
+    .waBtn .sign{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      transition:opacity .2s ease;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:16px;
+      line-height:1;
+      pointer-events:none;
+    }
+    .waBtn .text{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      opacity:0;
+      color:#fff;
+      font-size:13px;
+      font-weight:700;
+      white-space:nowrap;
+      transition:opacity .3s ease;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      line-height:1;
+      pointer-events:none;
+    }
+    .waBtn:hover{
+      width:var(--wa-expand);
+      border-radius:18px;
+      filter:brightness(.95);
+    }
+    .waBtn:hover .sign{
+      opacity:0;
+    }
+    .waBtn:hover .text{
+      opacity:1;
+    }
+    .waBtn:active{transform:translateY(1px)}
+    .waBtn--ask{--wa-bg:#9185bd}
+    .waBtn--notify{--wa-bg:var(--brand)}
+    .waActions{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:flex-start;
+    }
+    @media(max-width:900px){
+      .waBtn{
+        --wa-h:32px;
+        --wa-expand:158px;
+      }
+      .waBtn .text{font-size:12px}
+    }
     .bagField{display:inline-flex;flex-direction:column;gap:6px}
     .bagDisplay{display:flex;align-items:center;gap:8px}
     .bagValue{display:inline-flex;align-items:center;border:1px solid var(--color-border);border-radius:var(--radius-md);padding:8px 10px;background:var(--color-card);font-size:14px}
@@ -3943,7 +4020,7 @@ function setViewMode(mode){
 }
 
 function viewCanShowWhatsapp(){
-  return myEmail === EMAIL_RAHAF && !!viewActiveOrder?.arrived && !!viewActiveOrder?.placed_at_pickup;
+  return myEmail === EMAIL_RAHAF && !!viewActiveOrder?.arrived;
 }
 
 function viewNormalizePhone(value){
@@ -3999,60 +4076,90 @@ function viewBuildWhatsappMessage(pickupPoint, price, customerName){
   ].join("\n");
 }
 
+function viewBuildPickupInquiryMessage(){
+  return [
+    "مرحبا حبيبتي طلبك وصل 📦",
+    "بتحبي تستلمي من:",
+    "📍بيتي بالحي الجنوبي",
+    "أو",
+    "📍نقطة الاستلام كافيه la aura سوق الذهب ؟",
+    "خبريني لو سمحتي🤍"
+  ].join("\n");
+}
+
+async function viewResolveWhatsappTarget(purchaseId){
+  const { data: purchase, error: purchaseErr } = await sb
+    .from("purchases")
+    .select("id, order_id, price, pickup_point, customer_id, customer_name")
+    .eq("id", purchaseId)
+    .maybeSingle();
+
+  if(purchaseErr || !purchase){
+    alert("تعذر جلب بيانات الزبون.");
+    return null;
+  }
+
+  const { data: order, error: orderErr } = await sb
+    .from("orders")
+    .select("id, arrived, placed_at_pickup")
+    .eq("id", purchase.order_id)
+    .maybeSingle();
+
+  if(orderErr || !order){
+    alert("تعذر جلب بيانات الطلبية.");
+    return null;
+  }
+
+  if(!order.arrived){
+    alert("يجب أن تكون الطلبية واصلة أولاً.");
+    return null;
+  }
+
+  if(!purchase.customer_id){
+    alert("لا يوجد رقم هاتف لهذا الزبون.");
+    return null;
+  }
+
+  const { data: customer, error: customerErr } = await sb
+    .from("customers")
+    .select("phone, name")
+    .eq("id", purchase.customer_id)
+    .maybeSingle();
+
+  if(customerErr || !customer?.phone){
+    alert("لا يوجد رقم هاتف لهذا الزبون.");
+    return null;
+  }
+
+  const phone = viewToWhatsappPhone(customer.phone);
+  if(!viewIsValidPhone(phone)){
+    alert("رقم الهاتف غير صالح.");
+    return null;
+  }
+
+  const customerName = (customer?.name || purchase.customer_name || "").trim();
+  return { purchase, phone, customerName };
+}
+
 async function openViewWhatsappForPurchase(purchaseId){
   try{
-    const { data: purchase, error: purchaseErr } = await sb
-      .from("purchases")
-      .select("id, order_id, price, pickup_point, customer_id, customer_name")
-      .eq("id", purchaseId)
-      .maybeSingle();
+    const target = await viewResolveWhatsappTarget(purchaseId);
+    if(!target) return;
+    const message = viewBuildWhatsappMessage(target.purchase.pickup_point, target.purchase.price, target.customerName);
+    const url = `https://wa.me/${target.phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
+  } catch (err){
+    console.error(err);
+    alert("حصل خطأ أثناء فتح واتساب.");
+  }
+}
 
-    if(purchaseErr || !purchase){
-      alert("تعذر جلب بيانات الزبون.");
-      return;
-    }
-
-    const { data: order, error: orderErr } = await sb
-      .from("orders")
-      .select("id, arrived, placed_at_pickup")
-      .eq("id", purchase.order_id)
-      .maybeSingle();
-
-    if(orderErr || !order){
-      alert("تعذر جلب بيانات الطلبية.");
-      return;
-    }
-
-    if(!order.arrived || !order.placed_at_pickup){
-      alert("يجب أن تكون الطلبية واصلة وتم وضعها بنقطة الاستلام أولاً.");
-      return;
-    }
-
-    if(!purchase.customer_id){
-      alert("لا يوجد رقم هاتف لهذا الزبون.");
-      return;
-    }
-
-    const { data: customer, error: customerErr } = await sb
-      .from("customers")
-      .select("phone, name")
-      .eq("id", purchase.customer_id)
-      .maybeSingle();
-
-    if(customerErr || !customer?.phone){
-      alert("لا يوجد رقم هاتف لهذا الزبون.");
-      return;
-    }
-
-    const phone = viewToWhatsappPhone(customer.phone);
-    if(!viewIsValidPhone(phone)){
-      alert("رقم الهاتف غير صالح.");
-      return;
-    }
-
-    const name = (customer?.name || purchase.customer_name || "").trim();
-    const message = viewBuildWhatsappMessage(purchase.pickup_point, purchase.price, name);
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+async function openViewPickupInquiryForPurchase(purchaseId){
+  try{
+    const target = await viewResolveWhatsappTarget(purchaseId);
+    if(!target) return;
+    const message = viewBuildPickupInquiryMessage();
+    const url = `https://wa.me/${target.phone}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
   } catch (err){
     console.error(err);
@@ -4189,8 +4296,11 @@ function renderView(){
     ? `<div class="highlight" style="margin-bottom:10px">✅ هذا هو البحث</div>`
     : "";
 
-  const whatsappBtn = viewCanShowWhatsapp()
-    ? `<button class="btn waBtn" type="button" data-wa="${p.id}" aria-label="إرسال رسالة واتساب">ارسل رسالة واتساب</button>`
+  const whatsappInquiryBtn = viewCanShowWhatsapp()
+    ? `<button class="waBtn waBtn--ask" type="button" data-wa-pickup="${p.id}" aria-label="استعلام عن نقطة الاستلام"><span class="sign">❓</span><span class="text">استعلام عن نقطة الاستلام</span></button>`
+    : "";
+  const whatsappNotifyBtn = viewCanShowWhatsapp()
+    ? `<button class="waBtn waBtn--notify" type="button" data-wa="${p.id}" aria-label="اعلام بوصول الطلب"><span class="sign">🔔</span><span class="text">اعلام بوصول الطلب</span></button>`
     : "";
 
   if(viewContent){
@@ -4205,11 +4315,14 @@ function renderView(){
       <div style="margin-top:10px"><b>مكان الاستلام:</b> ${escapeHtml(pickup)}</div>
       <div class="thumbs">${imgs || ""}</div>
       <div style="margin-top:10px"><b>ملاحظة:</b> ${note ? escapeHtml(note) : "—"}</div>
-      ${whatsappBtn ? `<div style="margin-top:10px">${whatsappBtn}</div>` : ""}
+      ${(whatsappInquiryBtn || whatsappNotifyBtn) ? `<div class="waActions" style="margin-top:10px">${whatsappInquiryBtn}${whatsappNotifyBtn}</div>` : ""}
     `;
 
     viewContent.querySelectorAll("button[data-wa]").forEach(btn=>{
       btn.onclick = () => openViewWhatsappForPurchase(btn.dataset.wa);
+    });
+    viewContent.querySelectorAll("button[data-wa-pickup]").forEach(btn=>{
+      btn.onclick = () => openViewPickupInquiryForPurchase(btn.dataset.waPickup);
     });
 
     decorateSaveButtons(viewContent);
@@ -4238,10 +4351,14 @@ function renderViewList(){
     const priceValue = p.price ?? "";
     const paidValue = p.paid_price ?? p.price ?? "";
     const highlightClass = (viewHighlightPurchaseId && viewHighlightPurchaseId === p.id) ? "highlight" : "";
-    const waBtn = viewCanShowWhatsapp()
-      ? `<button class="btn waBtn" type="button" data-wa="${p.id}" aria-label="إرسال رسالة واتساب">ارسل رسالة واتساب</button>`
+    const waInquiryBtn = viewCanShowWhatsapp()
+      ? `<button class="waBtn waBtn--ask" type="button" data-wa-pickup="${p.id}" aria-label="استعلام عن نقطة الاستلام"><span class="sign">❓</span><span class="text">استعلام عن نقطة الاستلام</span></button>`
       : "";
-    const whatsappMarkup = waBtn || "—";
+    const waNotifyBtn = viewCanShowWhatsapp()
+      ? `<button class="waBtn waBtn--notify" type="button" data-wa="${p.id}" aria-label="اعلام بوصول الطلب"><span class="sign">🔔</span><span class="text">اعلام بوصول الطلب</span></button>`
+      : "";
+    const whatsappInquiryMarkup = waInquiryBtn || "—";
+    const whatsappNotifyMarkup = waNotifyBtn || "—";
 
     return `
       <tr class="${highlightClass}">
@@ -4255,7 +4372,8 @@ function renderViewList(){
         <td>${links}</td>
         <td><div class="listThumbs">${imgs || ""}</div></td>
         <td>${note ? escapeHtml(note) : "—"}</td>
-        <td>${whatsappMarkup}</td>
+        <td>${whatsappInquiryMarkup}</td>
+        <td>${whatsappNotifyMarkup}</td>
       </tr>
     `;
   }).join("");
@@ -4275,6 +4393,7 @@ function renderViewList(){
             <th>روابط</th>
             <th>صور</th>
             <th>ملاحظة</th>
+            <th>استعلام نقطة الاستلام</th>
             <th>واتساب</th>
           </tr>
         </thead>
@@ -4284,6 +4403,9 @@ function renderViewList(){
 
     viewListView.querySelectorAll("button[data-wa]").forEach(btn=>{
       btn.onclick = () => openViewWhatsappForPurchase(btn.dataset.wa);
+    });
+    viewListView.querySelectorAll("button[data-wa-pickup]").forEach(btn=>{
+      btn.onclick = () => openViewPickupInquiryForPurchase(btn.dataset.waPickup);
     });
 
     decorateSaveButtons(viewListView);
