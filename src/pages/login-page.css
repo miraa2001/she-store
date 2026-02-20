@@ -1,0 +1,97 @@
+.login-page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: #fff;
+  color: #000;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.login-state {
+  background: #fff;
+}
+
+.login-form {
+  width: min(400px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.login-brand {
+  margin: 0;
+  color: #000;
+  text-align: center;
+  font-size: 56px;
+  font-weight: 800;
+  letter-spacing: -2px;
+  line-height: 1;
+}
+
+.login-accent {
+  width: 120px;
+  height: 4px;
+  margin: 24px auto 56px;
+  background: #47143F;
+}
+
+.login-fields {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-btn {
+  width: 100%;
+  height: 56px;
+  margin-top: 48px;
+  border: none;
+  border-radius: 0;
+  background: #000;
+  color: #fff;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.login-btn:hover {
+  background: #47143F;
+}
+
+.login-btn:active {
+  background: #1f5e24;
+}
+
+.login-btn:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.login-error {
+  min-height: 24px;
+  margin: 20px 0 0;
+  color: #b42318;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.4;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.login-error.visible {
+  opacity: 1;
+}
+
+@media (max-width: 767px) {
+  .login-page {
+    padding: 32px 16px;
+  }
+
+  .login-brand {
+    font-size: 40px;
+    letter-spacing: -1.5px;
+  }
+}

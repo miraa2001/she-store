@@ -1,0 +1,244 @@
+.pickup-page {
+  min-height: 100dvh;
+  background: #f6f8f7;
+  color: #111827;
+}
+
+.pickup-wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.pickup-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #e7dfeb;
+  border-radius: 20px 20px 10px 20px;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  padding: 12px 14px;
+}
+
+.pickup-brand b {
+  font-size: 21px;
+}
+
+.pickup-muted {
+  color: #64748b;
+  font-size: 13px;
+  margin-top: 3px;
+}
+
+.pickup-btn {
+  border: 1px solid #dfd5e5;
+  background: #fff;
+  border-radius: 14px;
+  min-height: 40px;
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  color: #0f172a;
+  text-decoration: none;
+}
+
+.pickup-btn-icon {
+  width: 42px;
+  min-width: 42px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+}
+
+.pickup-btn.danger {
+  border-color: rgba(180, 35, 24, 0.3);
+  color: #b42318;
+}
+
+.pickup-sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: none;
+  z-index: 40;
+}
+
+.pickup-sidebar-overlay.open {
+  display: block;
+}
+
+.pickup-sidebar {
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: min(240px, 84vw);
+  background: #fff;
+  border-left: 1px solid #e7dfeb;
+  box-shadow: -24px 0 40px rgba(15, 23, 42, 0.12);
+  z-index: 50;
+  transform: translateX(100%);
+  transition: transform 0.14s ease;
+  will-change: transform;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pickup-sidebar.open {
+  transform: translateX(0);
+}
+
+.pickup-sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.pickup-sidebar-head b {
+  font-size: 16px;
+}
+
+.pickup-sidebar-head .pickup-btn {
+  position: absolute;
+  left: 0;
+}
+
+.pickup-sidebar-content {
+  display: grid;
+  gap: 8px;
+}
+
+.pickup-sidebar-content a,
+.pickup-sidebar-content button {
+  border: 1px solid #e7dfeb;
+  border-radius: 12px;
+  background: #fff;
+  min-height: 40px;
+  padding: 10px 12px;
+  text-align: right;
+  font-family: inherit;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.pickup-sidebar-content .danger {
+  border-color: rgba(180, 35, 24, 0.3);
+  color: #b42318;
+}
+
+.pickup-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 7px;
+  border: 1px solid #e7dfeb;
+  border-radius: 16px 16px 10px 16px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+  margin-bottom: 12px;
+}
+
+.pickup-tab-btn {
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  border-radius: 12px 12px 8px 12px;
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pickup-tab-btn.active {
+  position: relative;
+  background: #f2ebf4;
+  color: #25584c;
+  box-shadow: inset 0 0 0 1px #b9d5cc;
+}
+
+.pickup-tab-btn.active::after {
+  content: "";
+  position: absolute;
+  right: 8px;
+  top: 7px;
+  bottom: 7px;
+  width: 3px;
+  border-radius: 999px;
+  background: #6D3F6B;
+}
+
+.pickup-panel {
+  display: none;
+  border: 1px solid #e7dfeb;
+  border-radius: 20px 20px 12px 20px;
+  background: linear-gradient(180deg, #ffffff 0%, #fcf9fd 100%);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.85) inset, 0 8px 18px rgba(15, 23, 42, 0.06);
+  padding: 10px;
+}
+
+.pickup-panel.active {
+  display: block;
+}
+
+.pickup-panel-content {
+  min-height: 300px;
+}
+
+.pickup-state {
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.pickup-note {
+  border: 1px solid #e7dfeb;
+  border-radius: 14px;
+  background: #fff;
+  padding: 16px;
+  min-width: min(420px, 100%);
+}
+
+.pickup-note h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.pickup-note p {
+  margin: 6px 0 0;
+  color: #64748b;
+}
+
+.pickup-note .pickup-btn {
+  margin-top: 12px;
+  display: inline-flex;
+}
+
+.pickup-note-danger {
+  border-color: rgba(180, 35, 24, 0.3);
+}
+
+@media (max-width: 900px) {
+  .pickup-wrap {
+    padding: 12px;
+  }
+
+  .pickup-topbar {
+    flex-wrap: wrap;
+    padding: 10px 12px;
+  }
+
+  .pickup-brand b {
+    font-size: 19px;
+  }
+
+  .pickup-tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}

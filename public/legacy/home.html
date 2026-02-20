@@ -1,0 +1,1633 @@
+﻿<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>She-Store | الصفحة الرئيسية</title>
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/8863/8863863.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/tokens.css">
+  <link rel="stylesheet" href="assets/base.css">
+  <script src="assets/ui.js" defer></script>
+  <style>
+    :root{
+      --cute-pink:#F472B6;
+      --cute-pink-soft:#FCE7F3;
+      --cute-purple:#A78BFA;
+      --cute-purple-soft:#EDE9FE;
+      --cute-ink:#1F2937;
+      --cute-muted:#6B7280;
+      --cute-card:#FFFFFF;
+      --cute-bg:#FFF7FB;
+      --cute-ring:0 0 0 3px rgba(244,114,182,.25);
+    }
+
+    body{
+      margin:0;
+      font-family:"Alexandria",system-ui,-apple-system,Segoe UI,Tahoma,Arial,"Noto Sans Arabic","Noto Naskh Arabic",sans-serif;
+      color:var(--cute-ink);
+      font-size:16px;
+      letter-spacing:0;
+      background:
+        radial-gradient(900px 420px at 90% -10%, rgba(167,139,250,.25), transparent 65%),
+        radial-gradient(700px 360px at 0% 0%, rgba(244,114,182,.18), transparent 70%),
+        linear-gradient(180deg, #FFF7FB 0%, #FDF2F8 55%, #F8F5FF 100%);
+    }
+
+    .page{
+      max-width:1100px;
+      margin:auto;
+      padding:0 16px 56px;
+    }
+
+    .sticky-header{
+      position:sticky;
+      top:0;
+      z-index:100;
+      background:rgba(255,255,255,.9);
+      backdrop-filter:blur(10px);
+      border-bottom:1px solid #f1d7ea;
+      padding:10px 0 8px;
+    }
+
+    .hero{
+      position:relative;
+      padding:32px 0 18px;
+      overflow:hidden;
+    }
+
+    .hero-card{
+      background:var(--cute-card);
+      border:1px solid #f2d6e9;
+      border-radius:28px;
+      padding:24px;
+      box-shadow:0 18px 36px rgba(31,41,55,.08);
+      position:relative;
+    }
+
+    .hero-title{
+      font-size:28px;
+      font-weight:800;
+      margin:0 0 6px 0;
+    }
+
+    .hero-sub{
+      color:var(--cute-muted);
+      margin:0 0 14px 0;
+      line-height:1.7;
+    }
+
+    .hero-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .cta-btn{
+      border:none;
+      background:linear-gradient(135deg, var(--cute-pink), var(--cute-purple));
+      color:#fff;
+      padding:10px 16px;
+      border-radius:999px;
+      cursor:pointer;
+      font-weight:700;
+      box-shadow:0 10px 18px rgba(244,114,182,.25);
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .ghost-btn{
+      border:1px solid #f1cfe3;
+      background:#fff;
+      color:#6b3b7b;
+      padding:10px 16px;
+      border-radius:999px;
+      cursor:pointer;
+      font-weight:700;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .hero-blobs{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+    }
+
+    .blob{
+      position:absolute;
+      border-radius:999px;
+      filter:blur(0.2px);
+      opacity:.6;
+    }
+
+    .blob.one{width:180px;height:180px;background:var(--cute-pink-soft);top:-40px;right:-30px;}
+    .blob.two{width:140px;height:140px;background:var(--cute-purple-soft);bottom:-30px;left:-20px;}
+    .blob.three{width:90px;height:90px;background:#ffe4f1;top:40px;left:40%;}
+
+    .tabs{
+      display:flex;
+      gap:8px;
+      overflow-x:auto;
+      padding:8px 16px;
+      margin:8px auto 0;
+      scrollbar-width:none;
+      background:#fff;
+      border-radius:999px;
+      border:1px solid #f2d6e9;
+      box-shadow:0 10px 20px rgba(31,41,55,.08);
+      max-width:1100px;
+    }
+    .tabs::-webkit-scrollbar{display:none}
+
+    .tab-btn{
+      border:none;
+      background:#fff;
+      color:#6b7280;
+      padding:8px 14px;
+      border-radius:999px;
+      font-weight:700;
+      cursor:pointer;
+      white-space:nowrap;
+      transition:all .2s ease;
+    }
+
+    .tab-btn.active{
+      background:linear-gradient(135deg, #FCE7F3, #EDE9FE);
+      color:#5b2b77;
+      box-shadow:inset 0 0 0 1px #f1cfe3;
+    }
+
+    section{
+      padding:28px 0;
+      scroll-margin-top:120px;
+    }
+
+    .section-title{
+      font-size:22px;
+      font-weight:800;
+      margin:0 0 12px 0;
+    }
+
+    .section-sub{
+      color:var(--cute-muted);
+      margin:0 0 16px 0;
+    }
+
+    .card{
+      background:var(--cute-card);
+      border:1px solid #f1d7ea;
+      border-radius:22px;
+      padding:18px;
+      box-shadow:0 12px 24px rgba(31,41,55,.06);
+    }
+
+    .grid{
+      display:grid;
+      gap:14px;
+    }
+
+    .grid.two{grid-template-columns:repeat(2,1fr)}
+    .grid.three{grid-template-columns:repeat(3,1fr)}
+
+    @media(max-width:900px){
+      .grid.two,.grid.three{grid-template-columns:1fr}
+      .tabs{margin:8px 12px 0}
+    }
+
+    /* Wizard */
+    .wizard{
+      background:var(--cute-card);
+      border:1px solid #f1d7ea;
+      border-radius:26px;
+      padding:18px;
+      box-shadow:0 18px 28px rgba(31,41,55,.08);
+    }
+
+    .progress{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      margin-bottom:14px;
+    }
+
+    .progress-dot{
+      width:10px;height:10px;border-radius:999px;
+      background:#f3d8ea;
+      border:1px solid #f0cfe3;
+    }
+    .progress-dot.active{background:linear-gradient(135deg,var(--cute-pink),var(--cute-purple));border-color:transparent}
+
+    .step{display:none}
+    .step.active{display:block}
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    .field label{font-weight:700;font-size:13px}
+
+    input,select,textarea{
+      padding:10px 12px;
+      border:1px solid #e8d5ea;
+      border-radius:14px;
+      font-family:inherit;
+      background:#fff;
+      color:var(--cute-ink);
+    }
+
+    input:focus,select:focus,textarea:focus{
+      outline:none;
+      border-color:var(--cute-pink);
+      box-shadow:var(--cute-ring);
+    }
+
+    .row{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .field-error{
+      color:#b42318;
+      font-size:12px;
+      min-height:16px;
+    }
+
+    .wizard-nav{
+      display:flex;
+      gap:10px;
+      justify-content:flex-end;
+      margin-top:12px;
+    }
+
+    .btn-primary{
+      border:none;
+      background:linear-gradient(135deg, var(--cute-pink), var(--cute-purple));
+      color:#fff;
+      padding:10px 16px;
+      border-radius:999px;
+      font-weight:700;
+      cursor:pointer;
+      box-shadow:0 10px 18px rgba(244,114,182,.25);
+    }
+
+    .btn-secondary{
+      border:1px solid #f1cfe3;
+      background:#fff;
+      color:#6b3b7b;
+      padding:10px 16px;
+      border-radius:999px;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .upload-box{
+      border:2px dashed #f3cce4;
+      background:#fff;
+      border-radius:18px;
+      padding:14px;
+      text-align:center;
+    }
+
+    .preview-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(90px,1fr));
+      gap:10px;
+      margin-top:10px;
+    }
+
+    .preview-item{
+      position:relative;
+      border:1px solid #f1d7ea;
+      border-radius:14px;
+      overflow:hidden;
+      background:#fff;
+    }
+
+    .preview-item img{width:100%;height:90px;object-fit:cover;display:block}
+
+    .remove-btn{
+      position:absolute;top:6px;right:6px;
+      border:none;background:rgba(0,0,0,.6);color:#fff;
+      width:22px;height:22px;border-radius:999px;cursor:pointer;
+    }
+
+    .success-box{
+      margin-top:12px;
+      padding:12px;
+      border-radius:18px;
+      background:linear-gradient(135deg,#FCE7F3,#EDE9FE);
+      border:1px solid #f1cfe3;
+      color:#5b2b77;
+      font-weight:700;
+      display:none;
+    }
+
+    .note{
+      font-size:12px;
+      color:#7c4b8f;
+      margin-top:8px;
+    }
+
+    /* Feedback slider styles are injected in the feedback section */
+    .feedback-card.is-active{
+      transform:scale(1.02);
+      opacity:1;
+    }
+
+    /* FAQ */
+    .faq-search{margin-bottom:12px}
+    .faq-group{margin-bottom:14px}
+    .faq-group-title{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:5px 10px;
+      border-radius:999px;
+      background:linear-gradient(135deg,#FCE7F3,#EDE9FE);
+      border:1px solid #f1cfe3;
+      font-weight:800;
+      color:#5b2b77;
+      margin-bottom:8px;
+      font-size:13px;
+    }
+    .faq-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .faq-item{
+      border:1px solid #f1d7ea;
+      border-radius:16px;
+      padding:12px;
+      background:#fff;
+      transition:all .2s ease;
+    }
+    .faq-item button{
+      border:none;background:none;width:100%;text-align:right;
+      font-weight:700;cursor:pointer;font-size:14px;
+    }
+    .faq-item .answer{
+      max-height:0;overflow:hidden;transition:max-height .25s ease;
+      color:#6b7280;line-height:1.7;
+    }
+    .faq-item.open .answer{max-height:220px;margin-top:6px}
+    @media(max-width:900px){.faq-grid{grid-template-columns:1fr}}
+
+    /* How */
+    .how-card{display:flex;gap:12px;align-items:flex-start}
+    .how-icon{
+      width:44px;height:44px;border-radius:16px;
+      background:linear-gradient(135deg,#FCE7F3,#EDE9FE);
+      display:flex;align-items:center;justify-content:center;
+      font-size:22px;
+    }
+
+    /* Shein tutorial (phone slider) */
+    .shein-tutorial{
+      background:#fff;
+      border:1px solid #f1d7ea;
+      border-radius:28px;
+      padding:22px;
+      box-shadow:0 18px 32px rgba(31,41,55,.08);
+    }
+    .shein-tutorial,
+    .shein-tutorial *{
+      font-family:"Alexandria",system-ui,-apple-system,Segoe UI,Tahoma,Arial,"Noto Sans Arabic","Noto Naskh Arabic",sans-serif;
+    }
+    .shein-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:24px;
+      align-items:center;
+    }
+    .shein-phone-col{order:2}
+    .shein-text-col{order:1}
+    .shein-title{font-size:26px;font-weight:800;margin:0 0 10px}
+    .shein-desc{color:var(--cute-muted);margin:0 0 18px;line-height:1.8}
+    .shein-steps{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .shein-step{
+      border:none;
+      background:transparent;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:6px;
+      border-radius:16px;
+      cursor:pointer;
+      text-align:right;
+      transition:all .2s ease;
+      color:#6b7280;
+    }
+    .shein-step.active{
+      background:linear-gradient(135deg,#FCE7F3,#EDE9FE);
+      color:#3b214e;
+      box-shadow:inset 0 0 0 1px #f1cfe3;
+    }
+    .shein-step-num{
+      width:44px;height:44px;border-radius:16px;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:700;
+      background:#fce7f3;
+      color:#c25585;
+      flex:0 0 auto;
+    }
+    .shein-step.active .shein-step-num{
+      background:linear-gradient(135deg,#f9a8d4,#c4b5fd);
+      color:#fff;
+      box-shadow:0 10px 18px rgba(244,114,182,.25);
+    }
+    .shein-step-text{font-size:18px;font-weight:600}
+
+    .shein-phone-wrap{
+      position:relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .shein-phone{
+      width:280px;
+      height:570px;
+      border:12px solid #2f2f2f;
+      border-radius:42px;
+      background:#fff;
+      box-shadow:0 20px 40px rgba(244,114,182,.22);
+      position:relative;
+      overflow:hidden;
+      margin-inline:auto;
+    }
+    .shein-notch{
+      position:absolute;
+      top:0;
+      left:50%;
+      transform:translateX(-50%);
+      width:130px;
+      height:24px;
+      background:#2f2f2f;
+      border-radius:0 0 16px 16px;
+      z-index:5;
+    }
+    .shein-screen{
+      position:relative;
+      width:100%;
+      height:100%;
+      background:#f8f7fb;
+    }
+    .shein-screen-viewport{
+      position:absolute;
+      inset:0;
+      padding:0;
+      overflow:hidden;
+      direction:ltr;
+    }
+    .shein-screen-track{
+      display:flex;
+      gap:0;
+      height:100%;
+      transition:transform .35s ease;
+      will-change:transform;
+    }
+    .shein-screen-slide{
+      flex:0 0 100%;
+      height:100%;
+      background:#000;
+      border-radius:0;
+      overflow:hidden;
+      position:relative;
+      box-shadow:none;
+      padding:0;
+      box-sizing:border-box;
+    }
+    .shein-screen-slide img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      object-position:center;
+      background:transparent;
+      display:block;
+      transform:translateY(5%);
+    }
+    .shein-screen-number{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:120px;
+      font-weight:800;
+      color:rgba(244,114,182,.16);
+      pointer-events:none;
+      z-index:2;
+    }
+    .shein-nav{
+      position:absolute;
+      top:50%;
+      transform:translateY(-50%) scaleY(-1);
+      width:36px;
+      height:36px;
+      direction:ltr;
+      unicode-bidi:isolate;
+      border:none;
+      border-radius:999px;
+      background:rgba(255,255,255,.9);
+      box-shadow:0 10px 20px rgba(31,41,55,.12);
+      cursor:pointer;
+      font-size:22px;
+      color:#c25585;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:6;
+    }
+    .shein-nav:disabled{
+      opacity:.45;
+      cursor:not-allowed;
+      box-shadow:none;
+    }
+    .shein-prev{right:-18px;left:auto}
+    .shein-next{left:-18px;right:auto}
+
+    .shein-dots{
+      display:flex;
+      justify-content:center;
+      gap:8px;
+      margin-top:14px;
+    }
+    .shein-dot{
+      width:8px;
+      height:8px;
+      border-radius:999px;
+      border:none;
+      background:#f1cfe3;
+      cursor:pointer;
+      transition:all .2s ease;
+    }
+    .shein-dot.active{
+      width:26px;
+      background:linear-gradient(135deg,#f9a8d4,#c4b5fd);
+    }
+
+    @media(max-width:900px){
+      .shein-grid{grid-template-columns:1fr}
+      .shein-phone-col{order:1}
+      .shein-text-col{order:2}
+      .shein-phone{width:240px;height:500px}
+      .shein-prev{right:-12px;left:auto}
+      .shein-next{left:-12px;right:auto}
+    }
+    @media(max-width:600px){
+      .shein-phone{width:220px;height:470px}
+      .shein-screen-number{font-size:96px}
+      .shein-step-text{font-size:16px}
+      .shein-step-num{width:40px;height:40px;border-radius:14px}
+      .shein-prev,.shein-next{width:32px;height:32px;font-size:20px}
+    }
+
+    /* About */
+    .about-card{line-height:1.8}
+
+    .cute-divider{
+      height:1px;background:linear-gradient(90deg, transparent, #f3cce4, transparent);
+      margin:12px 0;
+    }
+
+    @media(max-width:700px){
+      .hero-title{font-size:24px}
+      .hero-card{padding:18px}
+    }
+  </style>
+</head>
+<body>
+  <header class="sticky-header">
+    <div class="tabs" id="tabBar" role="tablist" aria-label="الأقسام">
+      <button class="tab-btn active" data-target="#order">اطلبّي الآن</button>
+      <button class="tab-btn" data-target="#how">كيف بنطلب؟</button>
+      <button class="tab-btn" data-target="#feedback">آراء الزباين</button>
+      <button class="tab-btn" data-target="#faq">الأسئلة الشائعة</button>
+      <button class="tab-btn" data-target="#about">عنّا</button>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="hero" id="hero">
+      <div class="hero-card">
+        <div class="hero-blobs">
+          <div class="blob one"></div>
+          <div class="blob two"></div>
+          <div class="blob three"></div>
+        </div>
+        <h1 class="hero-title">تسوّقي من شي إن… والباقي علينا</h1>
+        <p class="hero-sub">استقبلي طلبك بطريقة لطيفة وسهلة. احكي إلنا التفاصيل، وبننسّق معك خطوة بخطوة.</p>
+        <div class="hero-actions">
+          <a class="cta-btn" href="#order">ابدئي الطلب 💗</a>
+          <a class="ghost-btn" href="#how">شوفي كيف بنطلب</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="order" data-tab="order">
+      <h2 class="section-title">اطلبّي الآن</h2>
+      <p class="section-sub">ثلاث خطوات بسيطة وبنوصلك كل التفاصيل.</p>
+
+      <div class="wizard" id="orderWizard">
+        <div class="progress" id="progressDots">
+          <div class="progress-dot active" data-step="1"></div>
+          <div class="progress-dot" data-step="2"></div>
+          <div class="progress-dot" data-step="3"></div>
+        </div>
+
+        <div class="step active" data-step="1">
+          <div class="grid two">
+            <div class="field">
+              <label for="fullName">الاسم الكامل</label>
+              <input id="fullName" type="text" placeholder="مثال: سارة أحمد" />
+              <div class="field-error" id="errName"></div>
+            </div>
+            <div class="field">
+              <label>رقم الواتساب</label>
+              <div class="row">
+                <select id="countryCode" style="min-width:90px">
+                  <option value="970">+970</option>
+                  <option value="972">+972</option>
+                </select>
+                <input id="phoneDigits" type="text" inputmode="numeric" placeholder="رقمك بدون كود" />
+              </div>
+              <div class="field-error" id="errPhone"></div>
+            </div>
+            <div class="field">
+              <label for="city">المدينة</label>
+              <select id="city">
+                <option value="">اختاري المدينة</option>
+                <option>القدس</option>
+                <option>رام الله</option>
+                <option>نابلس</option>
+                <option>الخليل</option>
+                <option>بيت لحم</option>
+                <option>جنين</option>
+                <option>طولكرم</option>
+                <option>قلقيلية</option>
+                <option>سلفيت</option>
+                <option>أريحا</option>
+                <option>غزة</option>
+                <option>خان يونس</option>
+                <option>رفح</option>
+                <option>دير البلح</option>
+              </select>
+              <div class="field-error" id="errCity"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step" data-step="2">
+          <div class="grid two">
+            <div class="field">
+              <label for="cartUrl">رابط سلة شي إن</label>
+              <input id="cartUrl" type="url" placeholder="انسخي رابط السلة هنا" />
+              <div class="field-error" id="errUrl"></div>
+            </div>
+            <div class="field">
+              <label for="pickup">طريقة الاستلام</label>
+              <select id="pickup">
+                <option value="">اختاري الطريقة</option>
+                <option>من البيت</option>
+                <option>من نقطة الاستلام</option>
+              </select>
+              <div class="field-error" id="errPickup"></div>
+            </div>
+            <div class="field">
+              <label for="qty">عدد القطع</label>
+              <input id="qty" type="number" min="1" max="200" placeholder="مثال: 6" />
+              <div class="field-error" id="errQty"></div>
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label for="notes">ملاحظات (اختياري)</label>
+              <textarea id="notes" placeholder="إذا في قطع مكررة اكتبي شو هي (مثال: تيشيرت أبيض مرتين – مقاس M)."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="step" data-step="3">
+          <div class="field">
+            <label>صور السلة (اختياري)</label>
+            <div class="upload-box">
+              <div>اختاري حتى 5 صور (حد أقصى 4MB للصورة)</div>
+              <input id="images" type="file" accept="image/*" multiple style="margin-top:8px" />
+              <div class="preview-grid" id="previewGrid"></div>
+            </div>
+          </div>
+
+          <div class="row" style="justify-content:space-between;margin-top:12px">
+            <div class="note">💕 شكرًا لثقتك فينا — رح يتم التواصل معك قريبًا لتأكيد الطلب</div>
+            <button class="btn-primary" id="submitBtn" type="button">إرسال الطلب</button>
+          </div>
+
+          <div class="success-box" id="successBox">تم إرسال الطلب بنجاح! رح نتواصل معك قريبًا لتأكيد التفاصيل.</div>
+          <div class="field-error" id="errSubmit"></div>
+        </div>
+
+        <div class="wizard-nav">
+          <button class="btn-secondary" id="prevBtn" type="button" disabled>رجوع</button>
+          <button class="btn-primary" id="nextBtn" type="button">التالي</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="how" data-tab="how">
+      <div class="shein-tutorial" dir="rtl">
+        <div class="shein-grid">
+          <div class="shein-phone-col">
+            <div class="shein-phone-wrap">
+              <button class="shein-nav shein-prev" type="button" aria-label="السابق">&gt;</button>
+              <div class="shein-phone" aria-label="عرض خطوات السلة">
+                <div class="shein-notch" aria-hidden="true"></div>
+                <div class="shein-screen">
+                  <div class="shein-screen-viewport">
+                    <div class="shein-screen-track" id="sheinTrack">
+                      <div class="shein-screen-slide" data-step="0" aria-label="وضع المشتريات بالسلة">
+                        <div class="shein-screen-number">01</div>
+                        <img src="assets/shein/step-02.png" alt="وضع المشتريات بالسلة">
+                      </div>
+                      <div class="shein-screen-slide" data-step="1" aria-label="ضغط Share">
+                        <div class="shein-screen-number">02</div>
+                        <img src="assets/shein/step-03.png" alt="ضغط Share">
+                      </div>
+                      <div class="shein-screen-slide" data-step="2" aria-label="تحديد المشتريات">
+                        <div class="shein-screen-number">03</div>
+                        <img src="assets/shein/step-04.png" alt="تحديد المشتريات">
+                      </div>
+                      <div class="shein-screen-slide" data-step="3" aria-label="إرسال رابط السلة">
+                        <div class="shein-screen-number">04</div>
+                        <img src="assets/shein/step-05.png" alt="إرسال رابط السلة">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button class="shein-nav shein-next" type="button" aria-label="التالي">&lt;</button>
+            </div>
+
+            <div class="shein-dots" role="tablist" aria-label="خطوات الشرح">
+              <button class="shein-dot active" type="button" data-step="0" aria-label="خطوة 1"></button>
+              <button class="shein-dot" type="button" data-step="1" aria-label="خطوة 2"></button>
+              <button class="shein-dot" type="button" data-step="2" aria-label="خطوة 3"></button>
+              <button class="shein-dot" type="button" data-step="3" aria-label="خطوة 4"></button>
+            </div>
+          </div>
+
+          <div class="shein-text-col">
+            <h2 class="section-title">كيف تبعتي سلة شي إن؟</h2>
+            <p class="section-sub">نسهّل عليكِ التسوّق من شي إن. افتحي السلة، انسخي الرابط، وابعتيه إلنا — والباقي علينا.</p>
+
+            <div class="shein-steps">
+              <button class="shein-step active" type="button" data-step="0">
+                <span class="shein-step-num">01</span>
+                <span class="shein-step-text">وضع المشتريات بالسلة</span>
+              </button>
+              <button class="shein-step" type="button" data-step="1">
+                <span class="shein-step-num">02</span>
+                <span class="shein-step-text">ضغط Share</span>
+              </button>
+              <button class="shein-step" type="button" data-step="2">
+                <span class="shein-step-num">03</span>
+                <span class="shein-step-text">تحديد المشتريات</span>
+              </button>
+              <button class="shein-step" type="button" data-step="3">
+                <span class="shein-step-num">04</span>
+                <span class="shein-step-text">إرسال رابط السلة</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================
+         FEEDBACK SECTION (DROP-IN)
+         ========================= -->
+    <section id="feedback" class="fb-section" dir="rtl">
+      <div class="fb-header">
+        <h2 class="fb-title">آراء الزباين 💗</h2>
+        <p class="fb-sub">كلام بناتنا اللطيف… شكراً من القلب ✨</p>
+      </div>
+
+      <div class="fb-wrap">
+        <button class="fb-nav fb-prev" type="button" aria-label="السابق">‹</button>
+
+        <div class="fb-viewport" aria-roledescription="carousel">
+          <div class="fb-track">
+            <!-- Slide 1 -->
+            <article class="fb-slide" aria-label="رأي 1">
+              <div class="fb-bubble"></div>
+              <div class="fb-card">
+                <div class="fb-badge" aria-hidden="true">💬</div>
+                <div class="fb-quoteMark" aria-hidden="true">“</div>
+                <p class="fb-quote">“الطلب وصل مرتب والتفاصيل كانت دقيقة… كتير انبسطت 💕”</p>
+              </div>
+            </article>
+
+            <!-- Slide 2 -->
+            <article class="fb-slide" aria-label="رأي 2">
+              <div class="fb-bubble"></div>
+              <div class="fb-card">
+                <div class="fb-badge" aria-hidden="true">💜</div>
+                <div class="fb-quoteMark" aria-hidden="true">“</div>
+                <p class="fb-quote">“أريح تجربة طلب من شي إن بصراحة… وكل خطوة كانت واضحة.”</p>
+              </div>
+            </article>
+
+            <!-- Slide 3 -->
+            <article class="fb-slide" aria-label="رأي 3">
+              <div class="fb-bubble"></div>
+              <div class="fb-card">
+                <div class="fb-badge" aria-hidden="true">✨</div>
+                <div class="fb-quoteMark" aria-hidden="true">“</div>
+                <p class="fb-quote">“الرد سريع والتعامل لطيف… حسّيت حالي مطمّنة طول الوقت 💗”</p>
+              </div>
+            </article>
+
+            <!-- Slide 4 -->
+            <article class="fb-slide" aria-label="رأي 4">
+              <div class="fb-bubble"></div>
+              <div class="fb-card">
+                <div class="fb-badge" aria-hidden="true">🛍️</div>
+                <div class="fb-quoteMark" aria-hidden="true">“</div>
+                <p class="fb-quote">“كلشي كان منظم… وحتى لو في تكرار بالقطع انتبهتوا عليه.”</p>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <button class="fb-nav fb-next" type="button" aria-label="التالي">›</button>
+      </div>
+
+      <div class="fb-dots" aria-hidden="true"></div>
+    </section>
+
+    <style>
+    /* =========================
+       FEEDBACK SLIDER STYLES
+       Pink–Purple, layered bubble
+       ========================= */
+    .fb-section{
+      padding: 28px 0 10px;
+      overflow-x: hidden;
+    }
+
+    .fb-header{
+      max-width: 980px;
+      width: 100%;
+      margin: 0 auto 12px;
+      padding: 0 16px;
+      text-align: center;
+    }
+
+    .fb-title{
+      margin: 0;
+      font-size: clamp(20px, 3vw, 28px);
+      font-weight: 800;
+    }
+
+    .fb-sub{
+      margin: 6px 0 0;
+      opacity: .8;
+    }
+
+    /* Wrapper with nav buttons */
+    .fb-wrap{
+      max-width: 980px;
+      width: 100%;
+      margin: 18px auto 0;
+      padding: 0 10px;
+      display: grid;
+      grid-template-columns: 44px 1fr 44px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    /* Nav buttons */
+    .fb-nav{
+      width: 44px;
+      height: 44px;
+      border-radius: 999px;
+      border: 1px solid rgba(120, 70, 160, .22);
+      background: rgba(255,255,255,.75);
+      box-shadow: 0 10px 30px rgba(120,70,160,.12);
+      cursor: pointer;
+      font-size: 26px;
+      line-height: 1;
+    }
+    .fb-nav:active{ transform: scale(.98); }
+
+    /* Viewport to show peeks */
+    .fb-viewport{
+      overflow: visible; /* key for peeking */
+      position: relative;
+    }
+
+    /* Track becomes a horizontal carousel */
+    .fb-track{
+      display: flex;
+      gap: 16px;
+      scroll-snap-type: x mandatory;
+      overflow-x: auto;
+      padding: 10px 0 18px;
+      scrollbar-width: none;
+    }
+    .fb-track::-webkit-scrollbar{ display:none; }
+
+    /* Each slide is narrower than viewport to reveal peeks */
+    .fb-slide{
+      scroll-snap-align: center;
+      flex: 0 0 min(74%, 520px); /* slightly smaller to avoid overpowering */
+      position: relative;
+      padding: 18px 0; /* space for bubble shadow */
+      transform-origin: center;
+      transition: transform .35s ease, opacity .35s ease;
+    }
+
+    /* The big pastel speech bubble behind */
+    .fb-bubble{
+      position: absolute;
+      inset: 12px 20px 6px 10px;
+      border-radius: 28px;
+      background: radial-gradient(circle at 20% 20%, rgba(255,168,220,.55), rgba(194,154,255,.45));
+      filter: blur(0px);
+      box-shadow: 0 18px 60px rgba(170, 90, 210, .18);
+      transform: rotate(-2deg);
+      z-index: 0;
+    }
+
+    /* Tail of bubble */
+    .fb-bubble::after{
+      content:"";
+      position:absolute;
+      bottom:-18px;
+      right: 64px; /* in RTL this will appear visually as the "end" */
+      width: 0;
+      height: 0;
+      border-left: 18px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 22px solid rgba(194,154,255,.45);
+      transform: rotate(10deg);
+      filter: drop-shadow(0 14px 18px rgba(170, 90, 210, .10));
+    }
+
+    /* White testimonial card on top */
+    .fb-card{
+      position: relative;
+      z-index: 1;
+      background: rgba(255,255,255,.92);
+      border: 1px solid rgba(160, 120, 200, .18);
+      border-radius: 22px;
+      padding: 22px 18px 18px;
+      box-shadow: 0 16px 40px rgba(80, 40, 120, .10);
+      min-height: 120px;
+    }
+
+    /* Badge (anonymous icon) floating on card */
+    .fb-badge{
+      position: absolute;
+      top: -16px;
+      right: 18px;
+      width: 44px;
+      height: 44px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.9), rgba(255,230,245,.8));
+      border: 1px solid rgba(160, 120, 200, .22);
+      box-shadow: 0 12px 26px rgba(120,70,160,.14);
+      font-size: 20px;
+    }
+
+    /* Quotation mark decor */
+    .fb-quoteMark{
+      position: absolute;
+      left: 16px;
+      top: 10px;
+      font-size: 54px;
+      opacity: .14;
+      font-weight: 900;
+    }
+
+    /* Quote text */
+    .fb-quote{
+      margin: 10px 0 0;
+      font-size: clamp(15px, 2.2vw, 18px);
+      line-height: 1.65;
+      font-weight: 700;
+      color: rgba(70, 30, 95, .95);
+      text-align: center;
+    }
+
+    /* Dots */
+    .fb-dots{
+      display:flex;
+      justify-content:center;
+      gap: 8px;
+      padding: 10px 0 0;
+    }
+    .fb-dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(120,70,160,.25);
+      transition: transform .25s ease, background .25s ease;
+    }
+    .fb-dot.is-active{
+      background: rgba(120,70,160,.65);
+      transform: scale(1.3);
+    }
+
+    /* Active emphasis (set by JS) */
+    .fb-slide.is-active{
+      transform: scale(1.02);
+      opacity: 1;
+    }
+    .fb-slide:not(.is-active){
+      opacity: .78;
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 520px){
+      .fb-wrap{ grid-template-columns: 32px 1fr 32px; padding: 0 6px; gap: 6px; }
+      .fb-nav{ width: 32px; height: 32px; font-size: 20px; }
+      .fb-slide{ flex-basis: min(70%, 420px); }
+      .fb-bubble{ inset: 12px 12px 6px 6px; }
+      .fb-bubble::after{ right: 38px; }
+    }
+    </style>
+
+    <script>
+    /* =========================
+       FEEDBACK SLIDER LOGIC
+       - autoplay every 2s
+       - peeking neighbors via slide width < viewport
+       - pause on hover/touch
+       ========================= */
+    (function(){
+      const track = document.querySelector('.fb-track');
+      if(!track) return;
+
+      const slides = Array.from(track.querySelectorAll('.fb-slide'));
+      const dotsWrap = document.querySelector('.fb-dots');
+      const btnPrev = document.querySelector('.fb-prev');
+      const btnNext = document.querySelector('.fb-next');
+      const section = document.querySelector('.fb-section');
+
+      let idx = 0;
+      let timer = null;
+      let paused = false;
+      let inView = false;
+
+      // Create dots
+      const dots = slides.map((_, i) => {
+        const d = document.createElement('div');
+        d.className = 'fb-dot' + (i === 0 ? ' is-active' : '');
+        d.addEventListener('click', () => goTo(i, true));
+        dotsWrap.appendChild(d);
+        return d;
+      });
+
+      function setActive(i){
+        slides.forEach((s, k) => s.classList.toggle('is-active', k === i));
+        dots.forEach((d, k) => d.classList.toggle('is-active', k === i));
+      }
+
+      function scrollToSlide(i, smooth){
+        const slide = slides[i];
+        if(!slide) return;
+        const trackRect = track.getBoundingClientRect();
+        const slideRect = slide.getBoundingClientRect();
+        const delta = (slideRect.left - trackRect.left) + (slideRect.width - trackRect.width) / 2;
+        track.scrollBy({left: delta, behavior: smooth ? 'smooth' : 'auto'});
+      }
+
+      function goTo(i, userInitiated=false){
+        idx = (i + slides.length) % slides.length;
+        setActive(idx);
+        scrollToSlide(idx, true);
+      }
+
+      function next(){ goTo(idx + 1); }
+      function prev(){ goTo(idx - 1, true); }
+
+      btnNext?.addEventListener('click', next);
+      btnPrev?.addEventListener('click', prev);
+
+      // Track scroll -> update active slide based on closest center
+      function updateFromScroll(){
+        const rect = track.getBoundingClientRect();
+        const center = rect.left + rect.width / 2;
+        let best = 0, bestDist = Infinity;
+
+        slides.forEach((s, i) => {
+          const r = s.getBoundingClientRect();
+          const sc = r.left + r.width / 2;
+          const dist = Math.abs(sc - center);
+          if(dist < bestDist){ bestDist = dist; best = i; }
+        });
+
+        if(best !== idx){
+          idx = best;
+          setActive(idx);
+        }
+      }
+      track.addEventListener('scroll', () => {
+        window.requestAnimationFrame(updateFromScroll);
+      }, {passive:true});
+
+      // Autoplay
+      function start(){
+        if(timer) return;
+        timer = setInterval(() => {
+          if(!paused) next();
+        }, 2000);
+      }
+      function stop(){
+        if(timer) clearInterval(timer);
+        timer = null;
+      }
+
+      // Pause on hover/touch
+      const viewport = document.querySelector('.fb-viewport');
+      viewport?.addEventListener('mouseenter', () => paused = true);
+      viewport?.addEventListener('mouseleave', () => paused = false);
+      viewport?.addEventListener('touchstart', () => paused = true, {passive:true});
+      viewport?.addEventListener('touchend', () => paused = false, {passive:true});
+
+      if(section){
+        const io = new IntersectionObserver((entries)=>{
+          entries.forEach(entry=>{
+            inView = entry.isIntersecting;
+            if(inView){
+              start();
+            }else{
+              stop();
+            }
+          });
+        }, {threshold: 0.4});
+        io.observe(section);
+      }
+
+      // Init
+      setActive(0);
+      if(!section) start();
+    })();
+    </script>
+
+    <section id="faq" data-tab="faq">
+      <h2 class="section-title">الأسئلة الشائعة</h2>
+      <p class="section-sub">فتّشي بسرعة عن جواب سؤالك.</p>
+
+      <div class="faq-search">
+        <input id="faqSearch" type="text" placeholder="ابحثي عن سؤال...">
+      </div>
+
+      <div id="faqList">
+        <div class="faq-group" data-category="الطلب">
+          <div class="faq-group-title">الطلب</div>
+          <div class="faq-grid">
+            <div class="faq-item" data-category="الطلب" data-text="كم مدة تجهيز الطلب؟">
+              <button type="button">كم مدة تجهيز الطلب؟</button>
+              <div class="answer">بنأكد معك التفاصيل أولًا، وبعدها بنبدأ مباشرة.</div>
+            </div>
+            <div class="faq-item" data-category="الطلب" data-text="هل في حد أدنى للقطع؟">
+              <button type="button">هل في حد أدنى للقطع؟</button>
+              <div class="answer">الحد الأدنى قطعة واحدة، والحد الأعلى 200 قطعة.</div>
+            </div>
+            <div class="faq-item" data-category="الطلب" data-text="كيف أعرف أن طلبي تم استلامه؟">
+              <button type="button">كيف أعرف أن طلبي تم استلامه؟</button>
+              <div class="answer">بنرسل لك رسالة تأكيد مباشرة بعد مراجعة الطلب.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-group" data-category="الدفع">
+          <div class="faq-group-title">الدفع</div>
+          <div class="faq-grid">
+            <div class="faq-item" data-category="الدفع" data-text="كيف يتم الدفع؟">
+              <button type="button">كيف يتم الدفع؟</button>
+              <div class="answer">بننسق معك التفاصيل وقت التأكيد، وما في دفع عبر الصفحة.</div>
+            </div>
+            <div class="faq-item" data-category="الدفع" data-text="هل في رسوم إضافية؟">
+              <button type="button">هل في رسوم إضافية؟</button>
+              <div class="answer">بنوضح لك أي رسوم قبل التنفيذ بشكل واضح.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-group" data-category="التوصيل/الاستلام">
+          <div class="faq-group-title">التوصيل/الاستلام</div>
+          <div class="faq-grid">
+            <div class="faq-item" data-category="التوصيل/الاستلام" data-text="شو فرق الاستلام من البيت ونقطة الاستلام؟">
+              <button type="button">شو فرق الاستلام من البيت ونقطة الاستلام؟</button>
+              <div class="answer">اختاري الأنسب إلك، وبنرتب كل شيء بسهولة.</div>
+            </div>
+            <div class="faq-item" data-category="التوصيل/الاستلام" data-text="في أي مدن متاحة الخدمة؟">
+              <button type="button">في أي مدن متاحة الخدمة؟</button>
+              <div class="answer">الخدمة متاحة في معظم مدن فلسطين، اختاري مدينتك.</div>
+            </div>
+            <div class="faq-item" data-category="التوصيل/الاستلام" data-text="هل في وقت محدد للتسليم؟">
+              <button type="button">هل في وقت محدد للتسليم؟</button>
+              <div class="answer">بنتفق على الوقت الأنسب لإلك عند التأكيد.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-group" data-category="الروابط/السلة">
+          <div class="faq-group-title">الروابط/السلة</div>
+          <div class="faq-grid">
+            <div class="faq-item" data-category="الروابط/السلة" data-text="كيف أجيب رابط السلة؟">
+              <button type="button">كيف أجيب رابط السلة؟</button>
+              <div class="answer">من شي إن: افتحي السلة واضغطي مشاركة الرابط.</div>
+            </div>
+            <div class="faq-item" data-category="الروابط/السلة" data-text="شو إذا الرابط ما كان شغال؟">
+              <button type="button">شو إذا الرابط ما كان شغال؟</button>
+              <div class="answer">ابعتيلنا لقطة شاشة للسلة ضمن الصور.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" data-tab="about">
+      <h2 class="section-title">عنّا</h2>
+      <div class="card about-card">
+        She-Store منصة لطيفة لمساعدتك تطلبي من شي إن بسهولة. بنستقبل طلبك، بنراجع التفاصيل، وبنتواصل معك للتأكيد. الاستلام متاح من البيت أو من نقطة الاستلام حسب ما يناسبك، وما في أي دفع عبر الموقع.
+        <div class="cute-divider"></div>
+        هدفنا نخلي التجربة ناعمة وواضحة من أول خطوة لحد الاستلام.
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const tabs = Array.from(document.querySelectorAll('.tab-btn'));
+    const sections = Array.from(document.querySelectorAll('section[data-tab]'));
+    const header = document.querySelector('.sticky-header');
+
+    function setActiveTab(id){
+      tabs.forEach(btn=>btn.classList.toggle('active', btn.dataset.target === `#${id}`));
+    }
+
+    tabs.forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        e.preventDefault();
+        const target = document.querySelector(btn.dataset.target);
+        if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
+      });
+    });
+
+    const observer = new IntersectionObserver((entries)=>{
+      entries.forEach(entry=>{
+        if(entry.isIntersecting){
+          setActiveTab(entry.target.id);
+        }
+      });
+    },{rootMargin:'-40% 0px -50% 0px', threshold:0.01});
+
+    sections.forEach(sec=>observer.observe(sec));
+
+    function updateScrollMargin(){
+      const offset = header ? header.offsetHeight + 16 : 100;
+      document.documentElement.style.setProperty('--scroll-offset', `${offset}px`);
+      sections.forEach(sec=>sec.style.scrollMarginTop = `${offset}px`);
+    }
+    updateScrollMargin();
+    window.addEventListener('resize', updateScrollMargin);
+
+    const wizard = document.getElementById('orderWizard');
+    const steps = Array.from(wizard.querySelectorAll('.step'));
+    const dots = Array.from(document.querySelectorAll('.progress-dot'));
+    const nextBtn = document.getElementById('nextBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const successBox = document.getElementById('successBox');
+    const errSubmit = document.getElementById('errSubmit');
+
+    const fields = {
+      fullName: document.getElementById('fullName'),
+      countryCode: document.getElementById('countryCode'),
+      phoneDigits: document.getElementById('phoneDigits'),
+      city: document.getElementById('city'),
+      cartUrl: document.getElementById('cartUrl'),
+      pickup: document.getElementById('pickup'),
+      qty: document.getElementById('qty'),
+      notes: document.getElementById('notes')
+    };
+
+    const errors = {
+      name: document.getElementById('errName'),
+      phone: document.getElementById('errPhone'),
+      city: document.getElementById('errCity'),
+      url: document.getElementById('errUrl'),
+      pickup: document.getElementById('errPickup'),
+      qty: document.getElementById('errQty')
+    };
+
+    let currentStep = 1;
+
+    function showStep(step){
+      currentStep = step;
+      steps.forEach(s=>s.classList.toggle('active', Number(s.dataset.step) === step));
+      dots.forEach(d=>d.classList.toggle('active', Number(d.dataset.step) <= step));
+      prevBtn.disabled = step === 1;
+      nextBtn.style.display = step === 3 ? 'none' : 'inline-flex';
+    }
+
+    function setError(el, msg){
+      if(el) el.textContent = msg || '';
+    }
+
+    function normalizeUrl(url){
+      const trimmed = url.trim();
+      if(!trimmed) return '';
+      if(/^https?:\/\//i.test(trimmed)) return trimmed;
+      return `https://${trimmed}`;
+    }
+
+    function validateStep1(){
+      let ok = true;
+      const name = fields.fullName.value.trim();
+      const code = fields.countryCode.value;
+      const digits = fields.phoneDigits.value.trim();
+      const city = fields.city.value.trim();
+
+      setError(errors.name, '');
+      setError(errors.phone, '');
+      setError(errors.city, '');
+
+      if(!name){ setError(errors.name, 'الاسم مطلوب.'); ok = false; }
+      if(!digits || !/^\d+$/.test(digits)){
+        setError(errors.phone, 'رقم الواتساب لازم يكون أرقام فقط.'); ok = false;
+      }else{
+        const full = `+${code}${digits}`;
+        if(!(full.startsWith('+970') || full.startsWith('+972'))){
+          setError(errors.phone, 'الكود لازم يكون 970 أو 972.'); ok = false;
+        }
+        if(digits.length < 7 || digits.length > 12){
+          setError(errors.phone, 'الرقم قصير جدًا أو طويل جدًا.'); ok = false;
+        }
+      }
+      if(!city){ setError(errors.city, 'اختاري المدينة.'); ok = false; }
+      return ok;
+    }
+
+    function validateStep2(){
+      let ok = true;
+      const urlRaw = fields.cartUrl.value;
+      const url = normalizeUrl(urlRaw);
+      const pickup = fields.pickup.value.trim();
+      const qty = Number(fields.qty.value);
+
+      setError(errors.url, '');
+      setError(errors.pickup, '');
+      setError(errors.qty, '');
+
+      if(!url){ setError(errors.url, 'رابط السلة مطلوب.'); ok = false; }
+      else{
+        try{ new URL(url); }
+        catch{ setError(errors.url, 'الرابط غير صحيح.'); ok = false; }
+      }
+      if(!pickup){ setError(errors.pickup, 'اختاري طريقة الاستلام.'); ok = false; }
+      if(!Number.isInteger(qty) || qty < 1 || qty > 200){
+        setError(errors.qty, 'العدد بين 1 و 200.'); ok = false;
+      }
+      if(url && url !== urlRaw) fields.cartUrl.value = url;
+      return ok;
+    }
+
+    function validateAll(){
+      const s1 = validateStep1();
+      const s2 = validateStep2();
+      return { ok: s1 && s2 };
+    }
+
+    nextBtn.addEventListener('click', ()=>{
+      if(currentStep === 1) validateStep1();
+      if(currentStep === 2) validateStep2();
+      showStep(Math.min(3, currentStep + 1));
+    });
+
+    prevBtn.addEventListener('click', ()=>{
+      showStep(Math.max(1, currentStep - 1));
+    });
+
+    const imagesInput = document.getElementById('images');
+    const previewGrid = document.getElementById('previewGrid');
+    let selectedFiles = [];
+
+    function renderPreviews(){
+      previewGrid.innerHTML = '';
+      selectedFiles.forEach((file, idx)=>{
+        const wrap = document.createElement('div');
+        wrap.className = 'preview-item';
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        const btn = document.createElement('button');
+        btn.className = 'remove-btn';
+        btn.type = 'button';
+        btn.textContent = '×';
+        btn.onclick = ()=>{
+          selectedFiles.splice(idx,1);
+          renderPreviews();
+        };
+        wrap.appendChild(img);
+        wrap.appendChild(btn);
+        previewGrid.appendChild(wrap);
+      });
+    }
+
+    imagesInput.addEventListener('change', ()=>{
+      const files = Array.from(imagesInput.files || []);
+      const valid = [];
+      files.forEach(f=>{
+        if(!f.type.startsWith('image/')) return;
+        if(f.size > 4 * 1024 * 1024) return;
+        valid.push(f);
+      });
+      selectedFiles = [...selectedFiles, ...valid].slice(0,5);
+      renderPreviews();
+      imagesInput.value = '';
+    });
+
+    function rateLimited(){
+      const key = 'home_submit_timestamps';
+      const now = Date.now();
+      const tenMin = 10 * 60 * 1000;
+      const raw = localStorage.getItem(key);
+      const list = raw ? JSON.parse(raw) : [];
+      const filtered = list.filter(ts => now - ts < tenMin);
+      if(filtered.length >= 3){
+        localStorage.setItem(key, JSON.stringify(filtered));
+        return true;
+      }
+      filtered.push(now);
+      localStorage.setItem(key, JSON.stringify(filtered));
+      return false;
+    }
+
+    submitBtn.addEventListener('click', ()=>{
+      errSubmit.textContent = '';
+      successBox.style.display = 'none';
+
+      const honeypot = document.getElementById('website');
+      if(honeypot && honeypot.value.trim()) return; // silent reject
+
+      if(rateLimited()){
+        errSubmit.textContent = 'صار في عدد محاولات كثير خلال وقت قصير. جربي بعد شوي.';
+        return;
+      }
+
+      const validation = validateAll();
+      if(!validation.ok){
+        showStep(1);
+        if(!validateStep1()) showStep(1);
+        else showStep(2);
+        errSubmit.textContent = 'يرجى إكمال الحقول المطلوبة.';
+        return;
+      }
+
+      const payload = {
+        full_name: fields.fullName.value.trim(),
+        phone_e164: `+${fields.countryCode.value}${fields.phoneDigits.value.trim()}`,
+        city: fields.city.value,
+        cart_url: normalizeUrl(fields.cartUrl.value),
+        pickup_method: fields.pickup.value,
+        qty: Number(fields.qty.value),
+        notes: fields.notes.value.trim(),
+        images: selectedFiles
+      };
+
+      // TODO: Insert into database + upload images (stub only)
+      // await insertOrder(payload)
+      // await uploadImages(payload.images)
+
+      successBox.style.display = 'block';
+
+      // reset
+      fields.fullName.value = '';
+      fields.phoneDigits.value = '';
+      fields.city.value = '';
+      fields.cartUrl.value = '';
+      fields.pickup.value = '';
+      fields.qty.value = '';
+      fields.notes.value = '';
+      selectedFiles = [];
+      renderPreviews();
+      showStep(1);
+    });
+
+    // inline honeypot
+    const hp = document.createElement('input');
+    hp.type = 'text';
+    hp.id = 'website';
+    hp.name = 'website';
+    hp.tabIndex = -1;
+    hp.autocomplete = 'off';
+    hp.style.position = 'absolute';
+    hp.style.left = '-9999px';
+    document.body.appendChild(hp);
+
+    // FAQ accordion + search
+    const faqSearch = document.getElementById('faqSearch');
+    const faqItems = Array.from(document.querySelectorAll('.faq-item'));
+    const faqGroups = Array.from(document.querySelectorAll('.faq-group'));
+
+    faqItems.forEach(item=>{
+      const btn = item.querySelector('button');
+      if(btn){
+        btn.addEventListener('click', ()=> item.classList.toggle('open'));
+      }
+    });
+
+    function filterFaq(){
+      const q = (faqSearch?.value || '').trim().toLowerCase();
+      faqItems.forEach(item=>{
+        const text = `${item.dataset.text || ''} ${(item.querySelector('.answer')?.textContent || '')}`.toLowerCase();
+        const match = !q || text.includes(q);
+        item.style.display = match ? '' : 'none';
+      });
+      faqGroups.forEach(group=>{
+        const anyVisible = Array.from(group.querySelectorAll('.faq-item')).some(it=>it.style.display !== 'none');
+        group.style.display = anyVisible ? '' : 'none';
+      });
+    }
+
+    if(faqSearch) faqSearch.addEventListener('input', filterFaq);
+    filterFaq();
+
+    showStep(1);
+  </script>
+  <script>
+    (function(){
+      const section = document.querySelector('#how');
+      if(!section) return;
+      const track = section.querySelector('#sheinTrack');
+      const slides = Array.from(section.querySelectorAll('.shein-screen-slide'));
+      const dots = Array.from(section.querySelectorAll('.shein-dot'));
+      const steps = Array.from(section.querySelectorAll('.shein-step'));
+      const prevBtn = section.querySelector('.shein-prev');
+      const nextBtn = section.querySelector('.shein-next');
+      if(!track || !slides.length) return;
+
+      let activeIndex = 0;
+      let slideWidth = 0;
+      let slideGap = 0;
+
+      function measure(){
+        if(!slides.length) return;
+        const style = getComputedStyle(track);
+        slideGap = parseFloat(style.columnGap || style.gap || '0') || 0;
+        slideWidth = slides[0].getBoundingClientRect().width;
+      }
+
+      function setActive(nextIndex){
+        const maxIndex = slides.length - 1;
+        activeIndex = Math.max(0, Math.min(maxIndex, nextIndex));
+        measure();
+        const offset = activeIndex * (slideWidth + slideGap);
+        track.style.transform = `translateX(${-offset}px)`;
+
+        slides.forEach((s,i)=> s.classList.toggle('active', i === activeIndex));
+        dots.forEach((d,i)=> d.classList.toggle('active', i === activeIndex));
+        steps.forEach((s,i)=> s.classList.toggle('active', i === activeIndex));
+        if(prevBtn) prevBtn.disabled = activeIndex === 0;
+        if(nextBtn) nextBtn.disabled = activeIndex === maxIndex;
+      }
+
+      if(prevBtn){
+        prevBtn.addEventListener('click', ()=> setActive(activeIndex - 1));
+      }
+      if(nextBtn){
+        nextBtn.addEventListener('click', ()=> setActive(activeIndex + 1));
+      }
+      dots.forEach((d)=>{
+        d.addEventListener('click', ()=>{
+          const idx = Number(d.dataset.step || 0);
+          setActive(idx);
+        });
+      });
+      steps.forEach((s)=>{
+        s.addEventListener('click', ()=>{
+          const idx = Number(s.dataset.step || 0);
+          setActive(idx);
+        });
+      });
+
+      window.addEventListener('resize', ()=> setActive(activeIndex));
+      setActive(0);
+    })();
+  </script>
+</body>
+</html>

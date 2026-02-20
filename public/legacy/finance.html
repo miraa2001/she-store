@@ -1,0 +1,1230 @@
+﻿<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>المالية</title>
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/8863/8863863.png" />
+  <link rel="stylesheet" href="assets/tokens.css">
+  <link rel="stylesheet" href="assets/base.css">
+  <script src="assets/ui.js" defer></script>
+
+  <style>
+    body{font-family:system-ui,Tahoma,Arial;margin:0;background:var(--color-bg);color:var(--color-text)}
+    .wrap{max-width:1100px;margin:auto;padding:16px;overflow-x:hidden}
+    .grid{display:grid;grid-template-columns:320px 1fr;gap:12px}
+    .grid > *{min-width:0}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+    .card{background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:12px}
+    .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .btn{border:1px solid var(--color-border);background:var(--color-card);padding:10px 14px;border-radius:var(--radius-lg);cursor:pointer}
+    .btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+    .muted{color:var(--color-muted);font-size:13px}
+    .pill{display:inline-block;padding:6px 10px;border:1px solid var(--color-border);border-radius:999px;font-size:12px;color:var(--color-text);background:#f1f4f2}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+    .tabs{
+      display:flex;gap:6px;background:var(--color-card);padding:6px;border-radius:var(--radius-lg);margin-bottom:12px;border:1px solid var(--color-border)
+    }
+    .tabBtn{
+      border:none;background:transparent;color:var(--color-muted);padding:10px 16px;border-radius:var(--radius-lg);
+      cursor:pointer;font-weight:600;font-family:inherit
+    }
+    .tabBtn.active{background:var(--brand);color:#fff}
+    .brand b{font-size:20px}
+    .menuBtn{border:1px solid var(--color-border);background:var(--color-card);padding:10px 12px;border-radius:var(--radius-lg);cursor:pointer}
+    .sidebarOverlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:50}
+    .sidebar{
+      position:fixed;top:0;right:0;height:100vh;width:min(220px,82vw);
+      background:var(--color-card);border-left:1px solid var(--color-border);z-index:60;
+      transform:translateX(100%);transition:transform .2s ease;
+      display:flex;flex-direction:column;padding:14px;box-sizing:border-box
+    }
+    .sidebar.open{transform:translateX(0)}
+    .sidebarOverlay.open{display:block}
+    .sidebarHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+    .sidebarHeader b{font-size:16px}
+    .sidebarHeader{position:relative;justify-content:center;text-align:center}
+    .sidebarHeader b{margin:0 auto}
+    .sidebarHeader .menuBtn{
+      position:absolute;left:0;padding:6px 8px;width:32px;height:32px;
+      display:flex;align-items:center;justify-content:center;color:#b00020;border-color:#f2c2c2
+    }
+    .sidebar a,.sidebar button{
+      width:100%;text-align:right;border:1px solid var(--color-border);background:var(--color-card);
+      padding:10px 12px;border-radius:var(--radius-md);cursor:pointer;margin-top:8px;font-family:inherit;
+      font-size:14px;line-height:1.3;box-sizing:border-box
+    }
+    .sidebar a{color:#111;text-decoration:none;display:block}
+    .sidebar .danger{border-color:#f2c2c2;color:#b00020}
+    .orderItem{border:1px solid var(--color-border);border-radius:var(--radius-md);padding:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+    .orderItem.active{border-color:var(--brand);background:var(--brand-tint)}
+    .progress{width:100%;height:8px;background:#eef1f5;border-radius:999px;overflow:hidden}
+    .progress span{display:block;height:100%;background:var(--brand)}
+    .btn.active{background:#111;color:#fff;border-color:#111}
+    .kpiGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}
+    @media(min-width:800px){.kpiGrid{grid-template-columns:repeat(3,1fr)}}
+    .kpi{border:1px solid var(--color-border);border-radius:var(--radius-md);padding:10px;background:var(--color-card)}
+    .kpi .label{font-size:12px;color:var(--color-muted)}
+    .kpi .value{font-size:18px;font-weight:700;margin-top:4px}
+    .kpi.t1 .value{font-size:20px}
+    .kpi.t2 .value{font-size:16px}
+    .kpi.t3{background:var(--color-bg)}
+    .kpi.t3 .value{font-size:14px;font-weight:600;color:var(--color-muted)}
+    .kpi .value.muted{color:var(--color-muted);font-weight:600}
+    .kpi .value.neg{color:var(--color-danger)}
+    .kpiRow{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}
+    @media(min-width:800px){.kpiRow{grid-template-columns:repeat(3,1fr)}}
+    .progressBlock{margin-top:10px;margin-bottom:10px}
+    .progressText{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+    .progress{margin-top:6px}
+    .progressText .muted{font-size:12px}
+    .segmented{display:inline-flex;border:1px solid var(--color-border);border-radius:999px;overflow:hidden}
+    .segmented button{border:none;background:#fff;padding:8px 12px;cursor:pointer}
+    .segmented button.active{background:var(--brand);color:#fff}
+    .chartBox{position:relative;min-height:220px;border:1px dashed var(--color-border);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;padding:8px}
+    .chartEmpty{text-align:center;color:var(--color-muted)}
+    .chartEmpty .title{font-weight:700;margin-bottom:4px}
+    .chartEmpty .sub{font-size:12px;color:var(--color-muted)}
+    .orderGroup{margin-top:10px}
+    .groupTitle{font-weight:700;color:#333;margin:10px 0 6px}
+    input{padding:10px;border:1px solid var(--color-border);border-radius:var(--radius-md);font-family:inherit}
+    input[type="number"]{max-width:220px}
+    .sectionTitle{font-weight:700;margin:12px 0 6px}
+    .spentRow{justify-content:flex-start;gap:8px;flex-wrap:wrap}
+    .spentRow label{font-size:13px;color:#444}
+    .monthHeaderRow{flex-direction:column;align-items:center;gap:8px}
+    .monthPickerBtn{font-weight:700;font-size:16px;padding:10px 16px}
+    .monthPicker{
+      border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:12px;background:var(--color-card)
+    }
+    .monthPickerHeader{
+      display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px
+    }
+    .monthNav{
+      border:1px solid var(--color-border);background:var(--color-card);border-radius:var(--radius-md);padding:6px 10px;cursor:pointer
+    }
+    .monthGrid{
+      display:grid;grid-template-columns:repeat(3,1fr);gap:8px
+    }
+    .monthBtn{
+      border:1px solid var(--color-border);background:var(--color-card);border-radius:var(--radius-md);padding:10px;cursor:pointer
+    }
+    .monthBtn.active{background:var(--color-text);color:#fff;border-color:var(--color-text)}
+    .monthBtn.disabled{opacity:.45;cursor:not-allowed}
+    .monthCharts{
+      margin-top:14px;background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-lg);
+      padding:18px 16px
+    }
+    .monthHeader{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+    .chartRow{display:grid;grid-template-columns:1fr;gap:16px}
+    @media(min-width:700px){.chartRow{grid-template-columns:1fr 1fr}}
+    #monthPie{height:180px !important}
+    #monthLine{height:260px !important}
+    canvas{width:100% !important}
+
+    /* ===== Page polish v2 ===== */
+    body[data-page="finance"] .wrap{max-width:1280px}
+    body[data-page="finance"] .tabs{
+      border-radius:16px 16px 10px 16px;
+      padding:7px;
+      gap:8px;
+    }
+    body[data-page="finance"] .tabBtn{
+      border-radius:12px 12px 8px 12px;
+      padding:10px 14px;
+    }
+    body[data-page="finance"] .tabBtn.active{
+      position:relative;
+      background:#eaf4f1;
+      color:#25584c;
+      box-shadow:inset 0 0 0 1px #b9d5cc;
+    }
+    body[data-page="finance"] .tabBtn.active::after{
+      content:"";
+      position:absolute;
+      right:8px;
+      top:7px;
+      bottom:7px;
+      width:3px;
+      border-radius:999px;
+      background:var(--brand);
+    }
+    body[data-page="finance"] .grid{
+      grid-template-columns:340px 1fr;
+      gap:16px;
+      align-items:start;
+    }
+    body[data-page="finance"] .grid > aside.card{
+      position:sticky;
+      top:92px;
+      border-radius:20px 20px 10px 20px;
+      background:linear-gradient(180deg,#fff 0%,#f7fbf9 100%);
+    }
+    body[data-page="finance"] .grid > main.card{
+      border-radius:24px 24px 12px 24px;
+    }
+    body[data-page="finance"] #ordersList{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top:0 !important;
+    }
+    body[data-page="finance"] .kpi{
+      border:1px solid #d8e3de;
+      border-radius:14px;
+      background:linear-gradient(180deg,#fff 0%,#f9fcfb 100%);
+      box-shadow:0 8px 12px rgba(15,23,42,.04);
+      padding:12px;
+    }
+    body[data-page="finance"] .kpi .label{
+      color:#697671;
+      font-size:12px;
+      font-weight:600;
+    }
+    body[data-page="finance"] .kpi .value{
+      margin-top:5px;
+      font-size:20px;
+      font-weight:700;
+    }
+    body[data-page="finance"] .progress{
+      height:10px;
+      background:#e8efec;
+      border:1px solid #d4dfda;
+      border-radius:999px;
+      overflow:hidden;
+    }
+    body[data-page="finance"] .progress span{
+      background:linear-gradient(90deg,#4f8a7b 0%,#6aa394 100%);
+      border-radius:999px;
+    }
+    body[data-page="finance"] .segmented{
+      border-radius:999px;
+      border:1px solid #d2dfda;
+      background:#fff;
+      box-shadow:0 6px 10px rgba(15,23,42,.06);
+    }
+    body[data-page="finance"] .segmented button{
+      border-radius:999px;
+      margin:4px;
+      padding:8px 14px;
+      font-weight:600;
+      color:#5c6964;
+    }
+    body[data-page="finance"] .segmented button.active{
+      background:#eaf4f1;
+      color:#25584c;
+      box-shadow:inset 0 0 0 1px #b9d5cc;
+    }
+    body[data-page="finance"] .monthPicker{
+      border-radius:18px;
+      background:linear-gradient(180deg,#fff 0%,#f8fcfa 100%);
+      box-shadow:0 10px 16px rgba(15,23,42,.05);
+    }
+    body[data-page="finance"] .monthBtn{
+      border-radius:11px;
+      border:1px solid #d6e2dd;
+    }
+    body[data-page="finance"] .monthBtn.active{
+      background:#eaf4f1;
+      color:#25584c;
+      border-color:#b9d5cc;
+    }
+    body[data-page="finance"] .monthCharts{
+      border-radius:22px;
+      background:linear-gradient(180deg,#fff 0%,#f9fcfb 100%);
+      box-shadow:0 12px 18px rgba(15,23,42,.06);
+    }
+    body[data-page="finance"] .chartBox{
+      border:1px solid #d9e3de;
+      border-radius:14px;
+      background:#fff;
+      box-shadow:inset 0 0 0 1px #eef4f1;
+    }
+    @media(max-width:900px){
+      body[data-page="finance"] .grid{grid-template-columns:1fr}
+      body[data-page="finance"] .grid > aside.card{position:static}
+    }
+  </style>
+  <link rel="stylesheet" href="assets/dashboard-shell.css">
+  <script src="assets/dashboard-shell.js" defer></script>
+</head>
+<body data-page="finance">
+
+<div class="sidebarOverlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebarHeader">
+    <b>القائمة</b>
+    <button class="menuBtn" id="closeSidebarBtn" type="button" aria-label="إغلاق القائمة">✕</button>
+  </div>
+  <div id="sidebarContent"></div>
+</aside>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <b>المالية</b>
+      <div class="muted">ملخص المصروفات والإيرادات</div>
+    </div>
+    <button class="menuBtn" id="openSidebarBtn" type="button" aria-label="فتح القائمة">☰</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tabBtn active" id="tabOrders" type="button">احصاء الطلبات</button>
+    <button class="tabBtn" id="tabMonths" type="button">احصاء شهري</button>
+  </div>
+
+  <div id="ordersPanel" class="tabPanel">
+    <div class="grid">
+      <aside class="card">
+        <div class="row" style="justify-content:space-between">
+          <b>الطلبيات</b>
+          <span class="pill" id="ordersCount">0</span>
+        </div>
+        <div id="ordersList" style="margin-top:10px"></div>
+        <div id="ordersEmpty" class="muted" style="margin-top:10px;display:none">
+          لا يوجد بيانات
+          <div style="margin-top:8px"><button class="btn" id="ordersRefreshBtn" type="button">تحديث</button></div>
+        </div>
+      </aside>
+
+      <main class="card">
+        <div id="empty" class="muted">اختاري طلبية من القائمة</div>
+
+        <div id="main" style="display:none">
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <div>
+              <b id="orderTitle"></b>
+            </div>
+            <span id="orderStatus" class="statusWrap">قيد التحصيل</span>
+          </div>
+
+        <div class="kpiGrid">
+          <div class="kpi t1">
+            <div class="label">تم تحصيله</div>
+            <div class="value" id="collectedTotal">0</div>
+          </div>
+          <div class="kpi t2">
+            <div class="label">متبقي للتحصيل</div>
+            <div class="value" id="pendingTotal">0</div>
+          </div>
+          <div class="kpi t2">
+            <div class="label">إجمالي متوقع</div>
+            <div class="value" id="expectedTotal">0</div>
+          </div>
+        </div>
+
+        <div class="progressBlock" id="progressBlock">
+          <div class="progressText">
+            <div class="muted" id="progressText">0 من 0 تم تحصيلها</div>
+            <div class="muted" id="progressLabel">0% مكتمل</div>
+          </div>
+          <div class="progress"><span id="progressBar" style="width:0%"></span></div>
+        </div>
+        <div class="muted" id="progressEmpty" style="display:none;margin-top:6px">لا يوجد تحصيل بعد</div>
+
+        <div class="kpiRow">
+          <div class="kpi t3" id="realizedKpi">
+            <div class="label" id="realizedLabel">صافي محصّل</div>
+            <div class="value" id="realizedProfit">0</div>
+          </div>
+          <div class="kpi t3">
+            <div class="label" id="projectedLabel">صافي متوقع</div>
+            <div class="value" id="projectedProfit">0</div>
+          </div>
+          <div class="kpi t3">
+            <div class="label">المصروف</div>
+            <div class="value" id="spentTotal">0</div>
+          </div>
+        </div>
+
+        <div class="row spentRow" style="margin-top:10px">
+          <label for="spentInput">المصروف:</label>
+          <input id="spentInput" type="number" step="0.01" min="0" placeholder="المصروف على الطلبية">
+          <button class="btn primary" id="saveSpentBtn">حفظ المصروف</button>
+          <span class="muted" id="spentMsg"></span>
+        </div>
+      </div>
+    </main>
+  </div>
+  </div>
+
+  <div id="monthsPanel" class="tabPanel" style="display:none">
+    <main class="card">
+      <div class="row monthHeaderRow" style="justify-content:center;align-items:center">
+        <div class="sectionTitle" style="margin:0">ملخص شهري</div>
+        <button class="btn monthPickerBtn" id="monthPickerToggle" type="button">اختيار الشهر</button>
+      </div>
+      <div class="monthPicker" id="monthPicker" style="display:none">
+        <div class="monthPickerHeader">
+          <button class="monthNav" id="prevYearBtn" type="button">‹</button>
+          <b id="yearLabel">—</b>
+          <button class="monthNav" id="nextYearBtn" type="button">›</button>
+        </div>
+        <div class="monthGrid" id="monthGrid"></div>
+      </div>
+      <div id="monthEmpty" class="muted" style="display:none;margin-top:8px">
+        لا يوجد بيانات شهرية
+        <div style="margin-top:8px"><button class="btn" id="monthRefreshBtn" type="button">تحديث</button></div>
+      </div>
+
+      <div class="monthCharts" id="monthCharts" style="display:none">
+        <div class="monthHeader">
+          <b id="monthLabel">—</b>
+          <span id="monthStatus" class="statusWrap">قيد التحصيل</span>
+        </div>
+        <div class="row" id="monthHealth" style="gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <span class="pill" id="monthOrdersCount">الطلبات: 0</span>
+          <span class="pill" id="monthPurchasesCount">المشتريات: 0</span>
+          <span class="pill" id="monthCollectedPct">نسبة التحصيل: 0%</span>
+          <span class="pill" id="monthTopPickup">أكبر نقطة: —</span>
+        </div>
+
+        <div class="kpiGrid">
+          <div class="kpi t1">
+            <div class="label">تم تحصيله</div>
+            <div class="value" id="monthCollected">0</div>
+          </div>
+          <div class="kpi t2">
+            <div class="label">متبقي للتحصيل</div>
+            <div class="value" id="monthPending">0</div>
+          </div>
+          <div class="kpi t2">
+            <div class="label">إجمالي متوقع</div>
+            <div class="value" id="monthExpected">0</div>
+          </div>
+        </div>
+
+        <div class="progressBlock" id="monthProgressBlock">
+          <div class="progressText">
+            <div class="muted" id="monthProgressText">0 من 0 تم تحصيلها</div>
+            <div class="muted" id="monthProgressLabel">0% مكتمل</div>
+          </div>
+          <div class="progress"><span id="monthProgressBar" style="width:0%"></span></div>
+        </div>
+        <div class="muted" id="monthProgressEmpty" style="display:none;margin-top:6px">لا يوجد تحصيل بعد</div>
+
+        <div class="kpiRow">
+          <div class="kpi t3" id="monthRealizedKpi">
+            <div class="label" id="monthRealizedLabel">صافي محصّل</div>
+            <div class="value" id="monthRealized">0</div>
+          </div>
+          <div class="kpi t3">
+            <div class="label" id="monthProjectedLabel">صافي متوقع</div>
+            <div class="value" id="monthProjected">0</div>
+          </div>
+          <div class="kpi t3">
+            <div class="label">المصروف</div>
+            <div class="value" id="monthSpent">0</div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px;justify-content:flex-start">
+          <div class="segmented" id="chartModeSeg">
+            <button class="active" id="chartModeStatus" type="button">حالة التحصيل</button>
+            <button id="chartModeProfit" type="button">الأرباح</button>
+          </div>
+        </div>
+
+        <div class="chartRow" style="margin-top:12px">
+          <div class="chartBox">
+            <div class="chartEmpty" id="donutEmpty" style="display:none">
+              <div class="title">لا يوجد تحصيل بعد</div>
+              <div class="sub">سيظهر الرسم عند بدء التحصيل</div>
+            </div>
+            <canvas id="monthPie"></canvas>
+          </div>
+          <div class="chartBox">
+            <div class="chartEmpty" id="lineEmpty" style="display:none">
+              <div class="title">لا يوجد تحصيل خلال هذا الشهر بعد</div>
+              <div class="sub">سيظهر الرسم عند بدء التحصيل</div>
+            </div>
+            <canvas id="monthLine"></canvas>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+const SUPABASE_URL="https://maucjvxhrnkdeybltjco.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+const EMAIL_RAHAF = "rahaf@she-store.com";
+
+async function requireAuth(){
+  const { data } = await sb.auth.getSession();
+  if(!data.session){
+    window.location.href="./login.html?next=finance.html";
+    return false;
+  }
+  return true;
+}
+
+async function guardFinanceAccess(){
+  const ok = await requireAuth();
+  if(!ok) return;
+
+  const { data: u } = await sb.auth.getUser();
+  const email = (u?.user?.email || "").toLowerCase();
+  if(email !== EMAIL_RAHAF){
+    window.location.replace("./login.html");
+  }
+}
+
+function normalizeDigits(str){
+  return String(str || "")
+    .replace(/[٠-٩]/g, d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
+    .replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)));
+}
+function parsePrice(v){
+  if(v === null || v === undefined) return 0;
+  if(typeof v === "number") return isFinite(v) ? v : 0;
+  const s = normalizeDigits(String(v)).replace(/[, ]/g, "").replace(/[₪]/g, "");
+  const m = s.match(/-?\d+(?:\.\d+)?/);
+  const n = m ? Number(m[0]) : 0;
+  return Number.isFinite(n) ? n : 0;
+}
+function formatILS(n){
+  const x = Number(n || 0);
+  if(!isFinite(x)) return "0";
+  const fixed = x.toFixed(2);
+  return fixed.endsWith(".00") ? String(Math.round(x)) : fixed;
+}
+
+function getOrderStats(orderId){
+  return orderStatsById.get(orderId) || {
+    collected: 0,
+    pending: 0,
+    notPicked: 0,
+    expected: 0,
+    dailyCollected: new Map()
+  };
+}
+
+/* ===== Sidebar ===== */
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("sidebarOverlay");
+const openBtn = document.getElementById("openSidebarBtn");
+const closeBtn = document.getElementById("closeSidebarBtn");
+const sidebarContent = document.getElementById("sidebarContent");
+
+function openSidebar(){ sidebar.classList.add("open"); overlay.classList.add("open"); }
+function closeSidebar(){ sidebar.classList.remove("open"); overlay.classList.remove("open"); }
+openBtn.onclick = openSidebar;
+closeBtn.onclick = closeSidebar;
+overlay.onclick = closeSidebar;
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeSidebar(); });
+
+function renderSidebar(){
+  sidebarContent.innerHTML = "";
+  const link = (text, href)=>{
+    const a = document.createElement("a");
+    a.href = href;
+    a.textContent = text;
+    a.onclick = ()=> closeSidebar();
+    sidebarContent.appendChild(a);
+  };
+  const btn = (text, cls, onClick)=>{
+    const b = document.createElement("button");
+    b.type="button";
+    b.className = cls || "";
+    b.textContent = text;
+    b.onclick = async ()=>{
+      await onClick();
+      closeSidebar();
+    };
+    sidebarContent.appendChild(b);
+  };
+
+  link("الطلبيات", "./index.html");
+  link("الاستلام والتحصيل", "./pickup-dashboard.html");
+  link("الأرشيف", "./archive.html");
+
+  btn("تسجيل خروج", "danger", async ()=>{
+    await sb.auth.signOut();
+    window.location.href="./login.html";
+  });
+}
+
+/* ===== DOM ===== */
+const ordersListEl = document.getElementById("ordersList");
+const ordersEmptyEl = document.getElementById("ordersEmpty");
+const ordersCountEl = document.getElementById("ordersCount");
+const ordersRefreshBtn = document.getElementById("ordersRefreshBtn");
+const emptyEl = document.getElementById("empty");
+const mainEl = document.getElementById("main");
+const orderTitleEl = document.getElementById("orderTitle");
+const collectedTotalEl = document.getElementById("collectedTotal");
+const pendingTotalEl = document.getElementById("pendingTotal");
+const notPickedTotalEl = document.getElementById("notPickedTotal");
+const expectedTotalEl = document.getElementById("expectedTotal");
+const progressPctEl = document.getElementById("progressPct");
+const progressTextEl = document.getElementById("progressText");
+const progressEmptyEl = document.getElementById("progressEmpty");
+const progressBlockEl = document.getElementById("progressBlock");
+const progressLabelEl = document.getElementById("progressLabel");
+const progressBarEl = document.getElementById("progressBar");
+const realizedProfitEl = document.getElementById("realizedProfit");
+const projectedProfitEl = document.getElementById("projectedProfit");
+const projectedLabelEl = document.getElementById("projectedLabel");
+const realizedKpi = document.getElementById("realizedKpi");
+const spentTotalEl = document.getElementById("spentTotal");
+const orderStatusEl = document.getElementById("orderStatus");
+const realizedLabelEl = document.getElementById("realizedLabel");
+const spentInput = document.getElementById("spentInput");
+const saveSpentBtn = document.getElementById("saveSpentBtn");
+const spentMsg = document.getElementById("spentMsg");
+const yearLabel = document.getElementById("yearLabel");
+const monthGrid = document.getElementById("monthGrid");
+const prevYearBtn = document.getElementById("prevYearBtn");
+const nextYearBtn = document.getElementById("nextYearBtn");
+const monthCharts = document.getElementById("monthCharts");
+const monthLabel = document.getElementById("monthLabel");
+const monthStatus = document.getElementById("monthStatus");
+const monthOrdersCount = document.getElementById("monthOrdersCount");
+const monthPurchasesCount = document.getElementById("monthPurchasesCount");
+const monthCollectedPct = document.getElementById("monthCollectedPct");
+const monthTopPickup = document.getElementById("monthTopPickup");
+const monthCollected = document.getElementById("monthCollected");
+const monthPending = document.getElementById("monthPending");
+const monthNotPicked = document.getElementById("monthNotPicked");
+const monthExpected = document.getElementById("monthExpected");
+const monthProgressLabel = document.getElementById("monthProgressLabel");
+const monthProgressPct = document.getElementById("monthProgressPct");
+const monthProgressText = document.getElementById("monthProgressText");
+const monthProgressEmpty = document.getElementById("monthProgressEmpty");
+const monthProgressBlock = document.getElementById("monthProgressBlock");
+const monthProgressBar = document.getElementById("monthProgressBar");
+const monthRealized = document.getElementById("monthRealized");
+const monthProjected = document.getElementById("monthProjected");
+const monthProjectedLabel = document.getElementById("monthProjectedLabel");
+const monthSpent = document.getElementById("monthSpent");
+const monthRealizedKpi = document.getElementById("monthRealizedKpi");
+const monthRealizedLabel = document.getElementById("monthRealizedLabel");
+const monthPie = document.getElementById("monthPie");
+const monthLine = document.getElementById("monthLine");
+const monthPicker = document.getElementById("monthPicker");
+const monthEmpty = document.getElementById("monthEmpty");
+const monthRefreshBtn = document.getElementById("monthRefreshBtn");
+const monthPickerToggle = document.getElementById("monthPickerToggle");
+const chartModeStatus = document.getElementById("chartModeStatus");
+const chartModeProfit = document.getElementById("chartModeProfit");
+const donutEmpty = document.getElementById("donutEmpty");
+const lineEmpty = document.getElementById("lineEmpty");
+const tabOrders = document.getElementById("tabOrders");
+const tabMonths = document.getElementById("tabMonths");
+const ordersPanel = document.getElementById("ordersPanel");
+const monthsPanel = document.getElementById("monthsPanel");
+
+let orders = [];
+let orderStatsById = new Map();
+let activeOrder = null;
+let chartInstances = [];
+let monthMap = new Map();
+let yearList = [];
+let selectedYear = null;
+let selectedMonth = null;
+let chartMode = "status";
+
+function showTab(tab){
+  const isOrders = tab === "orders";
+  if(ordersPanel) ordersPanel.style.display = isOrders ? "" : "none";
+  if(monthsPanel) monthsPanel.style.display = isOrders ? "none" : "";
+  if(tabOrders) tabOrders.classList.toggle("active", isOrders);
+  if(tabMonths) tabMonths.classList.toggle("active", !isOrders);
+  if(!isOrders){
+    requestAnimationFrame(()=>{ renderMonthCharts(); });
+  }
+}
+
+if(tabOrders) tabOrders.onclick = ()=> showTab("orders");
+if(tabMonths) tabMonths.onclick = ()=> showTab("months");
+
+if(prevYearBtn){
+  prevYearBtn.onclick = ()=>{
+    if(!yearList.length) return;
+    const idx = yearList.indexOf(selectedYear);
+    if(idx > 0){
+      selectedYear = yearList[idx - 1];
+      selectedMonth = null;
+      renderMonthlyCharts();
+    }
+  };
+}
+if(nextYearBtn){
+  nextYearBtn.onclick = ()=>{
+    if(!yearList.length) return;
+    const idx = yearList.indexOf(selectedYear);
+    if(idx < yearList.length - 1){
+      selectedYear = yearList[idx + 1];
+      selectedMonth = null;
+      renderMonthlyCharts();
+    }
+  };
+}
+
+if(monthPickerToggle){
+  monthPickerToggle.onclick = ()=>{
+    if(!monthPicker) return;
+    const isOpen = monthPicker.style.display !== "none";
+    monthPicker.style.display = isOpen ? "none" : "";
+  };
+}
+
+if(chartModeStatus){
+  chartModeStatus.onclick = ()=>{
+    chartMode = "status";
+    renderMonthCharts();
+  };
+}
+if(chartModeProfit){
+  chartModeProfit.onclick = ()=>{
+    chartMode = "profit";
+    renderMonthCharts();
+  };
+}
+
+function showMain(on){
+  mainEl.style.display = on ? "" : "none";
+  emptyEl.style.display = on ? "none" : "";
+}
+
+function getOrderDate(order){
+  if(order?.order_date){
+    return new Date(`${order.order_date}T00:00:00`);
+  }
+  return new Date(order?.created_at || Date.now());
+}
+
+async function fetchFinanceData(){
+  const [ordersRes, purchasesRes] = await Promise.all([
+    sb.from("orders").select("id, order_name, order_date, created_at, spent_amount").order("created_at",{ascending:false}),
+    sb.from("purchases").select("order_id, price, paid_price, qty, pickup_point, collected, picked_up, collected_at")
+  ]);
+
+  if(ordersRes.error){ console.error(ordersRes.error); return; }
+  if(purchasesRes.error){ console.error(purchasesRes.error); return; }
+
+  orders = ordersRes.data || [];
+  orderStatsById = new Map();
+
+  (purchasesRes.data || []).forEach(p=>{
+    const unit = parsePrice(p.paid_price ?? p.price);
+    const amount = unit;
+    if(!orderStatsById.has(p.order_id)){
+      orderStatsById.set(p.order_id, {
+        collected: 0,
+        pending: 0,
+        notPicked: 0,
+        expected: 0,
+        dailyCollected: new Map(),
+        purchaseCount: 0,
+        pickupTotals: new Map()
+      });
+    }
+    const stats = orderStatsById.get(p.order_id);
+    stats.purchaseCount += 1;
+    if(p.pickup_point){
+      const key = p.pickup_point;
+      stats.pickupTotals.set(key, (stats.pickupTotals.get(key) || 0) + amount);
+    }
+    stats.expected += amount;
+    if(p.collected){
+      stats.collected += amount;
+      const dayKey = p.collected_at ? new Date(p.collected_at) : null;
+      if(dayKey && !isNaN(dayKey)){
+        const d = dayKey.getDate();
+        stats.dailyCollected.set(d, (stats.dailyCollected.get(d) || 0) + amount);
+      }
+    } else if(p.picked_up){
+      stats.pending += amount;
+    } else {
+      stats.notPicked += amount;
+    }
+  });
+}
+
+function renderOrders(){
+  ordersCountEl.textContent = orders.length;
+  ordersListEl.innerHTML = "";
+  ordersEmptyEl.style.display = orders.length ? "none" : "";
+
+  const groups = new Map();
+  orders.forEach(o=>{
+    const date = getOrderDate(o);
+    const key = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}`;
+    if(!groups.has(key)){
+      groups.set(key, {
+        label: date.toLocaleDateString("ar", { month:"long", year:"numeric" }),
+        items: [],
+        collected: 0,
+        expected: 0,
+        outstanding: 0
+      });
+    }
+    const g = groups.get(key);
+    g.items.push(o);
+    const stats = getOrderStats(o.id);
+    const exp = stats.expected || 0;
+    const col = stats.collected || 0;
+    g.expected += exp;
+    g.collected += col;
+    g.outstanding += Math.max(0, exp - col);
+  });
+
+  const sortedKeys = [...groups.keys()].sort((a,b)=> b.localeCompare(a));
+  sortedKeys.forEach(key=>{
+    const group = groups.get(key);
+    const wrapper = document.createElement("div");
+    wrapper.className = "orderGroup";
+    wrapper.innerHTML = `
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <div class="groupTitle">${escapeHtml(group.label)}</div>
+        <div class="row" style="gap:6px;flex-wrap:wrap">
+          <span class="pill">الطلبات: ${group.items.length}</span>
+          <span class="pill">تم تحصيله: ${formatILS(group.collected)}</span>
+          <span class="pill">متبقي: ${formatILS(group.outstanding)}</span>
+        </div>
+      </div>
+    `;
+
+    group.items.forEach(o=>{
+      const div = document.createElement("div");
+      div.className = "orderItem" + (activeOrder?.id === o.id ? " active" : "");
+      div.innerHTML = `<span>${escapeHtml(o.order_name || "")}</span><span class="pill">فتح</span>`;
+      div.onclick = ()=> selectOrder(o);
+      wrapper.appendChild(div);
+    });
+
+    ordersListEl.appendChild(wrapper);
+  });
+}
+
+function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+
+function updateOrderSummary(order){
+  const stats = getOrderStats(order.id);
+  const collected = stats.collected;
+  const pending = stats.pending;
+  const notPicked = stats.notPicked;
+  const expected = stats.expected;
+  const spent = parsePrice(order.spent_amount);
+  const outstanding = Math.max(0, expected - collected);
+  const netCollected = collected - spent;
+  const netExpected = expected - spent;
+
+  const progressPct = expected > 0 ? Math.round((collected / expected) * 100) : 0;
+  collectedTotalEl.textContent = formatILS(collected);
+  pendingTotalEl.textContent = formatILS(outstanding);
+  if(notPickedTotalEl) notPickedTotalEl.textContent = formatILS(outstanding);
+  expectedTotalEl.textContent = formatILS(expected);
+  if(progressPctEl) progressPctEl.textContent = `${progressPct}%`;
+  progressLabelEl.textContent = `${progressPct}% مكتمل`;
+  if(progressBarEl) progressBarEl.style.width = `${progressPct}%`;
+  if(progressTextEl) progressTextEl.textContent = `${formatILS(collected)} من ${formatILS(expected)} تم تحصيلها`;
+
+  if(expected === 0){
+    if(progressBlockEl) progressBlockEl.style.display = "none";
+    if(progressEmptyEl) progressEmptyEl.style.display = "";
+  } else {
+    if(progressBlockEl) progressBlockEl.style.display = "";
+    if(progressEmptyEl) progressEmptyEl.style.display = "none";
+  }
+
+  const incomplete = outstanding > 0;
+  if(realizedKpi){
+    realizedKpi.style.display = incomplete ? "none" : "";
+  }
+  if(!incomplete){
+    if(realizedLabelEl) realizedLabelEl.textContent = "صافي محصّل";
+    realizedProfitEl.textContent = formatILS(netCollected);
+    realizedProfitEl.classList.remove("muted");
+    realizedProfitEl.classList.toggle("neg", netCollected < 0);
+  }
+
+  if(projectedLabelEl){
+    projectedLabelEl.textContent = netExpected < 0 ? "الخسارة" : "صافي متوقع";
+  }
+  projectedProfitEl.textContent = formatILS(netExpected);
+  projectedProfitEl.classList.toggle("neg", netExpected < 0);
+  spentTotalEl.textContent = formatILS(spent);
+  spentInput.value = spent ? String(spent) : "";
+
+  const isComplete = outstanding === 0 && expected > 0;
+  if(orderStatusEl){
+    let label = "قيد التحصيل";
+    let variant = "warning";
+    if(expected === 0){
+      label = "لا يوجد مشتريات";
+      variant = "neutral";
+    } else if(isComplete){
+      label = netCollected < 0 ? "عجز محقق" : "ربح محقق";
+      variant = netCollected < 0 ? "danger" : "success";
+    }
+    orderStatusEl.innerHTML = typeof statusBadge === "function"
+      ? statusBadge(label, variant)
+      : label;
+  }
+}
+
+async function selectOrder(order){
+  activeOrder = order;
+  orderTitleEl.textContent = order.order_name || "";
+  updateOrderSummary(order);
+  renderOrders();
+  showMain(true);
+}
+
+async function saveSpent(){
+  if(!activeOrder) return;
+  const raw = spentInput.value.trim();
+  const val = raw === "" ? 0 : Number(raw);
+  if(raw !== "" && (!Number.isFinite(val) || val < 0)){
+    spentMsg.textContent = "المصروف غير صحيح.";
+    return;
+  }
+  spentMsg.textContent = "جاري الحفظ...";
+  const { error } = await sb.from("orders").update({ spent_amount: val }).eq("id", activeOrder.id);
+  if(error){
+    console.error(error);
+    spentMsg.textContent = "فشل الحفظ.";
+    return;
+  }
+  activeOrder.spent_amount = val;
+  updateOrderSummary(activeOrder);
+  renderMonthlyCharts();
+  spentMsg.textContent = "تم ✅";
+  setTimeout(()=>{ spentMsg.textContent = ""; }, 1500);
+}
+saveSpentBtn.onclick = saveSpent;
+
+function destroyCharts(){
+  chartInstances.forEach(c=>{ try{ c.destroy(); }catch{} });
+  chartInstances = [];
+}
+
+function buildMonthMap(){
+  monthMap = new Map();
+
+  orders.forEach(o=>{
+    const date = getOrderDate(o);
+    const key = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}`;
+    const label = date.toLocaleDateString("ar", { month:"long", year:"numeric" });
+    const stats = getOrderStats(o.id);
+    const spent = parsePrice(o.spent_amount);
+    let dailySum = 0;
+
+    if(!monthMap.has(key)){
+      monthMap.set(key, {
+        label,
+        year: date.getFullYear(),
+        month: date.getMonth(),
+        collected: 0,
+        pending: 0,
+        notPicked: 0,
+        expected: 0,
+        spent: 0,
+        dailyCollected: new Map(),
+        dailySpent: new Map(),
+        orderCount: 0,
+        purchaseCount: 0,
+        pickupTotals: new Map()
+      });
+    }
+    const m = monthMap.get(key);
+    m.orderCount += 1;
+    m.collected += stats.collected;
+    m.pending += stats.pending;
+    m.notPicked += stats.notPicked;
+    m.expected += stats.expected;
+    m.spent += spent;
+    m.purchaseCount += stats.purchaseCount || 0;
+
+    if(stats.pickupTotals){
+      stats.pickupTotals.forEach((val, pickup)=>{
+        m.pickupTotals.set(pickup, (m.pickupTotals.get(pickup) || 0) + val);
+      });
+    }
+
+    stats.dailyCollected.forEach((val, day)=>{
+      m.dailyCollected.set(day, (m.dailyCollected.get(day) || 0) + val);
+      dailySum += val;
+    });
+
+    if(stats.collected > dailySum){
+      const day = date.getDate();
+      const missing = stats.collected - dailySum;
+      m.dailyCollected.set(day, (m.dailyCollected.get(day) || 0) + missing);
+    }
+
+    if(spent > 0){
+      const day = date.getDate();
+      m.dailySpent.set(day, (m.dailySpent.get(day) || 0) + spent);
+    }
+  });
+
+  yearList = [...new Set([...monthMap.values()].map(m=>m.year))].sort((a,b)=>a-b);
+  if(selectedYear === null && yearList.length){
+    selectedYear = yearList[yearList.length - 1];
+  }
+}
+
+function renderMonthPicker(){
+  monthGrid.innerHTML = "";
+  if(!yearList.length){
+    yearLabel.textContent = "—";
+    if(monthEmpty) monthEmpty.style.display = "";
+    if(monthPicker) monthPicker.style.display = "none";
+    monthCharts.style.display = "none";
+    return;
+  }
+  if(monthEmpty) monthEmpty.style.display = "none";
+  yearLabel.textContent = String(selectedYear);
+
+  const monthsNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  for(let i=0;i<12;i++){
+    const key = `${selectedYear}-${String(i+1).padStart(2,"0")}`;
+    const hasData = monthMap.has(key);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "monthBtn" + (selectedMonth === key ? " active" : "") + (!hasData ? " disabled" : "");
+    btn.textContent = monthsNames[i];
+    btn.disabled = !hasData;
+    btn.onclick = ()=>{
+      selectedMonth = key;
+      renderMonthPicker();
+      renderMonthCharts();
+      if(monthPicker) monthPicker.style.display = "none";
+    };
+    monthGrid.appendChild(btn);
+  }
+}
+
+function renderMonthCharts(){
+  destroyCharts();
+  const m = selectedMonth ? monthMap.get(selectedMonth) : null;
+  if(!m){
+    monthCharts.style.display = "none";
+    if(monthPickerToggle) monthPickerToggle.textContent = "اختيار الشهر";
+    return;
+  }
+  monthCharts.style.display = "";
+
+  monthLabel.textContent = m.label;
+  const outstanding = Math.max(0, m.expected - m.collected);
+  const netCollected = m.collected - m.spent;
+  const netExpected = m.expected - m.spent;
+  const progressPct = m.expected > 0 ? Math.round((m.collected / m.expected) * 100) : 0;
+
+  monthCollected.textContent = formatILS(m.collected);
+  monthPending.textContent = formatILS(outstanding);
+  if(monthNotPicked) monthNotPicked.textContent = formatILS(outstanding);
+  monthExpected.textContent = formatILS(m.expected);
+  if(monthProgressPct) monthProgressPct.textContent = `${progressPct}%`;
+  monthProgressLabel.textContent = `${progressPct}% مكتمل`;
+  if(monthProgressBar) monthProgressBar.style.width = `${progressPct}%`;
+  if(monthProgressText) monthProgressText.textContent = `${formatILS(m.collected)} من ${formatILS(m.expected)} تم تحصيلها`;
+
+  if(m.expected === 0){
+    if(monthProgressBlock) monthProgressBlock.style.display = "none";
+    if(monthProgressEmpty) monthProgressEmpty.style.display = "";
+  } else {
+    if(monthProgressBlock) monthProgressBlock.style.display = "";
+    if(monthProgressEmpty) monthProgressEmpty.style.display = "none";
+  }
+
+  const incomplete = outstanding > 0;
+  if(monthRealizedKpi){
+    monthRealizedKpi.style.display = incomplete ? "none" : "";
+  }
+  if(!incomplete){
+    if(monthRealizedLabel) monthRealizedLabel.textContent = "صافي محصّل";
+    monthRealized.textContent = formatILS(netCollected);
+    monthRealized.classList.remove("muted");
+    monthRealized.classList.toggle("neg", netCollected < 0);
+  }
+
+  if(monthProjectedLabel){
+    monthProjectedLabel.textContent = netExpected < 0 ? "الخسارة" : "صافي متوقع";
+  }
+  monthProjected.textContent = formatILS(netExpected);
+  monthProjected.classList.toggle("neg", netExpected < 0);
+  monthSpent.textContent = formatILS(m.spent);
+
+  const isComplete = outstanding === 0 && m.expected > 0;
+  if(monthStatus){
+    let label = "قيد التحصيل";
+    let variant = "warning";
+    if(m.expected === 0){
+      label = "لا يوجد مشتريات";
+      variant = "neutral";
+    } else if(isComplete){
+      label = netCollected < 0 ? "عجز محقق" : "ربح محقق";
+      variant = netCollected < 0 ? "danger" : "success";
+    }
+    monthStatus.innerHTML = typeof statusBadge === "function"
+      ? statusBadge(label, variant)
+      : label;
+  }
+  if(monthPickerToggle) monthPickerToggle.textContent = "تغيير الشهر";
+
+  if(monthOrdersCount) monthOrdersCount.textContent = `الطلبات: ${m.orderCount || 0}`;
+  if(monthPurchasesCount) monthPurchasesCount.textContent = `المشتريات: ${m.purchaseCount || 0}`;
+  if(monthCollectedPct) monthCollectedPct.textContent = `نسبة التحصيل: ${progressPct}%`;
+  if(monthTopPickup){
+    let top = "—";
+    let max = 0;
+    if(m.pickupTotals){
+      m.pickupTotals.forEach((val, key)=>{
+        if(val > max){ max = val; top = key; }
+      });
+    }
+    monthTopPickup.textContent = `أكبر نقطة: ${top}`;
+  }
+
+  Chart.defaults.font.family = "Tahoma, Arial, system-ui";
+  Chart.defaults.color = "#333";
+
+  if(chartModeStatus){
+    chartModeStatus.classList.toggle("active", chartMode === "status");
+  }
+  if(chartModeProfit){
+    chartModeProfit.classList.toggle("active", chartMode === "profit");
+  }
+
+  const pieLabels = chartMode === "profit"
+    ? ["تم تحصيله", "المصروف"]
+    : ["تم تحصيله", "متبقي للتحصيل"];
+
+  const pieData = chartMode === "profit"
+    ? [Math.max(0, m.collected), Math.max(0, m.spent)]
+    : [Math.max(0, m.collected), Math.max(0, outstanding)];
+
+  const pieColors = chartMode === "profit"
+    ? ["#4F8A7B", "#cfd6dd"]
+    : ["#4F8A7B", "#e8e2c6"];
+
+  if(donutEmpty){
+    const donutHasData = m.collected > 0;
+    donutEmpty.style.display = donutHasData ? "none" : "";
+    if(monthPie) monthPie.style.display = donutHasData ? "" : "none";
+  }
+
+  if(m.collected > 0){
+    const pie = new Chart(monthPie, {
+      type: "doughnut",
+      data: {
+        labels: pieLabels,
+        datasets: [{
+          data: pieData,
+          backgroundColor: pieColors,
+          borderWidth: 0
+        }]
+      },
+      options: {
+        plugins: { legend: { position: "bottom" } },
+        cutout: "72%",
+        maintainAspectRatio: false
+      }
+    });
+    chartInstances.push(pie);
+  }
+
+  const daysInMonth = new Date(m.year, m.month + 1, 0).getDate();
+  const labels = [];
+  const collectedSeries = [];
+  const netSeries = [];
+  for(let d=1; d<=daysInMonth; d++){
+    labels.push(String(d));
+    const collected = m.dailyCollected.get(d) || 0;
+    const spent = m.dailySpent ? (m.dailySpent.get(d) || 0) : 0;
+    collectedSeries.push(collected);
+    netSeries.push(collected - spent);
+  }
+
+  const lineData = chartMode === "profit" ? netSeries : collectedSeries;
+  const lineLabel = chartMode === "profit" ? "صافي محصّل يومي" : "التحصيل اليومي";
+  const allZero = lineData.every(v=>v === 0);
+  const showEmpty = allZero;
+  if(lineEmpty){
+    lineEmpty.style.display = showEmpty ? "" : "none";
+    if(monthLine) monthLine.style.display = showEmpty ? "none" : "";
+    if(showEmpty){
+      const title = chartMode === "profit"
+        ? "لا يوجد صافي يومي بعد"
+        : "لا يوجد تحصيل خلال هذا الشهر بعد";
+      const sub = chartMode === "profit"
+        ? "سيظهر الرسم عند توفر بيانات يومية"
+        : "سيظهر الرسم عند بدء التحصيل";
+      lineEmpty.querySelector(".title").textContent = title;
+      lineEmpty.querySelector(".sub").textContent = sub;
+    }
+  }
+
+  if(!showEmpty && lineData.length){
+    const lineColor = "#4F8A7B";
+    const fillColor = "rgba(79,138,123,0.15)";
+    const line = new Chart(monthLine, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [{
+          label: lineLabel,
+          data: lineData,
+          borderColor: lineColor,
+          backgroundColor: fillColor,
+          tension: 0.25,
+          fill: true,
+          pointRadius: 2
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false } },
+          y: { ticks: { precision: 0 } }
+        },
+        maintainAspectRatio: false
+      }
+    });
+    chartInstances.push(line);
+  }
+}
+
+function renderMonthlyCharts(){
+  buildMonthMap();
+  renderMonthPicker();
+  if(!selectedMonth && yearList.length){
+    const latest = [...monthMap.keys()].sort().pop();
+    selectedMonth = latest || null;
+  }
+  renderMonthPicker();
+  renderMonthCharts();
+}
+
+(function setupRefreshButtons(){
+  const refresh = async ()=>{
+    await fetchFinanceData();
+    renderOrders();
+    renderMonthlyCharts();
+  };
+  if(ordersRefreshBtn) ordersRefreshBtn.onclick = refresh;
+  if(monthRefreshBtn) monthRefreshBtn.onclick = refresh;
+})();
+
+(async function init(){
+  await guardFinanceAccess();
+  renderSidebar();
+  await fetchFinanceData();
+  renderOrders();
+  renderMonthlyCharts();
+  if(orders.length) selectOrder(orders[0]);
+  showTab("orders");
+})();
+</script>
+</body>
+</html>
+

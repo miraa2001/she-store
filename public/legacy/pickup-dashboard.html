@@ -1,0 +1,336 @@
+﻿<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>الاستلام والتحصيل</title>
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/8863/8863863.png" />
+  <link rel="stylesheet" href="assets/tokens.css">
+  <link rel="stylesheet" href="assets/base.css">
+  <script src="assets/ui.js" defer></script>
+  <style>
+    body{font-family:system-ui,Tahoma,Arial;margin:0;background:var(--color-bg);color:var(--color-text)}
+    .wrap{max-width:1200px;margin:auto;padding:16px}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+    .brand b{font-size:20px}
+    .muted{color:var(--color-muted);font-size:13px}
+
+    .menuBtn{border:1px solid var(--color-border);background:var(--color-card);padding:10px 12px;border-radius:var(--radius-lg);cursor:pointer}
+    .menuBtn.danger{border-color:#f2c2c2;color:#b00020}
+    .sidebarOverlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:50}
+    .sidebar{
+      position:fixed;top:0;right:0;height:100vh;width:min(220px,82vw);
+      background:var(--color-card);border-left:1px solid var(--color-border);z-index:60;
+      transform:translateX(100%);transition:transform .2s ease;
+      display:flex;flex-direction:column;padding:14px;box-sizing:border-box
+    }
+    .sidebar.open{transform:translateX(0)}
+    .sidebarOverlay.open{display:block}
+    .sidebarHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+    .sidebarHeader b{font-size:16px}
+    .sidebarHeader{position:relative;justify-content:center;text-align:center}
+    .sidebarHeader b{margin:0 auto}
+    .sidebarHeader .menuBtn{
+      position:absolute;left:0;padding:6px 8px;width:32px;height:32px;
+      display:flex;align-items:center;justify-content:center;color:#b00020;border-color:#f2c2c2
+    }
+    .sidebar a,.sidebar button{
+      width:100%;text-align:right;border:1px solid var(--color-border);background:var(--color-card);
+      padding:10px 12px;border-radius:var(--radius-md);cursor:pointer;margin-top:8px;font-family:inherit;
+      font-size:14px;line-height:1.3;box-sizing:border-box
+    }
+    .sidebar a{color:#111;text-decoration:none;display:block}
+    .sidebar .danger{border-color:#f2c2c2;color:#b00020}
+
+    .tabs{
+      display:flex;gap:6px;background:var(--color-card);padding:6px;border-radius:var(--radius-lg);
+      margin:8px 0 14px;border:1px solid var(--color-border)
+    }
+    .tabBtn{
+      border:none;background:transparent;color:var(--color-muted);padding:10px 16px;border-radius:var(--radius-lg);
+      cursor:pointer;font-weight:600;font-family:inherit
+    }
+    .tabBtn.active{background:var(--brand);color:#fff}
+    .tabPanel{display:none}
+    .tabPanel.active{display:block}
+    .panelFrame{
+      width:100%;border:none;border-radius:var(--radius-lg);
+      height:600px;min-height:300px;background:var(--color-card);display:block
+    }
+
+    /* ===== Page polish v2 ===== */
+    body[data-page="pickup-dashboard"] .wrap{max-width:1280px}
+    body[data-page="pickup-dashboard"] .topbar{
+      border-radius:22px 22px 10px 22px;
+    }
+    body[data-page="pickup-dashboard"] .tabs{
+      border-radius:16px 16px 10px 16px;
+      padding:7px;
+      gap:8px;
+    }
+    body[data-page="pickup-dashboard"] .tabBtn{
+      border-radius:12px 12px 8px 12px;
+      padding:10px 14px;
+    }
+    body[data-page="pickup-dashboard"] .tabBtn.active{
+      position:relative;
+      background:#eaf4f1;
+      color:#25584c;
+      box-shadow:inset 0 0 0 1px #b9d5cc;
+    }
+    body[data-page="pickup-dashboard"] .tabBtn.active::after{
+      content:"";
+      position:absolute;
+      right:8px;
+      top:7px;
+      bottom:7px;
+      width:3px;
+      border-radius:999px;
+      background:var(--brand);
+    }
+    body[data-page="pickup-dashboard"] .tabPanel{
+      border:1px solid var(--color-border);
+      border-radius:20px 20px 12px 20px;
+      background:linear-gradient(180deg,#fff 0%,#f9fcfb 100%);
+      box-shadow:var(--shadow-layer-1);
+      padding:10px;
+    }
+    body[data-page="pickup-dashboard"] .panelFrame{
+      border-radius:14px;
+      min-height:560px;
+      box-shadow:inset 0 0 0 1px #d7e3de;
+    }
+    @media(max-width:900px){
+      body[data-page="pickup-dashboard"] .tabPanel{padding:8px}
+      body[data-page="pickup-dashboard"] .panelFrame{min-height:430px}
+    }
+  </style>
+  <link rel="stylesheet" href="assets/dashboard-shell.css">
+  <script src="assets/dashboard-shell.js" defer></script>
+</head>
+<body data-page="pickup-dashboard">
+
+<div class="sidebarOverlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebarHeader">
+    <b>القائمة</b>
+    <button class="menuBtn" id="closeSidebarBtn" type="button" aria-label="إغلاق القائمة">✕</button>
+  </div>
+  <div id="sidebarContent"></div>
+</aside>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <b>الاستلام والتحصيل</b>
+      <div class="muted">من البيت + La Aura + التحصيل</div>
+    </div>
+    <button class="menuBtn" id="openSidebarBtn" type="button" aria-label="فتح القائمة">☰</button>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="tabBtn" data-tab="home">مستلمو البيت</button>
+    <button class="tabBtn" data-tab="aura">La Aura</button>
+    <button class="tabBtn" data-tab="collections">تحصيل المبالغ</button>
+  </div>
+
+  <div class="tabPanel" id="homePanel">
+    <iframe class="panelFrame" id="homeFrame" data-src="./homepickup.html?embed=1"></iframe>
+  </div>
+  <div class="tabPanel" id="auraPanel">
+    <iframe class="panelFrame" id="auraFrame" data-src="./pickuppoint.html?embed=1"></iframe>
+  </div>
+  <div class="tabPanel" id="collectionsPanel">
+    <iframe class="panelFrame" id="collectionsFrame" data-src="./collections.html?embed=1"></iframe>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://maucjvxhrnkdeybltjco.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+const EMAIL_RAHAF = "rahaf@she-store.com";
+const EMAIL_REEM  = "reem@she-store.com";
+const EMAIL_RAWAND= "rawand@she-store.com";
+const EMAIL_LAAURA= "laaura@she-store.com";
+
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("sidebarOverlay");
+const openBtn = document.getElementById("openSidebarBtn");
+const closeBtn = document.getElementById("closeSidebarBtn");
+const sidebarContent = document.getElementById("sidebarContent");
+
+function openSidebar(){ sidebar.classList.add("open"); overlay.classList.add("open"); }
+function closeSidebar(){ sidebar.classList.remove("open"); overlay.classList.remove("open"); }
+openBtn.onclick = openSidebar;
+closeBtn.onclick = closeSidebar;
+overlay.onclick = closeSidebar;
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeSidebar(); });
+
+function renderSidebar(role){
+  sidebarContent.innerHTML = "";
+  const link = (text, href)=>{
+    const a = document.createElement("a");
+    a.href = href;
+    a.textContent = text;
+    a.onclick = ()=> closeSidebar();
+    sidebarContent.appendChild(a);
+  };
+  const btn = (text, cls, onClick)=>{
+    const b = document.createElement("button");
+    b.type="button";
+    b.className = cls || "";
+    b.textContent = text;
+    b.onclick = async ()=>{
+      await onClick();
+      closeSidebar();
+    };
+    sidebarContent.appendChild(b);
+  };
+
+  if(role === "rahaf"){
+    link("الطلبيات", "./index.html");
+    link("الاستلام والتحصيل", "./pickup-dashboard.html");
+    link("الأرشيف", "./archive.html");
+    link("المالية", "./finance.html");
+  }
+  if(role === "reem"){
+    link("الطلبيات", "./index.html");
+    link("الاستلام والتحصيل", "./pickup-dashboard.html");
+  }
+  if(role === "laaura"){
+    link("La Aura", "./pickup-dashboard.html");
+  }
+
+  btn("تسجيل خروج", "danger", async ()=>{
+    await sb.auth.signOut();
+    window.location.href="./login.html";
+  });
+}
+
+const tabsEl = document.getElementById("tabs");
+const tabButtons = Array.from(document.querySelectorAll(".tabBtn"));
+const tabCollectionsBtn = document.querySelector('.tabBtn[data-tab="collections"]');
+const tabAuraBtn = document.querySelector('.tabBtn[data-tab="aura"]');
+const tabHomeBtn = document.querySelector('.tabBtn[data-tab="home"]');
+const panels = {
+  home: document.getElementById("homePanel"),
+  aura: document.getElementById("auraPanel"),
+  collections: document.getElementById("collectionsPanel")
+};
+const frames = {
+  home: document.getElementById("homeFrame"),
+  aura: document.getElementById("auraFrame"),
+  collections: document.getElementById("collectionsFrame")
+};
+
+function resizeFrame(key){
+  const frame = frames[key];
+  if(!frame) return;
+  try{
+    const doc = frame.contentDocument || frame.contentWindow.document;
+    if(!doc) return;
+    const h = Math.max(
+      doc.body?.scrollHeight || 0,
+      doc.documentElement?.scrollHeight || 0
+    );
+    if(h) frame.style.height = `${h}px`;
+  }catch(err){
+    // Ignore cross-frame or timing errors
+  }
+}
+
+Object.keys(frames).forEach(key=>{
+  const frame = frames[key];
+  if(frame){
+    frame.addEventListener("load", ()=> resizeFrame(key));
+  }
+});
+
+function loadFrame(key){
+  const frame = frames[key];
+  if(!frame) return;
+  const desired = frame.dataset.src;
+  if(!desired) return;
+  try{
+    const desiredUrl = new URL(desired, window.location.href).href;
+    if(frame.src !== desiredUrl){
+      frame.src = desired;
+    }
+  }catch{
+    if(!frame.src || frame.src === "about:blank"){
+      frame.src = desired;
+    }
+  }
+}
+
+function showTab(key){
+  Object.keys(panels).forEach(k=>{
+    if(panels[k]) panels[k].classList.toggle("active", k === key);
+  });
+  tabButtons.forEach(btn=>{
+    btn.classList.toggle("active", btn.dataset.tab === key);
+  });
+  loadFrame(key);
+  setTimeout(()=> resizeFrame(key), 200);
+}
+
+tabButtons.forEach(btn=>{
+  btn.addEventListener("click", ()=> showTab(btn.dataset.tab));
+});
+
+window.addEventListener("resize", ()=>{
+  const active = tabButtons.find(b=>b.classList.contains("active"))?.dataset.tab;
+  if(active) resizeFrame(active);
+});
+
+async function guard(){
+  const { data } = await sb.auth.getSession();
+  if(!data.session){
+    window.location.href="./login.html?next=pickup-dashboard.html";
+    return null;
+  }
+  const { data: u } = await sb.auth.getUser();
+  const email = (u?.user?.email || "").toLowerCase();
+  if(email === EMAIL_RAHAF) return "rahaf";
+  if(email === EMAIL_REEM || email === EMAIL_RAWAND) return "reem";
+  if(email === EMAIL_LAAURA) return "laaura";
+  window.location.replace("./login.html");
+  return null;
+}
+
+(async function init(){
+  const role = await guard();
+  if(!role) return;
+  renderSidebar(role);
+
+  if(role === "rahaf"){
+    tabsEl.style.display = "flex";
+    if(tabCollectionsBtn) tabCollectionsBtn.style.display = "";
+    showTab("home");
+  } else if(role === "reem"){
+    tabsEl.style.display = "flex";
+    if(tabCollectionsBtn) tabCollectionsBtn.style.display = "none";
+    if(tabAuraBtn) tabAuraBtn.style.display = "none";
+    showTab("home");
+  } else {
+    sidebar.style.display = "none";
+    overlay.style.display = "none";
+    openBtn.textContent = "تسجيل خروج";
+    openBtn.classList.add("danger");
+    openBtn.onclick = async ()=>{
+      await sb.auth.signOut();
+      window.location.href="./login.html";
+    };
+    tabsEl.style.display = "none";
+    if(tabCollectionsBtn) tabCollectionsBtn.style.display = "none";
+    if(tabHomeBtn) tabHomeBtn.style.display = "none";
+    if(tabAuraBtn) tabAuraBtn.style.display = "none";
+    showTab("aura");
+  }
+})();
+</script>
+</body>
+</html>
+

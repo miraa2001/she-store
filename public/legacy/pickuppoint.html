@@ -1,0 +1,999 @@
+﻿<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>نقطة الاستلام - La Aura</title>
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/8863/8863863.png" />
+  <link rel="stylesheet" href="assets/tokens.css">
+  <link rel="stylesheet" href="assets/base.css">
+  <script src="assets/ui.js" defer></script>
+
+  <style>
+    body{font-family:system-ui,Tahoma,Arial;margin:0;background:var(--color-bg);color:var(--color-text)}
+    .wrap{max-width:1100px;margin:auto;padding:16px}
+    .grid{display:grid;grid-template-columns:320px 1fr;gap:12px}
+    .grid > *{min-width:0}
+    @media(max-width:900px){
+      .grid{grid-template-columns:1fr}
+    }
+    .card{background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:12px}
+    .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .btn{border:1px solid var(--color-border);background:var(--color-card);padding:10px 14px;border-radius:var(--radius-lg);cursor:pointer}
+    .btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+    .muted{color:var(--color-muted);font-size:13px}
+    input{padding:10px;border:1px solid var(--color-border);border-radius:var(--radius-md);font-family:inherit}
+    .pill{display:inline-block;padding:6px 10px;border:1px solid var(--color-border);border-radius:999px;font-size:12px;color:var(--color-text);background:#f1f4f2}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+    .brand b{font-size:20px}
+    .menuBtn{border:1px solid var(--color-border);background:var(--color-card);padding:10px 12px;border-radius:var(--radius-lg);cursor:pointer}
+    .sidebarOverlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:50}
+    .sidebar{
+      position:fixed;top:0;right:0;height:100vh;width:min(220px,82vw);
+      background:var(--color-card);border-left:1px solid var(--color-border);z-index:60;
+      transform:translateX(100%);transition:transform .2s ease;
+      display:flex;flex-direction:column;padding:14px;box-sizing:border-box
+    }
+    .sidebar.open{transform:translateX(0)}
+    .sidebarOverlay.open{display:block}
+    .sidebarHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+    .sidebarHeader b{font-size:16px}
+    .sidebarHeader{position:relative;justify-content:center;text-align:center}
+    .sidebarHeader b{margin:0 auto}
+    .sidebarHeader .menuBtn{
+      position:absolute;left:0;padding:6px 8px;width:32px;height:32px;
+      display:flex;align-items:center;justify-content:center;color:#b00020;border-color:#f2c2c2
+    }
+    .sidebar a,.sidebar button{
+      width:100%;text-align:right;border:1px solid var(--color-border);background:var(--color-card);
+      padding:10px 12px;border-radius:var(--radius-md);cursor:pointer;margin-top:8px;font-family:inherit;
+      font-size:14px;line-height:1.3;box-sizing:border-box
+    }
+    .sidebar a{color:#111;text-decoration:none;display:block}
+    .sidebar .danger{border-color:#f2c2c2;color:#b00020}
+
+    .orderItem{border:1px solid var(--color-border);border-radius:var(--radius-md);padding:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+    .orderItem.active{border-color:var(--brand);background:var(--brand-tint)}
+    .orderItem small{color:#666}
+    .orderGroupMeta{display:flex;gap:8px;align-items:center}
+
+    .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;direction:ltr;max-width:100%}
+    table{width:max-content;min-width:100%;border-collapse:collapse;direction:rtl;margin-left:auto}
+    body.ios-chrome .tableWrap{direction:rtl}
+    body.ios-chrome table{direction:rtl}
+    th,td{border-bottom:1px solid var(--color-border);padding:10px;text-align:right;vertical-align:middle}
+    th{color:var(--color-muted);font-size:13px}
+    .chk{width:18px;height:18px}
+    .highlight{background:#fff8d6}
+    .searchBox{width:100%;max-width:420px}
+    .searchResults{margin-top:8px;border:1px solid var(--color-border);border-radius:var(--radius-md);overflow:hidden}
+    .searchResults button{
+      width:100%;text-align:right;background:var(--color-card);border:none;padding:10px;cursor:pointer;border-bottom:1px solid var(--color-border)
+    }
+    .searchResults button:last-child{border-bottom:none}
+    .searchResults button:hover{background:var(--color-bg)}
+    .editCol{width:1%;white-space:nowrap;text-align:center}
+    .editCol .btn{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:6px 10px;line-height:1;height:32px
+    }
+    .globalSummary{
+      background:var(--color-bg);
+      border:1px solid var(--color-border);
+      border-radius:var(--radius-md);
+      padding:10px 12px;
+      margin-bottom:12px
+    }
+    body.embed{overflow-x:hidden}
+    body.embed .topbar,
+    body.embed .menuBtn,
+    body.embed .sidebar,
+    body.embed .sidebarOverlay{display:none !important}
+    body.embed .wrap{padding:0;max-width:none}
+
+    /* ===== Page polish v2 ===== */
+    body[data-page="pickuppoint"] .wrap{max-width:1280px}
+    body[data-page="pickuppoint"] .grid{
+      grid-template-columns:330px 1fr;
+      gap:16px;
+      align-items:start;
+    }
+    body[data-page="pickuppoint"] .grid > aside.card{
+      position:sticky;
+      top:92px;
+      border-radius:20px 20px 10px 20px;
+      background:linear-gradient(180deg,#fff 0%,#f7fbf9 100%);
+    }
+    body[data-page="pickuppoint"] .grid > main.card{
+      border-radius:24px 24px 12px 24px;
+    }
+    body[data-page="pickuppoint"] #ordersList{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top:0 !important;
+    }
+    body[data-page="pickuppoint"] #ordersList .orderItem{
+      border-radius:14px;
+      padding:11px 12px;
+      box-shadow:0 6px 12px rgba(15,23,42,.04);
+    }
+    body[data-page="pickuppoint"] #ordersList .orderItem.active{
+      border-radius:18px;
+      box-shadow:0 12px 20px rgba(79,138,123,.16);
+    }
+    body[data-page="pickuppoint"] .globalSummary{
+      border-radius:14px;
+      background:linear-gradient(180deg,#fbfdfc 0%,#f2f7f5 100%);
+      border:1px solid #d8e3de;
+      box-shadow:0 8px 12px rgba(15,23,42,.04);
+    }
+    body[data-page="pickuppoint"] .tableWrap{
+      margin-top:6px;
+      padding-top:2px;
+    }
+    @media(max-width:900px){
+      body[data-page="pickuppoint"] .grid{grid-template-columns:1fr}
+      body[data-page="pickuppoint"] .grid > aside.card{position:static}
+    }
+  </style>
+  <link rel="stylesheet" href="assets/dashboard-shell.css">
+  <script src="assets/dashboard-shell.js" defer></script>
+</head>
+<body data-page="pickuppoint">
+
+<div class="sidebarOverlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebarHeader">
+    <b>القائمة</b>
+    <button class="menuBtn" id="closeSidebarBtn" type="button" aria-label="إغلاق القائمة">✕</button>
+  </div>
+  <div id="sidebarContent"></div>
+</aside>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <b>La Aura</b>
+    </div>
+    <button class="menuBtn" id="openSidebarBtn" type="button" aria-label="فتح القائمة">☰</button>
+  </div>
+
+  <div class="row" style="margin-bottom:12px">
+    <input id="searchInput" class="searchBox" placeholder="بحث باسم الزبون...">
+    <span class="pill" id="searchCount" style="display:none"></span>
+  </div>
+  <div id="searchResults" class="searchResults" style="display:none"></div>
+
+  <div class="grid">
+    <aside class="card">
+      <div class="row" style="justify-content:space-between">
+        <b>الطلبيات</b>
+        <span class="pill" id="ordersCount">0</span>
+      </div>
+      <div id="ordersList" style="margin-top:10px"></div>
+      <div id="ordersEmpty" class="muted" style="margin-top:10px;display:none">
+        لا يوجد بيانات
+        <div style="margin-top:8px"><button class="btn" id="ordersRefreshBtn" type="button">تحديث</button></div>
+      </div>
+    </aside>
+
+    <main class="card">
+      <div class="globalSummary" style="display:none" id="allOrdersTotalWrap">
+        <div class="row">
+          <span class="pill" id="allOrdersTotal">اجمالي المبلغ للتسليم: 0 ₪</span>
+          <button class="btn" id="collectAllBtn" style="display:none">تم استلام تحصيل الكل</button>
+        </div>
+      </div>
+      <div id="empty" class="muted">
+        لا يوجد بيانات
+        <div style="margin-top:8px"><button class="btn" id="emptyRefreshBtn" type="button">تحديث</button></div>
+      </div>
+
+      <div id="main" style="display:none">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div>
+            <b id="orderTitle"></b>
+          </div>
+          <div class="row">
+            <span class="pill" id="purchaseCount">0</span>
+            <span class="pill" id="pickedTotal">مجموع المستلم: 0 ₪</span>
+            <button class="btn" id="collectBtn" style="display:none">تم استلام تحصيل المستلمين</button>
+          </div>
+        </div>
+
+        <hr>
+
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>الزبون</th>
+                <th>السعر</th>
+                <th id="paidPriceHeader" style="display:none">المدفوع</th>
+                <th id="paidEditHeader" class="editCol" style="display:none"></th>
+                <th>حجم الكيس</th>
+                <th>تم الاستلام</th>
+                <th id="pickedAtHeader" style="display:none">تاريخ الاستلام</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://maucjvxhrnkdeybltjco.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+const PICKUP_VALUE = "\u0645\u0646 \u0646\u0642\u0637\u0629 \u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645";
+const PICKUP_ALIASES = [
+  PICKUP_VALUE,
+  "\u0645\u0646 \u0646\u0642\u0637\u0647 \u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645",
+  "La Aura",
+  "la aura",
+  "LAAURA",
+  "\u0644\u0627 \u0627\u0648\u0631\u0627",
+  "\u0644\u0627 \u0623\u0648\u0631\u0627",
+  "\u0644\u0627\u0648\u0631\u0627"
+];
+const NTFY_TOPIC = "she-store-rahaf-2001-2014";
+const EMAIL_RAHAF = "rahaf@she-store.com";
+const EMAIL_REEM  = "reem@she-store.com";
+const EMAIL_RAWAND= "rawand@she-store.com";
+const EMAIL_LAAURA= "laaura@she-store.com";
+
+const isEmbedParam = new URLSearchParams(location.search).get("embed") === "1";
+let isInFrame = false;
+try{
+  isInFrame = window.self !== window.top;
+} catch {
+  isInFrame = true;
+}
+if(window.frameElement) isInFrame = true;
+const isEmbed = isEmbedParam || isInFrame;
+if(isEmbed) document.body.classList.add("embed");
+const isIOSChrome = /CriOS/i.test(navigator.userAgent);
+if(isIOSChrome) document.body.classList.add("ios-chrome");
+
+async function requireAuth(){
+  const { data } = await sb.auth.getSession();
+  if(!data.session){
+    window.location.href="./login.html?next=pickuppoint.html";
+    return false;
+  }
+  return true;
+}
+
+let myEmail = "";
+let isRahaf = false;
+let isLaaura = false;
+async function guardAuraPickup(){
+  const ok = await requireAuth();
+  if(!ok) return;
+
+  const { data: u } = await sb.auth.getUser();
+  const email = (u?.user?.email || "").toLowerCase();
+  myEmail = email;
+  isRahaf = email === EMAIL_RAHAF;
+  isLaaura = email === EMAIL_LAAURA;
+
+  const allowed = [EMAIL_RAHAF, EMAIL_LAAURA];
+  if(!allowed.includes(email)){
+    window.location.replace("./login.html");
+  }
+  if(paidPriceHeader) paidPriceHeader.style.display = isRahaf ? "" : "none";
+  if(paidEditHeader) paidEditHeader.style.display = isRahaf ? "" : "none";
+  if(pickedAtHeader) pickedAtHeader.style.display = isRahaf ? "" : "none";
+}
+
+/* ===== Sidebar ===== */
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("sidebarOverlay");
+const openBtn = document.getElementById("openSidebarBtn");
+const closeBtn = document.getElementById("closeSidebarBtn");
+const sidebarContent = document.getElementById("sidebarContent");
+
+function openSidebar(){
+  sidebar.classList.add("open");
+  overlay.classList.add("open");
+}
+function closeSidebar(){
+  sidebar.classList.remove("open");
+  overlay.classList.remove("open");
+}
+openBtn.onclick = openSidebar;
+closeBtn.onclick = closeSidebar;
+overlay.onclick = closeSidebar;
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeSidebar(); });
+
+function renderSidebar(){
+  sidebarContent.innerHTML = "";
+
+  const link = (text, href)=>{
+    const a = document.createElement("a");
+    a.href = href;
+    a.textContent = text;
+    a.onclick = ()=> closeSidebar();
+    sidebarContent.appendChild(a);
+  };
+  const btn = (text, cls, onClick)=>{
+    const b = document.createElement("button");
+    b.type="button";
+    b.className = cls || "";
+    b.textContent = text;
+    b.onclick = async ()=>{
+      await onClick();
+      closeSidebar();
+    };
+    sidebarContent.appendChild(b);
+  };
+
+  if(myEmail === EMAIL_RAHAF){
+    link("\u0627\u0644\u0637\u0644\u0628\u064a\u0627\u062a", "./index.html");
+    link("\u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645 \u0648\u0627\u0644\u062a\u062d\u0635\u064a\u0644", "./pickup-dashboard.html");
+    link("\u0627\u0644\u0623\u0631\u0634\u064a\u0641", "./archive.html");
+    link("\u0627\u0644\u0645\u0627\u0644\u064a\u0629", "./finance.html");
+  }
+  if(myEmail === EMAIL_REEM || myEmail === EMAIL_RAWAND){
+    link("\u0627\u0644\u0637\u0644\u0628\u064a\u0627\u062a", "./index.html");
+    link("\u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645 \u0648\u0627\u0644\u062a\u062d\u0635\u064a\u0644", "./pickup-dashboard.html");
+  }
+
+  btn("\u062a\u0633\u062c\u064a\u0644 \u062e\u0631\u0648\u062c", "danger", async ()=>{
+    await sb.auth.signOut();
+    window.location.href="./login.html";
+  });
+}
+
+const ordersListEl = document.getElementById("ordersList");
+const ordersEmptyEl = document.getElementById("ordersEmpty");
+const ordersCountEl = document.getElementById("ordersCount");
+const ordersRefreshBtn = document.getElementById("ordersRefreshBtn");
+const emptyEl = document.getElementById("empty");
+const emptyRefreshBtn = document.getElementById("emptyRefreshBtn");
+const mainEl = document.getElementById("main");
+const orderTitleEl = document.getElementById("orderTitle");
+const purchaseCountEl = document.getElementById("purchaseCount");
+const pickedTotalEl = document.getElementById("pickedTotal");
+const tbody = document.getElementById("tbody");
+const collectBtn = document.getElementById("collectBtn");
+const allOrdersTotalWrap = document.getElementById("allOrdersTotalWrap");
+const allOrdersTotalEl = document.getElementById("allOrdersTotal");
+const collectAllBtn = document.getElementById("collectAllBtn");
+const searchInput = document.getElementById("searchInput");
+const searchResultsEl = document.getElementById("searchResults");
+const searchCountEl = document.getElementById("searchCount");
+const pickedAtHeader = document.getElementById("pickedAtHeader");
+const paidPriceHeader = document.getElementById("paidPriceHeader");
+const paidEditHeader = document.getElementById("paidEditHeader");
+
+let orders = [];
+let activeOrder = null;
+let purchases = [];
+let highlightPurchaseId = null;
+let listItems = [];
+
+function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function escapeAttr(s=""){ return escapeHtml(s); }
+
+function normalizePickup(value){
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/[\u0623\u0625\u0622]/g, "\u0627");
+}
+function isAuraPickup(value){
+  const n = normalizePickup(value || PICKUP_VALUE);
+  if(!n) return false;
+  if(n.includes("\u0628\u064a\u062a") || n.includes("\u062a\u0648\u0635\u064a\u0644")) return false;
+
+  if(PICKUP_ALIASES.some(alias=>{
+    const a = normalizePickup(alias);
+    return a && (n === a || n.includes(a));
+  })) return true;
+
+  if(n.includes("aura")) return true;
+  if(n.includes("\u0644\u0627\u0648\u0631\u0627") || n.includes("\u0644\u0627\u0627\u0648\u0631\u0627")) return true;
+  if(n.includes("\u0646\u0642\u0637\u0647") || n.includes("\u0646\u0642\u0637\u0629") || n.includes("\u0627\u0633\u062a\u0644\u0627\u0645")) return true;
+  const target = normalizePickup(PICKUP_VALUE);
+  return n === target || n.includes(target);
+}
+
+function showMain(on){
+  mainEl.style.display = on ? "" : "none";
+  emptyEl.style.display = on ? "none" : "";
+}
+
+function formatDateTime(iso){
+  if(!iso) return "\u2014";
+  const d = new Date(iso);
+  const date = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+  const time = `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  return `${date} ${time}`;
+}
+
+function formatDMY(iso){
+  if(!iso) return "";
+  const d = new Date(iso);
+  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+}
+
+function getOrderDateKey(order){
+  return formatDMY(order?.placed_at_pickup_at || order?.order_date || order?.created_at);
+}
+
+function formatOrderLabel(order){
+  if(order?.orderIds){
+    return order.label || "\u0637\u0644\u0628\u064a\u0629";
+  }
+  return order?.order_name || "\u0637\u0644\u0628\u064a\u0629";
+}
+
+function buildOrderGroups(list){
+  const groups = [];
+  const map = new Map();
+
+  list.forEach(order=>{
+    const dateKey = getOrderDateKey(order);
+    const label = `\u0637\u0644\u0628\u064a\u0629 ${dateKey || ""}`.trim();
+    if(!map.has(dateKey)){
+      const group = {
+        id: `group-${dateKey || "unknown"}`,
+        label,
+        orderIds: []
+      };
+      map.set(dateKey, group);
+      groups.push(group);
+    }
+    map.get(dateKey).orderIds.push(order.id);
+  });
+
+  return groups;
+}
+
+function findGroupForOrder(order){
+  const dateKey = getOrderDateKey(order);
+  const sameDay = orders.filter(o=> getOrderDateKey(o) === dateKey);
+  return {
+    id: `group-${dateKey || "unknown"}`,
+    label: `\u0637\u0644\u0628\u064a\u0629 ${dateKey || ""}`.trim(),
+    orderIds: sameDay.map(o=>o.id)
+  };
+}
+
+function parsePrice(v){
+  if(v === null || v === undefined) return 0;
+  if(typeof v === "number") return isFinite(v) ? v : 0;
+  const s = String(v).replace(/[, ]/g, "").replace(/[\u20aa]/g, "");
+  const m = s.match(/-?\d+(?:\.\d+)?/);
+  return m ? Number(m[0]) : 0;
+}
+
+function formatILS(n){
+  const x = Number(n || 0);
+  if(!isFinite(x)) return "0";
+  const fixed = x.toFixed(2);
+  return fixed.endsWith(".00") ? String(Math.round(x)) : fixed;
+}
+
+async function sendNtfy(message){
+  try{
+    await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+      method: "POST",
+      body: message
+    });
+  } catch (err){
+    console.error("NTFY ERROR:", err);
+  }
+}
+
+function buildPickupMessage({ picked, customerName, price, pickupLabel }){
+  const priceText = formatILS(price);
+  const nameText = customerName || "";
+  const pickupText = pickupLabel || "";
+  const status = picked ? "\u2705" : "\u274c";
+  return [
+    `\u062a\u0645 \u0627\u0633\u062a\u0644\u0627\u0645 \u0627\u0644\u0637\u0644\u0628 ${status}`,
+    `\u0627\u0644\u0632\u0628\u0648\u0646: ${nameText}`,
+    `\u0646\u0642\u0637\u0629 \u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645: ${pickupText}`,
+    `\u0627\u0644\u0633\u0639\u0631: ${priceText}`
+  ].join("\n");
+}
+
+function updatePickedTotal(list){
+  const pickedTotal = list
+    .filter(item=>item.picked_up)
+    .reduce((sum,item)=> sum + parsePrice(item.paid_price ?? item.price), 0);
+  pickedTotalEl.textContent = `\u0645\u062c\u0645\u0648\u0639 \u0627\u0644\u0645\u0633\u062a\u0644\u0645: ${formatILS(pickedTotal)} \u20aa`;
+}
+
+async function updateAllOrdersTotal(){
+  if(!allOrdersTotalEl || !allOrdersTotalWrap) return;
+  const show = isRahaf;
+  allOrdersTotalWrap.style.display = show ? "" : "none";
+  if(collectAllBtn){
+    collectAllBtn.style.display = show ? "" : "none";
+  }
+  if(!show) return;
+
+  const { data, error } = await sb
+    .from("purchases")
+    .select("id, paid_price, price, picked_up, collected, pickup_point")
+    .eq("picked_up", true)
+    .eq("collected", false);
+
+  if(error){
+    console.error(error);
+    allOrdersTotalEl.textContent = "\u0627\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0645\u0628\u0644\u063a \u0644\u0644\u062a\u062d\u0635\u064a\u0644: \u2014";
+    if(collectAllBtn) collectAllBtn.disabled = true;
+    return;
+  }
+
+  const auraList = (data || []).filter(item=>isAuraPickup(item.pickup_point));
+  const total = auraList.reduce((sum, item)=> sum + parsePrice(item.paid_price ?? item.price), 0);
+  allOrdersTotalEl.textContent = `\u0627\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0645\u0628\u0644\u063a \u0644\u0644\u062a\u062d\u0635\u064a\u0644: ${formatILS(total)} \u20aa`;
+  if(collectAllBtn) collectAllBtn.disabled = total <= 0;
+}
+
+function renderTable(){
+  if(!activeOrder){
+    showMain(false);
+    return;
+  }
+
+  const visible = purchases.filter(p=>!p.collected);
+  purchaseCountEl.textContent = `\u0639\u062f\u062f \u0627\u0644\u0645\u0634\u062a\u0631\u064a\u0627\u062a: ${visible.length}`;
+  updatePickedTotal(visible);
+
+  tbody.innerHTML = "";
+  if(!visible.length){
+    tbody.innerHTML = `<tr><td colspan="${isRahaf?8:5}" class="muted">\u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u0634\u062a\u0631\u064a\u0627\u062a</td></tr>`;
+    showMain(true);
+    return;
+  }
+
+  visible.forEach((p, i)=>{
+    const tr = document.createElement("tr");
+    if(highlightPurchaseId && highlightPurchaseId === p.id) tr.classList.add("highlight");
+
+    const checked = p.picked_up ? "checked" : "";
+    const pickupBadge = (typeof statusBadge === "function")
+      ? statusBadge(p.picked_up ? "\u062a\u0645 \u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645" : "\u063a\u064a\u0631 \u0645\u0633\u062a\u0644\u0645", p.picked_up ? "success" : "neutral")
+      : (p.picked_up ? "\u062a\u0645 \u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645" : "\u063a\u064a\u0631 \u0645\u0633\u062a\u0644\u0645");
+    const pickupInputId = `pickupPointChk-${p.id}`;
+    const paidCell = isRahaf
+      ? `
+        <td data-paid-value-cell="${p.id}">${escapeHtml(p.paid_price ?? "\u2014")}</td>
+        <td class="editCol" data-paid-edit-cell="${p.id}">
+          <button class="btn" data-edit-paid="${p.id}" title="\u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0645\u062f\u0641\u0648\u0639" aria-label="\u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0645\u062f\u0641\u0648\u0639">\u270f\ufe0f</button>
+        </td>
+      `
+      : ``;
+
+    tr.innerHTML = `
+      <td>${i+1}</td>
+      <td>${escapeHtml(p.customer_name || "")}</td>
+      <td>${escapeHtml(p.paid_price ?? p.price ?? "")}</td>
+      ${paidCell}
+      <td>${escapeHtml(p.bag_size || "\u2014")}</td>
+      <td>
+        <div class="row" style="gap:6px;align-items:center">
+          <label class="container">
+            <input class="chk" type="checkbox" id="${pickupInputId}" data-id="${p.id}" ${checked}>
+            <div class="checkmark"></div>
+          </label>
+          <label for="${pickupInputId}" style="cursor:pointer">${pickupBadge}</label>
+        </div>
+      </td>
+      ${isRahaf ? `<td>${escapeHtml(formatDateTime(p.picked_up_at))}</td>` : ``}
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll('input[type="checkbox"][data-id]').forEach(chk=>{
+    chk.onchange = async ()=>{
+      const id = chk.dataset.id;
+      const val = chk.checked;
+      const pickedAt = val ? new Date().toISOString() : null;
+      const entry = purchases.find(x=>String(x.id)===String(id));
+
+      const { error } = await sb
+        .from("purchases")
+        .update({ picked_up: val, picked_up_at: pickedAt })
+        .eq("id", id);
+
+      if(error){
+        console.error(error);
+        alert(error.message || "\u0641\u0634\u0644 \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645");
+        chk.checked = !val;
+        return;
+      }
+
+      if(entry){
+        entry.picked_up = val;
+        entry.picked_up_at = pickedAt;
+        await sendNtfy(buildPickupMessage({
+          picked: val,
+          customerName: entry.customer_name,
+          price: entry.price,
+          pickupLabel: "\u0646\u0642\u0637\u0629 \u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645 (La Aura)"
+        }));
+      }
+
+      renderTable();
+      await updateAllOrdersTotal();
+    };
+  });
+
+  tbody.querySelectorAll("[data-edit-paid]").forEach(btn=>{
+    btn.onclick = async (e)=>{
+      e.stopPropagation();
+      const id = btn.dataset.editPaid;
+      const entry = purchases.find(x=>String(x.id)===String(id));
+      if(!entry || !isRahaf) return;
+
+      const valueCell = tbody.querySelector(`[data-paid-value-cell="${id}"]`);
+      const editCell = tbody.querySelector(`[data-paid-edit-cell="${id}"]`);
+      if(!valueCell || !editCell) return;
+      const currentVal = entry.paid_price ?? "";
+      valueCell.innerHTML = `
+        <input type="number" step="0.01" min="0" data-paid-input="${id}" value="${escapeAttr(currentVal)}" style="width:90px">
+      `;
+      editCell.innerHTML = `
+        <button class="btn" data-paid-save="${id}">\u2705</button>
+        <button class="btn" data-paid-cancel="${id}">\u2716</button>
+      `;
+
+      const input = valueCell.querySelector(`[data-paid-input="${id}"]`);
+      const saveBtn = editCell.querySelector(`[data-paid-save="${id}"]`);
+      const cancelBtn = editCell.querySelector(`[data-paid-cancel="${id}"]`);
+
+      const cancel = ()=>{ renderTable(); };
+      cancelBtn.onclick = cancel;
+
+      const save = async ()=>{
+        const raw = input.value.trim();
+        const nextVal = raw === "" ? null : Number(raw);
+        if(raw !== "" && (!Number.isFinite(nextVal) || nextVal < 0)){
+          alert("\u0627\u0644\u0633\u0639\u0631 \u0627\u0644\u0645\u062f\u0641\u0648\u0639 \u063a\u064a\u0631 \u0635\u062d\u064a\u062d.");
+          return;
+        }
+        const { error } = await sb.from("purchases").update({ paid_price: nextVal }).eq("id", id);
+        if(error){
+          console.error(error);
+          alert("\u0641\u0634\u0644 \u062d\u0641\u0638 \u0627\u0644\u0645\u062f\u0641\u0648\u0639");
+          return;
+        }
+        entry.paid_price = nextVal;
+        renderTable();
+        await updateAllOrdersTotal();
+      };
+
+      saveBtn.onclick = save;
+      input.onkeydown = (ev)=>{
+        if(ev.key === "Enter") save();
+        if(ev.key === "Escape") cancel();
+      };
+      input.focus();
+      input.select();
+    };
+  });
+
+  showMain(true);
+}
+
+async function loadOrders(){
+  const { data: pRows, error: pErr } = await sb
+    .from("purchases")
+    .select("order_id, pickup_point, collected")
+    .eq("collected", false);
+
+  if(pErr){ console.error(pErr); return; }
+
+  const auraPending = (pRows || []).filter(p=>isAuraPickup(p.pickup_point));
+  const orderIds = [...new Set(auraPending.map(p=>p.order_id))];
+  if(!orderIds.length){
+    orders = [];
+    listItems = [];
+    ordersCountEl.textContent = "0";
+    ordersListEl.innerHTML = "";
+    ordersEmptyEl.style.display = "";
+    activeOrder = null;
+    showMain(false);
+    return;
+  }
+
+  const { data, error } = await sb
+    .from("orders")
+    .select("*")
+    .in("id", orderIds)
+    .eq("arrived", true)
+    .order("created_at",{ascending:false});
+
+  if(error){ console.error(error); return; }
+
+  orders = data || [];
+  listItems = isLaaura ? buildOrderGroups(orders) : orders;
+  ordersCountEl.textContent = listItems.length;
+  ordersListEl.innerHTML = "";
+  ordersEmptyEl.style.display = listItems.length ? "none" : "";
+
+  listItems.forEach(o=>{
+    const div = document.createElement("div");
+    div.className = "orderItem" + (activeOrder?.id === o.id ? " active" : "");
+    const label = formatOrderLabel(o);
+    const meta = o.orderIds
+      ? `<span class="pill">\u0627\u0644\u0637\u0644\u0628\u0627\u062a: ${o.orderIds.length}</span>`
+      : `<span class="pill">\u0641\u062a\u062d</span>`;
+    div.innerHTML = `<span>${escapeHtml(label)}</span>${meta}`;
+    div.onclick = () => selectOrder(o);
+    ordersListEl.appendChild(div);
+  });
+
+  if(!listItems.length){
+    activeOrder = null;
+    showMain(false);
+    return;
+  }
+
+  if(activeOrder){
+    const stillValid = activeOrder.orderIds
+      ? activeOrder.orderIds.some(id=> orders.find(o=>o.id === id))
+      : orders.find(o=>o.id === activeOrder.id);
+    if(!stillValid){
+      activeOrder = null;
+      showMain(false);
+    }
+  }
+}
+
+async function fetchPurchases(orderId){
+  const { data, error } = await sb
+    .from("purchases")
+    .select("id, order_id, customer_name, price, paid_price, bag_size, picked_up, picked_up_at, pickup_point, collected")
+    .eq("order_id", orderId)
+    .eq("collected", false)
+    .order("created_at", { ascending: true });
+
+  if(error){ console.error(error); return []; }
+  return (data || []).filter(p=>isAuraPickup(p.pickup_point));
+}
+
+async function fetchPurchasesForOrders(orderIds){
+  if(!orderIds.length) return [];
+  const { data, error } = await sb
+    .from("purchases")
+    .select("id, order_id, customer_name, price, paid_price, bag_size, picked_up, picked_up_at, pickup_point, collected")
+    .in("order_id", orderIds)
+    .eq("collected", false)
+    .order("created_at", { ascending: true });
+
+  if(error){ console.error(error); return []; }
+  return (data || []).filter(p=>isAuraPickup(p.pickup_point));
+}
+
+async function selectOrder(order){
+  activeOrder = order;
+  orderTitleEl.textContent = formatOrderLabel(order);
+  await loadOrders();
+
+  purchases = order.orderIds
+    ? await fetchPurchasesForOrders(order.orderIds)
+    : await fetchPurchases(order.id);
+  if(collectBtn){
+    collectBtn.style.display = isRahaf ? "" : "none";
+  }
+  renderTable();
+}
+
+if(ordersRefreshBtn) ordersRefreshBtn.onclick = loadOrders;
+if(emptyRefreshBtn) emptyRefreshBtn.onclick = loadOrders;
+
+if(collectBtn){
+  collectBtn.onclick = async ()=>{
+    if(!activeOrder || !isRahaf) return;
+
+    const pendingList = purchases.filter(item=>!item.collected && item.picked_up);
+    if(!pendingList.length) return;
+    const pendingTotal = pendingList.reduce((sum,item)=> sum + parsePrice(item.paid_price ?? item.price), 0);
+    const pendingText = formatILS(pendingTotal);
+    const ok = await (typeof confirmModal === "function"
+      ? confirmModal({
+          title: "\u062a\u062d\u0635\u064a\u0644 \u0627\u0644\u0645\u0628\u0627\u0644\u063a",
+          message: `\u062a\u0623\u0643\u064a\u062f \u062a\u062d\u0635\u064a\u0644 ${pendingList.length} \u0645\u0634\u062a\u0631\u064a\u0627\u062a \u0628\u0645\u0628\u0644\u063a ${pendingText} \u20aa\u061f`
+        })
+      : Promise.resolve(confirm(`\u062a\u0623\u0643\u064a\u062f \u062a\u062d\u0635\u064a\u0644 ${pendingList.length} \u0645\u0634\u062a\u0631\u064a\u0627\u062a \u0628\u0645\u0628\u0644\u063a ${pendingText} \u20aa\u061f`)));
+    if(!ok) return;
+
+    collectBtn.disabled = true;
+    const ids = pendingList.map(p=>p.id);
+    const { error } = ids.length
+      ? await sb
+          .from("purchases")
+          .update({ collected: true, collected_at: new Date().toISOString() })
+          .in("id", ids)
+      : { error: null };
+
+  if(error){
+    console.error(error);
+    collectBtn.disabled = false;
+    return;
+  }
+
+  await sendNtfy([
+    "\u062a\u0645 \u0627\u0633\u062a\u0644\u0627\u0645 \u062a\u062d\u0635\u064a\u0644 \u0627\u0644\u0646\u0642\u0648\u062f \u2705",
+    "\u0627\u0644\u0645\u0643\u0627\u0646: \u0646\u0642\u0637\u0629 \u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645 (La Aura)",
+    `\u0627\u0644\u0645\u0628\u0644\u063a: ${pendingText}`
+  ].join("\n"));
+
+    purchases = activeOrder.orderIds
+      ? await fetchPurchasesForOrders(activeOrder.orderIds)
+      : await fetchPurchases(activeOrder.id);
+    renderTable();
+    await updateAllOrdersTotal();
+    await loadOrders();
+    if(!listItems.length){
+      activeOrder = null;
+      showMain(false);
+    } else if(activeOrder){
+      const stillValid = activeOrder.orderIds
+        ? activeOrder.orderIds.some(id=> orders.find(o=>o.id === id))
+        : orders.find(o=>o.id === activeOrder.id);
+      if(!stillValid){
+        await selectOrder(listItems[0]);
+      }
+    }
+    collectBtn.disabled = false;
+  };
+}
+
+if(collectAllBtn){
+  collectAllBtn.onclick = async ()=>{
+    if(!isRahaf) return;
+
+    const { data, error } = await sb
+      .from("purchases")
+      .select("id, paid_price, price, pickup_point")
+      .eq("picked_up", true)
+      .eq("collected", false);
+
+    if(error){
+      console.error(error);
+      return;
+    }
+
+    const auraList = (data || []).filter(item=>isAuraPickup(item.pickup_point));
+    const total = auraList.reduce((sum, item)=> sum + parsePrice(item.paid_price ?? item.price), 0);
+    if(total <= 0){
+      return;
+    }
+
+    const ok = await (typeof confirmModal === "function"
+      ? confirmModal({
+          title: "\u062a\u062d\u0635\u064a\u0644 \u0627\u0644\u0645\u0628\u0627\u0644\u063a",
+          message: `\u062a\u0623\u0643\u064a\u062f \u062a\u062d\u0635\u064a\u0644 \u0643\u0644 \u0627\u0644\u0645\u0628\u0627\u0644\u063a (${auraList.length} \u0645\u0634\u062a\u0631\u064a\u0627\u062a) \u0628\u0645\u0628\u0644\u063a ${formatILS(total)} \u20aa\u061f`
+        })
+      : Promise.resolve(confirm(`\u062a\u0623\u0643\u064a\u062f \u062a\u062d\u0635\u064a\u0644 \u0643\u0644 \u0627\u0644\u0645\u0628\u0627\u0644\u063a (${auraList.length} \u0645\u0634\u062a\u0631\u064a\u0627\u062a) \u0628\u0645\u0628\u0644\u063a ${formatILS(total)} \u20aa\u061f`)));
+    if(!ok) return;
+
+    collectAllBtn.disabled = true;
+    const ids = auraList.map(p=>p.id);
+    const { error: upErr } = ids.length
+      ? await sb
+          .from("purchases")
+          .update({ collected: true, collected_at: new Date().toISOString() })
+          .in("id", ids)
+      : { error: null };
+
+    if(upErr){
+      console.error(upErr);
+      collectAllBtn.disabled = false;
+      return;
+    }
+
+    await sendNtfy([
+      "\u062a\u0645 \u0627\u0633\u062a\u0644\u0627\u0645 \u062a\u062d\u0635\u064a\u0644 \u0627\u0644\u0646\u0642\u0648\u062f \u2705",
+      "\u0627\u0644\u0645\u0643\u0627\u0646: \u0646\u0642\u0637\u0629 \u0627\u0644\u0627\u0633\u062a\u0644\u0627\u0645 (La Aura)",
+      `\u0627\u0644\u0645\u0628\u0644\u063a: ${formatILS(total)}`
+    ].join("\n"));
+
+    if(activeOrder){
+      purchases = activeOrder.orderIds
+        ? await fetchPurchasesForOrders(activeOrder.orderIds)
+        : await fetchPurchases(activeOrder.id);
+      renderTable();
+    }
+    await updateAllOrdersTotal();
+    await loadOrders();
+    if(!listItems.length){
+      activeOrder = null;
+      showMain(false);
+    } else if(activeOrder){
+      const stillValid = activeOrder.orderIds
+        ? activeOrder.orderIds.some(id=> orders.find(o=>o.id === id))
+        : orders.find(o=>o.id === activeOrder.id);
+      if(!stillValid){
+        await selectOrder(listItems[0]);
+      }
+    }
+    collectAllBtn.disabled = false;
+  };
+}
+
+/* ===== Search ===== */
+let searchTimer = null;
+
+searchInput.addEventListener("input", ()=>{
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(runSearch, 250);
+});
+
+function clearSearchUI(){
+  searchResultsEl.style.display = "none";
+  searchCountEl.style.display = "none";
+  searchResultsEl.innerHTML = "";
+}
+
+async function runSearch(){
+  const q = (searchInput.value || "").trim();
+  if(q.length < 2){ clearSearchUI(); return; }
+
+  const orderIds = orders.map(o=>o.id);
+  if(!orderIds.length){ clearSearchUI(); return; }
+
+  const { data, error } = await sb
+    .from("purchases")
+    .select("id, order_id, customer_name, price, pickup_point, created_at")
+    .in("order_id", orderIds)
+    .eq("collected", false)
+    .ilike("customer_name", `%${q}%`)
+    .order("created_at",{ascending:false})
+    .limit(50);
+
+  if(error){ console.error(error); return; }
+
+  const results = (data || []).filter(r=>isAuraPickup(r.pickup_point));
+  searchCountEl.textContent = `${results.length} \u0646\u062a\u064a\u062c\u0629`;
+  searchCountEl.style.display = "";
+  searchResultsEl.style.display = "";
+  searchResultsEl.innerHTML = "";
+
+  results.forEach(r=>{
+    const ord = orders.find(o=>o.id === r.order_id);
+    const btn = document.createElement("button");
+    btn.innerHTML = `
+      <b>${escapeHtml(r.customer_name || "")}</b>
+      <div class="muted">${escapeHtml(ord?.order_name || "\u0637\u0644\u0628\u064a\u0629")} \u2014 \u0627\u0644\u0633\u0639\u0631: ${escapeHtml(r.price ?? "")}</div>
+    `;
+    btn.onclick = async ()=>{
+      searchResultsEl.style.display = "none";
+      highlightPurchaseId = r.id;
+      if(ord){
+        const target = isLaaura ? findGroupForOrder(ord) : ord;
+        await selectOrder(target);
+      }
+      setTimeout(()=>{ highlightPurchaseId = null; renderTable(); }, 2500);
+    };
+    searchResultsEl.appendChild(btn);
+  });
+}
+
+/* ===== Init ===== */
+(async function init(){
+  await guardAuraPickup();
+  renderSidebar();
+  await loadOrders();
+  if(listItems.length) selectOrder(listItems[0]);
+  await updateAllOrdersTotal();
+})();
+</script>
+</body>
+</html>
+

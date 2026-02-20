@@ -1,0 +1,478 @@
+﻿<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>الأرشيف</title>
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/8863/8863863.png" />
+  <link rel="stylesheet" href="assets/tokens.css">
+  <link rel="stylesheet" href="assets/base.css">
+  <script src="assets/ui.js" defer></script>
+
+  <style>
+    body{font-family:system-ui,Tahoma,Arial;margin:0;background:var(--color-bg);color:var(--color-text)}
+    .wrap{max-width:1100px;margin:auto;padding:16px}
+    .grid{display:grid;grid-template-columns:320px 1fr;gap:12px}
+    .grid > *{min-width:0}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+    .card{background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:12px}
+    .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .btn{border:1px solid var(--color-border);background:var(--color-card);padding:10px 14px;border-radius:var(--radius-lg);cursor:pointer}
+    .muted{color:var(--color-muted);font-size:13px}
+    .pill{display:inline-block;padding:6px 10px;border:1px solid var(--color-border);border-radius:999px;font-size:12px;color:var(--color-text);background:#f1f4f2}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+    .brand b{font-size:20px}
+    .menuBtn{border:1px solid var(--color-border);background:var(--color-card);padding:10px 12px;border-radius:var(--radius-lg);cursor:pointer}
+    .sidebarOverlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:50}
+    .sidebar{
+      position:fixed;top:0;right:0;height:100vh;width:min(220px,82vw);
+      background:var(--color-card);border-left:1px solid var(--color-border);z-index:60;
+      transform:translateX(100%);transition:transform .2s ease;
+      display:flex;flex-direction:column;padding:14px;box-sizing:border-box
+    }
+    .sidebar.open{transform:translateX(0)}
+    .sidebarOverlay.open{display:block}
+    .sidebarHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+    .sidebarHeader b{font-size:16px}
+    .sidebarHeader{position:relative;justify-content:center;text-align:center}
+    .sidebarHeader b{margin:0 auto}
+    .sidebarHeader .menuBtn{
+      position:absolute;left:0;padding:6px 8px;width:32px;height:32px;
+      display:flex;align-items:center;justify-content:center;color:#b00020;border-color:#f2c2c2
+    }
+    .sidebar a,.sidebar button{
+      width:100%;text-align:right;border:1px solid var(--color-border);background:var(--color-card);
+      padding:10px 12px;border-radius:var(--radius-md);cursor:pointer;margin-top:8px;font-family:inherit;
+      font-size:14px;line-height:1.3;box-sizing:border-box
+    }
+    .sidebar a{color:#111;text-decoration:none;display:block}
+    .sidebar .danger{border-color:#f2c2c2;color:#b00020}
+    .orderItem{border:1px solid var(--color-border);border-radius:var(--radius-md);padding:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+    .orderItem.active{border-color:var(--brand);background:var(--brand-tint)}
+    .ordersMeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+    .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;direction:ltr;max-width:100%}
+    table{width:max-content;min-width:100%;border-collapse:collapse;direction:rtl;margin-left:auto}
+    body.ios-chrome .tableWrap{direction:rtl}
+    body.ios-chrome table{direction:rtl}
+    th,td{border-bottom:1px solid var(--color-border);padding:10px;text-align:right;vertical-align:top}
+    th{color:var(--color-muted);font-size:13px}
+    body.embed{overflow-x:hidden}
+    body.embed .topbar,
+    body.embed .sidebar,
+    body.embed .sidebarOverlay{display:none !important}
+    body.embed .wrap{padding:0;max-width:none}
+
+    /* ===== Page polish v2 ===== */
+    body[data-page="archive"] .wrap{max-width:1280px}
+    body[data-page="archive"] .grid{
+      grid-template-columns:340px 1fr;
+      gap:16px;
+      align-items:start;
+    }
+    body[data-page="archive"] .grid > aside.card{
+      position:sticky;
+      top:92px;
+      border-radius:20px 20px 10px 20px;
+      background:linear-gradient(180deg,#fff 0%,#f7fbf9 100%);
+    }
+    body[data-page="archive"] .grid > main.card{
+      border-radius:24px 24px 12px 24px;
+    }
+    body[data-page="archive"] #ordersList{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top:0 !important;
+    }
+    body[data-page="archive"] .ordersMeta{
+      gap:8px;
+    }
+    body[data-page="archive"] #cleanupMsg{
+      margin-top:8px !important;
+      padding:8px 10px;
+      border:1px dashed #d3e1dc;
+      border-radius:11px;
+      background:#f5faf8;
+    }
+    @media(max-width:900px){
+      body[data-page="archive"] .grid{grid-template-columns:1fr}
+      body[data-page="archive"] .grid > aside.card{position:static}
+    }
+  </style>
+  <link rel="stylesheet" href="assets/dashboard-shell.css">
+  <script src="assets/dashboard-shell.js" defer></script>
+</head>
+<body data-page="archive">
+
+<div class="sidebarOverlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebarHeader">
+    <b>القائمة</b>
+    <button class="menuBtn" id="closeSidebarBtn" type="button" aria-label="إغلاق القائمة">✕</button>
+  </div>
+  <div id="sidebarContent"></div>
+</aside>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <b>الأرشيف</b>
+      <div class="muted">الطلبات المحصلة بالكامل</div>
+    </div>
+    <button class="menuBtn" id="openSidebarBtn" type="button" aria-label="فتح القائمة">☰</button>
+  </div>
+
+  <div class="grid">
+    <aside class="card">
+      <div class="row" style="justify-content:space-between">
+        <b>الطلبيات</b>
+        <div class="ordersMeta">
+          <span class="pill" id="ordersCount">0</span>
+          <span class="pill" id="ordersTotal">إجمالي التحصيل: 0 ₪</span>
+        </div>
+      </div>
+      <div class="muted" id="cleanupMsg" style="margin-top:6px"></div>
+      <div id="ordersList" style="margin-top:10px"></div>
+      <div id="ordersEmpty" class="muted" style="margin-top:10px;display:none">
+        لا يوجد بيانات
+        <div style="margin-top:8px"><button class="btn" id="ordersRefreshBtn" type="button">تحديث</button></div>
+      </div>
+    </aside>
+
+    <main class="card">
+      <div id="empty" class="muted">
+        لا يوجد بيانات
+        <div style="margin-top:8px"><button class="btn" id="emptyRefreshBtn" type="button">تحديث</button></div>
+      </div>
+
+      <div id="main" style="display:none">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div>
+            <b id="orderTitle"></b>
+          </div>
+          <div class="row">
+            <span class="pill" id="purchaseCount">0</span>
+            <span class="pill" id="orderTotal">المجموع الكلي: 0 ₪</span>
+          </div>
+        </div>
+
+        <hr>
+
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>الزبون</th>
+                <th>المكان</th>
+                <th>السعر</th>
+                <th>المدفوع</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://maucjvxhrnkdeybltjco.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const isEmbed = new URLSearchParams(location.search).get("embed") === "1";
+if(isEmbed) document.body.classList.add("embed");
+const isIOSChrome = /CriOS/i.test(navigator.userAgent);
+if(isIOSChrome) document.body.classList.add("ios-chrome");
+
+const BUCKET = "purchase-images";
+const EMAIL_RAHAF = "rahaf@she-store.com";
+
+async function guardArchiveAccess(){
+  const { data } = await sb.auth.getSession();
+  const session = data?.session;
+  if(!session){
+    window.location.href="./login.html?next=archive.html";
+    return;
+  }
+  const email = (session?.user?.email || "").toLowerCase();
+  if(email !== EMAIL_RAHAF){
+    window.location.replace("./login.html");
+  }
+}
+
+const ordersListEl = document.getElementById("ordersList");
+const ordersEmptyEl = document.getElementById("ordersEmpty");
+const ordersCountEl = document.getElementById("ordersCount");
+const ordersTotalEl = document.getElementById("ordersTotal");
+const ordersRefreshBtn = document.getElementById("ordersRefreshBtn");
+const emptyEl = document.getElementById("empty");
+const emptyRefreshBtn = document.getElementById("emptyRefreshBtn");
+const mainEl = document.getElementById("main");
+const orderTitleEl = document.getElementById("orderTitle");
+const purchaseCountEl = document.getElementById("purchaseCount");
+const orderTotalEl = document.getElementById("orderTotal");
+const tbody = document.getElementById("tbody");
+const cleanupMsgEl = document.getElementById("cleanupMsg");
+
+/* ===== Sidebar ===== */
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("sidebarOverlay");
+const openBtn = document.getElementById("openSidebarBtn");
+const closeBtn = document.getElementById("closeSidebarBtn");
+const sidebarContent = document.getElementById("sidebarContent");
+
+function openSidebar(){
+  sidebar.classList.add("open");
+  overlay.classList.add("open");
+}
+function closeSidebar(){
+  sidebar.classList.remove("open");
+  overlay.classList.remove("open");
+}
+openBtn.onclick = openSidebar;
+closeBtn.onclick = closeSidebar;
+overlay.onclick = closeSidebar;
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeSidebar(); });
+
+function renderSidebar(){
+  sidebarContent.innerHTML = "";
+  const link = (text, href)=>{
+    const a = document.createElement("a");
+    a.href = href;
+    a.textContent = text;
+    a.onclick = ()=> closeSidebar();
+    sidebarContent.appendChild(a);
+  };
+  const btn = (text, cls, onClick)=>{
+    const b = document.createElement("button");
+    b.type="button";
+    b.className = cls || "";
+    b.textContent = text;
+    b.onclick = async ()=>{
+      await onClick();
+      closeSidebar();
+    };
+    sidebarContent.appendChild(b);
+  };
+
+  link("الطلبيات", "./index.html");
+  link("الاستلام والتحصيل", "./pickup-dashboard.html");
+  link("الأرشيف", "./archive.html");
+  link("المالية", "./finance.html");
+
+  btn("تسجيل خروج", "danger", async ()=>{
+    await sb.auth.signOut();
+    window.location.href="./login.html";
+  });
+}
+
+let orders = [];
+let activeOrder = null;
+let purchasesByOrder = new Map();
+let totalsByOrder = new Map();
+
+function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+
+function parsePrice(v){
+  if(v === null || v === undefined) return 0;
+  if(typeof v === "number") return isFinite(v) ? v : 0;
+  const s = String(v).replace(/[, ]/g, "").replace(/[₪]/g, "");
+  const m = s.match(/-?\d+(?:\.\d+)?/);
+  return m ? Number(m[0]) : 0;
+}
+
+function formatILS(n){
+  const x = Number(n || 0);
+  if(!isFinite(x)) return "0";
+  const fixed = x.toFixed(2);
+  return fixed.endsWith(".00") ? String(Math.round(x)) : fixed;
+}
+
+function showMain(on){
+  mainEl.style.display = on ? "" : "none";
+  emptyEl.style.display = on ? "none" : "";
+}
+
+async function cleanupArchiveImages(){
+  if(!cleanupMsgEl) return;
+  const allPurchases = [];
+  purchasesByOrder.forEach(list=>{ allPurchases.push(...list); });
+  const paths = [];
+  allPurchases.forEach(p=>{
+    (p.purchase_images || []).forEach(img=>{
+      if(img?.storage_path) paths.push(img.storage_path);
+    });
+  });
+  const uniquePaths = [...new Set(paths)];
+  if(!uniquePaths.length){
+    cleanupMsgEl.textContent = "لا يوجد صور للحذف.";
+    return;
+  }
+
+  cleanupMsgEl.textContent = `جاري حذف ${uniquePaths.length} صورة من التخزين...`;
+  const chunkSize = 100;
+  for(let i=0;i<uniquePaths.length;i+=chunkSize){
+    const chunk = uniquePaths.slice(i, i + chunkSize);
+    const { error } = await sb.storage.from(BUCKET).remove(chunk);
+    if(error){
+      console.error(error);
+      cleanupMsgEl.textContent = "تعذر حذف بعض الصور من التخزين.";
+      return;
+    }
+  }
+
+  const dbChunk = 500;
+  for(let i=0;i<uniquePaths.length;i+=dbChunk){
+    const chunk = uniquePaths.slice(i, i + dbChunk);
+    const { error: dbErr } = await sb
+      .from("purchase_images")
+      .delete()
+      .in("storage_path", chunk);
+    if(dbErr){
+      console.error(dbErr);
+      cleanupMsgEl.textContent = "تم حذف الصور من التخزين، لكن حدث خطأ في قاعدة البيانات.";
+      return;
+    }
+  }
+
+  cleanupMsgEl.textContent = `تم حذف ${uniquePaths.length} صورة من التخزين.`;
+}
+
+function renderOrdersList(){
+  ordersCountEl.textContent = orders.length;
+  ordersListEl.innerHTML = "";
+  ordersEmptyEl.style.display = orders.length ? "none" : "";
+
+  orders.forEach(o=>{
+    const total = totalsByOrder.get(o.id) || 0;
+    const count = (purchasesByOrder.get(o.id) || []).length;
+    const div = document.createElement("div");
+    div.className = "orderItem" + (activeOrder?.id === o.id ? " active" : "");
+    div.innerHTML = `
+      <span>${escapeHtml(o.order_name || "")}</span>
+      <div class="ordersMeta">
+        <span class="pill">${count}</span>
+        <span class="pill">${formatILS(total)} ₪</span>
+      </div>
+    `;
+    div.onclick = ()=> selectOrder(o);
+    ordersListEl.appendChild(div);
+  });
+}
+
+function renderTable(list){
+  if(!activeOrder){
+    showMain(false);
+    return;
+  }
+
+  const total = list.reduce((sum,p)=> sum + parsePrice(p.paid_price ?? p.price), 0);
+  purchaseCountEl.textContent = `عدد المشتريات: ${list.length}`;
+  orderTotalEl.textContent = `المجموع الكلي: ${formatILS(total)} ₪`;
+
+  tbody.innerHTML = "";
+  if(!list.length){
+    tbody.innerHTML = `<tr><td colspan="4" class="muted">لا يوجد مشتريات</td></tr>`;
+    showMain(true);
+    return;
+  }
+
+  list.forEach(p=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(p.customer_name || "")}</td>
+      <td>${escapeHtml(p.pickup_point || "")}</td>
+      <td>${escapeHtml(p.price ?? "")}</td>
+      <td>${escapeHtml(p.paid_price ?? "—")}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  showMain(true);
+}
+
+function selectOrder(order){
+  activeOrder = order;
+  orderTitleEl.textContent = order.order_name || "";
+  const list = purchasesByOrder.get(order.id) || [];
+  renderTable(list);
+}
+
+async function loadArchive(){
+  const { data: pRows, error: pErr } = await sb
+    .from("purchases")
+    .select("id, order_id, customer_name, price, paid_price, pickup_point, collected, purchase_images(id, storage_path)")
+    .order("created_at", { ascending: false });
+
+  if(pErr){ console.error(pErr); return; }
+
+  const byOrder = new Map();
+  (pRows || []).forEach(p=>{
+    if(!byOrder.has(p.order_id)){
+      byOrder.set(p.order_id, { allCollected: true, purchases: [] });
+    }
+    const entry = byOrder.get(p.order_id);
+    if(!p.collected) entry.allCollected = false;
+    entry.purchases.push(p);
+  });
+
+  const archivedOrderIds = [];
+  byOrder.forEach((entry, orderId)=>{
+    if(entry.purchases.length && entry.allCollected) archivedOrderIds.push(orderId);
+  });
+
+  if(!archivedOrderIds.length){
+    orders = [];
+    purchasesByOrder = new Map();
+    totalsByOrder = new Map();
+    ordersTotalEl.textContent = "إجمالي التحصيل: 0 ₪";
+    renderOrdersList();
+    showMain(false);
+    if(cleanupMsgEl) cleanupMsgEl.textContent = "لا يوجد أرشيف بعد.";
+    return;
+  }
+
+  const { data: oRows, error: oErr } = await sb
+    .from("orders")
+    .select("id, order_name, created_at")
+    .in("id", archivedOrderIds)
+    .order("created_at", { ascending: false });
+
+  if(oErr){ console.error(oErr); return; }
+
+  orders = oRows || [];
+  purchasesByOrder = new Map();
+  totalsByOrder = new Map();
+  orders.forEach(o=>{
+    const entry = byOrder.get(o.id);
+    const list = entry?.purchases || [];
+    purchasesByOrder.set(o.id, list);
+    const total = list.reduce((sum,p)=> sum + parsePrice(p.paid_price ?? p.price), 0);
+    totalsByOrder.set(o.id, total);
+  });
+
+  const totalAll = Array.from(totalsByOrder.values()).reduce((sum,v)=> sum + v, 0);
+  ordersTotalEl.textContent = `إجمالي التحصيل: ${formatILS(totalAll)} ₪`;
+
+  renderOrdersList();
+  if(orders.length){
+    selectOrder(orders[0]);
+  }
+
+  await cleanupArchiveImages();
+}
+
+if(ordersRefreshBtn) ordersRefreshBtn.onclick = loadArchive;
+if(emptyRefreshBtn) emptyRefreshBtn.onclick = loadArchive;
+
+(async function init(){
+  await guardArchiveAccess();
+  renderSidebar();
+  await loadArchive();
+})();
+</script>
+</body>
+</html>
+

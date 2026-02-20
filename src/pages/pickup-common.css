@@ -1,0 +1,1039 @@
+/* ===================================
+   Shared Pickup Components Styles
+   Used by HomePickupPage & PickupPointPage
+   Matches Orders Page Design System
+   =================================== */
+
+:root {
+  --pickup-space-1: 8px;
+  --pickup-space-2: 12px;
+  --pickup-space-3: 16px;
+  --pickup-radius-1: 10px;
+  --pickup-radius-2: 12px;
+  --pickup-radius-3: 14px;
+  --pickup-shadow-1: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --pickup-shadow-2: 0 10px 24px rgba(15, 23, 42, 0.12);
+  --pickup-primary: #47143F;
+  --pickup-primary-light: #6D3F6B;
+  --pickup-border: rgba(229, 231, 235, 0.9);
+}
+
+/* ===================================
+   Page Container (for embedded mode)
+   =================================== */
+
+.pickup-embedded-container {
+  padding: var(--pickup-space-3);
+  background: linear-gradient(180deg, #ffffff 0%, #fcf9fd 100%);
+  border-radius: 0 0 var(--pickup-radius-3) var(--pickup-radius-3);
+  min-height: 500px;
+}
+
+/* ===================================
+   Header Section
+   =================================== */
+
+.pickup-section-header {
+  border: 1px solid rgba(109, 63, 107, 0.2);
+  border-radius: var(--pickup-radius-3);
+  background: rgba(255, 255, 255, 0.74);
+  backdrop-filter: blur(10px);
+  padding: var(--pickup-space-2) var(--pickup-space-3);
+  margin-bottom: var(--pickup-space-2);
+  box-shadow: 0 8px 20px rgba(109, 63, 107, 0.08);
+}
+
+.pickup-section-header h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  color: var(--pickup-primary);
+}
+
+.pickup-section-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.pickup-header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pickup-space-1);
+  margin-top: var(--pickup-space-2);
+}
+
+/* ===================================
+   Search Input
+   =================================== */
+
+.pickup-search-input {
+  min-height: 40px;
+  min-width: min(280px, 100%);
+  border: 1px solid var(--pickup-border);
+  border-radius: var(--pickup-radius-2);
+  background: #fff;
+  padding: 0 var(--pickup-space-2);
+  font-size: 13px;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.pickup-search-input:focus-visible {
+  outline: 0;
+  border-color: var(--pickup-primary-light);
+  box-shadow: 0 0 0 3px rgba(109, 63, 107, 0.2);
+}
+
+.pickup-search-input::placeholder {
+  color: #94a3b8;
+}
+
+/* ===================================
+   Orders Menu Trigger + Overlay
+   =================================== */
+
+.pickup-orders-menu-trigger {
+  min-height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--pickup-border);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  color: #334155;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.pickup-orders-menu-trigger .icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.pickup-orders-menu-trigger b {
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: #f2ebf4;
+  color: #592955;
+  font-size: 12px;
+}
+
+.pickup-orders-menu-trigger:hover {
+  border-color: #d8c7dc;
+  background: #fbf7fc;
+}
+
+.pickup-orders-menu-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  background: rgba(15, 23, 42, 0.35);
+  z-index: 6000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.16s ease;
+}
+
+.pickup-orders-menu-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.pickup-orders-menu-panel {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: min(420px, 92vw);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+  border-left: 1px solid var(--pickup-border);
+  box-shadow: -16px 0 32px rgba(109, 63, 107, 0.2);
+  transform: translateX(100%);
+  transition: transform 0.18s ease;
+  display: flex;
+  flex-direction: column;
+  z-index: 6010;
+}
+
+.pickup-orders-menu-overlay.open .pickup-orders-menu-panel {
+  transform: translateX(0);
+}
+
+.pickup-orders-menu-head {
+  min-height: 56px;
+  padding: 12px;
+  border-bottom: 1px solid var(--pickup-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pickup-orders-menu-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #1f2937;
+}
+
+.pickup-orders-menu-title .icon {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.pickup-orders-menu-title b {
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 12px;
+  background: #f2ebf4;
+  color: #592955;
+}
+
+.pickup-orders-menu-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--pickup-border);
+  background: #fff;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.pickup-orders-menu-list {
+  flex: 1;
+  overflow: auto;
+  padding: 12px;
+}
+
+@media (max-width: 1024px) {
+  .pickup-embedded-container {
+    width: 100%;
+    max-width: 100%;
+    padding: 10px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .pickup-embedded-container > * {
+    width: 100%;
+    max-width: 100%;
+    margin-inline: 0;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .pickup-section-header {
+    width: 100%;
+    max-width: 100%;
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+
+  .pickup-orders-menu-trigger {
+    width: 100%;
+    min-height: 44px;
+    justify-content: space-between;
+  }
+
+  .pickup-search-input {
+    min-width: 0;
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .pickup-main-pane {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .pickup-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow: auto;
+    max-height: min(58vh, 520px);
+    overscroll-behavior: contain;
+    touch-action: pan-x pan-y;
+  }
+
+  .pickup-orders-menu-panel {
+    top: auto;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: min(92dvh, 760px);
+    max-height: min(92dvh, 760px);
+    border-left: 0;
+    border-top: 1px solid var(--pickup-border);
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -14px 34px rgba(15, 23, 42, 0.2);
+    transform: translateY(100%);
+  }
+
+  .pickup-orders-menu-list {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .pickup-orders-menu-overlay.open .pickup-orders-menu-panel {
+    transform: translateY(0);
+  }
+}
+
+/* ===================================
+   Status Chips
+   =================================== */
+
+.pickup-status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pickup-status-chip.pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.pickup-status-chip.completed {
+  background: #ffe3ea;
+  color: var(--pickup-primary);
+}
+
+.pickup-status-chip.info {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+/* ===================================
+   Two-Column Layout
+   =================================== */
+
+.pickup-two-col-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) 1fr;
+  gap: var(--pickup-space-2);
+  margin-top: var(--pickup-space-2);
+}
+
+@media (max-width: 900px) {
+  .pickup-two-col-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===================================
+   Orders List Pane
+   =================================== */
+
+.pickup-orders-pane {
+  border: 1px solid var(--pickup-border);
+  border-radius: var(--pickup-radius-3);
+  background: #fff;
+  padding: var(--pickup-space-2);
+  box-shadow: var(--pickup-shadow-1);
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.pickup-pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pickup-space-1);
+  margin-bottom: var(--pickup-space-2);
+  padding-bottom: var(--pickup-space-1);
+  border-bottom: 1px solid var(--pickup-border);
+}
+
+.pickup-pane-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--pickup-primary);
+}
+
+.pickup-orders-list {
+  display: grid;
+  gap: var(--pickup-space-1);
+}
+
+.workspace-list {
+  flex: 1;
+  overflow: auto;
+  padding: 2px 0;
+}
+
+.group-block {
+  padding: 2px 0 10px;
+}
+
+.month-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 10px;
+  background: #f3f4f6;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.month-chip b {
+  color: #6D3F6B;
+}
+
+.group-orders {
+  margin-top: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.order-row {
+  border: 1px solid rgba(109, 63, 107, 0.2);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  text-align: right;
+  padding: 10px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.order-row:hover {
+  border-color: #6d3f6b;
+  background: rgba(242, 235, 244, 0.82);
+  box-shadow: 0 8px 18px rgba(109, 63, 107, 0.16);
+}
+
+.order-row.selected {
+  border-color: transparent;
+  color: #fff;
+  background: #47143F;
+  box-shadow: 0 10px 22px rgba(109, 63, 107, 0.24);
+}
+
+.order-main strong {
+  display: block;
+  font-size: 16px;
+}
+
+.order-main span {
+  display: block;
+  margin-top: 3px;
+  color: #667085;
+  font-size: 12px;
+}
+
+.order-row.selected .order-main span {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.order-meta {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+}
+
+.status {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status.at_pickup {
+  background: #ffe8ef;
+  color: #592955;
+}
+
+.order-row.selected .status {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+/* ===================================
+   Order Item Card
+   =================================== */
+
+.pickup-order-card {
+  border: 1px solid var(--pickup-border);
+  border-radius: var(--pickup-radius-2);
+  background: #fff;
+  padding: 11px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pickup-space-1);
+  transition: all 0.18s ease;
+  text-align: right;
+}
+
+.pickup-order-card:hover {
+  border-color: #e3c3cd;
+  box-shadow: var(--pickup-shadow-1);
+  transform: translateY(-1px);
+}
+
+.pickup-order-card.active {
+  border-color: var(--pickup-primary-light);
+  background: #f2ebf4;
+  box-shadow: 0 12px 20px rgba(109, 63, 107, 0.16);
+  position: relative;
+}
+
+.pickup-order-card.active::after {
+  content: "";
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--pickup-primary-light);
+}
+
+.pickup-order-card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.pickup-order-card-main strong {
+  display: block;
+  font-size: 15px;
+  color: var(--pickup-primary);
+  margin-bottom: 3px;
+}
+
+.pickup-order-card-main span {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.pickup-order-card-meta {
+  text-align: left;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* ===================================
+   Main Content Pane
+   =================================== */
+
+.pickup-main-pane {
+  border: 1px solid rgba(109, 63, 107, 0.18);
+  border-radius: var(--pickup-radius-3);
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(16px);
+  padding: var(--pickup-space-2);
+  box-shadow: 0 10px 24px rgba(109, 63, 107, 0.1);
+  min-height: 500px;
+}
+
+.pickup-main-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pickup-space-2);
+  padding-bottom: var(--pickup-space-2);
+  border-bottom: 1px solid var(--pickup-border);
+  margin-bottom: var(--pickup-space-2);
+}
+
+.pickup-main-title h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  color: var(--pickup-primary);
+}
+
+.pickup-main-title p {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.pickup-main-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pickup-space-1);
+}
+
+/* ===================================
+   Summary Cards
+   =================================== */
+
+.pickup-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--pickup-space-2);
+  margin-bottom: var(--pickup-space-2);
+}
+
+.pickup-summary-card {
+  background: linear-gradient(135deg, #fcfafd 0%, #f5f0f7 100%);
+  border: 1px solid #d8e3de;
+  border-radius: var(--pickup-radius-2);
+  padding: var(--pickup-space-2);
+  box-shadow: var(--pickup-shadow-1);
+}
+
+.pickup-summary-card h4 {
+  margin: 0 0 var(--pickup-space-1);
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.pickup-summary-card .value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--pickup-primary);
+  margin-bottom: 3px;
+}
+
+.pickup-summary-card .label {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* ===================================
+   Table Styles
+   =================================== */
+
+.pickup-table-wrap {
+  overflow-x: auto;
+  direction: ltr;
+  max-width: 100%;
+  margin-top: var(--pickup-space-2);
+  border-radius: var(--pickup-radius-2);
+  border: 1px solid rgba(109, 63, 107, 0.16);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 18px rgba(109, 63, 107, 0.08);
+}
+
+.pickup-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 10px;
+  direction: rtl;
+  margin-left: auto;
+}
+
+.pickup-table th,
+.pickup-table td {
+  border-bottom: 0;
+  padding: 10px;
+  text-align: right;
+  vertical-align: middle;
+  font-size: 13px;
+}
+
+.pickup-table th {
+  background: rgba(255, 255, 255, 0.92);
+  color: #64748b;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  border-bottom: 1px solid rgba(109, 63, 107, 0.16);
+  backdrop-filter: blur(6px);
+}
+
+.pickup-table tbody tr {
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 4px 10px rgba(109, 63, 107, 0.1);
+}
+
+.pickup-table tbody tr td:first-child {
+  border-radius: 12px 0 0 12px;
+}
+
+.pickup-table tbody tr td:last-child {
+  border-radius: 0 12px 12px 0;
+}
+
+.pickup-table tr:hover {
+  background: rgba(242, 235, 244, 0.62);
+}
+
+.pickup-table tr.highlight {
+  background: #fff8d6;
+  box-shadow: inset 0 0 0 2px rgba(109, 63, 107, 0.28);
+}
+
+/* ===================================
+   Checkbox Styles
+   =================================== */
+
+.pickup-checkbox-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pickup-space-1);
+}
+
+.pickup-checkbox-12 {
+  position: relative;
+  display: inline-flex;
+}
+
+.pickup-checkbox-12 > svg {
+  position: absolute;
+  top: -130%;
+  left: -170%;
+  width: 110px;
+  pointer-events: none;
+}
+
+.pickup-checkbox-12 * {
+  box-sizing: border-box;
+}
+
+.pickup-checkbox-12 input[type="checkbox"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  margin: 0;
+}
+
+.pickup-checkbox-12 input[type="checkbox"]:focus {
+  outline: 0;
+}
+
+.pickup-checkbox-12 .pickup-cbx {
+  width: 24px;
+  height: 24px;
+  position: relative;
+  display: inline-block;
+  flex: 0 0 24px;
+}
+
+.pickup-checkbox-12 .pickup-cbx input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(109, 63, 107, 0.32);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 10px rgba(109, 63, 107, 0.14);
+}
+
+.pickup-checkbox-12 .pickup-cbx input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pickup-checkbox-12 .pickup-cbx label {
+  width: 24px;
+  height: 24px;
+  background: none;
+  border-radius: 50%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translate3d(0, 0, 0);
+  pointer-events: none;
+}
+
+.pickup-checkbox-12 .pickup-cbx svg {
+  position: absolute;
+  top: 5px;
+  left: 4px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.pickup-checkbox-12 .pickup-cbx svg path {
+  stroke: #fff;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 19;
+  stroke-dashoffset: 19;
+  transition: stroke-dashoffset 0.3s ease;
+  transition-delay: 0.2s;
+}
+
+.pickup-checkbox-12 .pickup-cbx input:checked + label {
+  animation: splash-12 0.6s ease forwards;
+}
+
+.pickup-checkbox-12 .pickup-cbx input:checked + label + svg path {
+  stroke-dashoffset: 0;
+}
+
+@-moz-keyframes splash-12 {
+  40% {
+    background: #47143f;
+    box-shadow: 0 -18px 0 -8px #47143f, 16px -8px 0 -8px #47143f, 16px 8px 0 -8px #47143f, 0 18px 0 -8px #47143f, -16px 8px 0 -8px #47143f, -16px -8px 0 -8px #47143f;
+  }
+
+  100% {
+    background: #47143f;
+    box-shadow: 0 -36px 0 -10px transparent, 32px -16px 0 -10px transparent, 32px 16px 0 -10px transparent, 0 36px 0 -10px transparent, -32px 16px 0 -10px transparent, -32px -16px 0 -10px transparent;
+  }
+}
+
+@-webkit-keyframes splash-12 {
+  40% {
+    background: #47143f;
+    box-shadow: 0 -18px 0 -8px #47143f, 16px -8px 0 -8px #47143f, 16px 8px 0 -8px #47143f, 0 18px 0 -8px #47143f, -16px 8px 0 -8px #47143f, -16px -8px 0 -8px #47143f;
+  }
+
+  100% {
+    background: #47143f;
+    box-shadow: 0 -36px 0 -10px transparent, 32px -16px 0 -10px transparent, 32px 16px 0 -10px transparent, 0 36px 0 -10px transparent, -32px 16px 0 -10px transparent, -32px -16px 0 -10px transparent;
+  }
+}
+
+@-o-keyframes splash-12 {
+  40% {
+    background: #47143f;
+    box-shadow: 0 -18px 0 -8px #47143f, 16px -8px 0 -8px #47143f, 16px 8px 0 -8px #47143f, 0 18px 0 -8px #47143f, -16px 8px 0 -8px #47143f, -16px -8px 0 -8px #47143f;
+  }
+
+  100% {
+    background: #47143f;
+    box-shadow: 0 -36px 0 -10px transparent, 32px -16px 0 -10px transparent, 32px 16px 0 -10px transparent, 0 36px 0 -10px transparent, -32px 16px 0 -10px transparent, -32px -16px 0 -10px transparent;
+  }
+}
+
+@keyframes splash-12 {
+  40% {
+    background: #47143f;
+    box-shadow: 0 -18px 0 -8px #47143f, 16px -8px 0 -8px #47143f, 16px 8px 0 -8px #47143f, 0 18px 0 -8px #47143f, -16px 8px 0 -8px #47143f, -16px -8px 0 -8px #47143f;
+  }
+
+  100% {
+    background: #47143f;
+    box-shadow: 0 -36px 0 -10px transparent, 32px -16px 0 -10px transparent, 32px 16px 0 -10px transparent, 0 36px 0 -10px transparent, -32px 16px 0 -10px transparent, -32px -16px 0 -10px transparent;
+  }
+}
+
+/* ===================================
+   Input Fields
+   =================================== */
+
+.pickup-input {
+  width: 100%;
+  border: 1px solid var(--pickup-border);
+  border-radius: var(--pickup-radius-1);
+  min-height: 36px;
+  padding: 0 var(--pickup-space-2);
+  font-family: inherit;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.pickup-input:focus-visible {
+  outline: 0;
+  border-color: var(--pickup-primary-light);
+  box-shadow: 0 0 0 3px rgba(109, 63, 107, 0.2);
+}
+
+.pickup-input.mini {
+  width: 90px;
+  min-height: 32px;
+}
+
+/* ===================================
+   Button Variants
+   =================================== */
+
+.pickup-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pickup-space-1);
+  border-radius: var(--pickup-radius-2);
+  padding: 9px 14px;
+  border: 1px solid var(--pickup-border);
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #fff;
+  color: #334155;
+  min-height: 38px;
+}
+
+.pickup-btn:hover {
+  border-color: #e3c3cd;
+  background: #fff8fa;
+  transform: translateY(-1px);
+  box-shadow: var(--pickup-shadow-1);
+}
+
+.pickup-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.pickup-btn.primary {
+  border-color: transparent;
+  color: #fff;
+  background: var(--pickup-primary);
+  box-shadow: 0 10px 22px rgba(109, 63, 107, 0.24);
+}
+
+.pickup-btn.primary:hover {
+  background: var(--pickup-primary-light);
+  box-shadow: 0 12px 24px rgba(109, 63, 107, 0.28);
+}
+
+.pickup-btn.mini {
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.pickup-btn.danger {
+  border-color: rgba(180, 35, 24, 0.3);
+  color: #b42318;
+}
+
+.pickup-btn.danger:hover {
+  background: #fff7f7;
+  border-color: rgba(180, 35, 24, 0.4);
+}
+
+/* ===================================
+   Empty State
+   =================================== */
+
+.pickup-empty-state {
+  border: 1px dashed rgba(148, 163, 184, 0.45);
+  border-radius: var(--pickup-radius-2);
+  background: #ffffff;
+  color: #64748b;
+  font-size: 14px;
+  text-align: center;
+  padding: var(--pickup-space-4);
+  margin: var(--pickup-space-2) 0;
+}
+
+.pickup-empty-state.error {
+  border-style: solid;
+  border-color: rgba(180, 35, 24, 0.28);
+  color: #b42318;
+  background: #fff7f7;
+}
+
+/* ===================================
+   Loading Indicator
+   =================================== */
+
+.pickup-loading-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--pickup-space-3);
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* ===================================
+   Edit Actions
+   =================================== */
+
+.pickup-edit-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===================================
+   Responsive Adjustments
+   =================================== */
+
+@media (max-width: 900px) {
+  .pickup-embedded-container {
+    padding: var(--pickup-space-2);
+  }
+
+  .pickup-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pickup-search-input {
+    width: 100%;
+  }
+
+  .pickup-main-header {
+    flex-direction: column;
+  }
+
+  .pickup-main-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .pickup-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .pickup-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pickup-orders-pane {
+    max-height: none;
+  }
+}
+
+/* ===================================
+   Utilities
+   =================================== */
+
+.pickup-spacer {
+  margin-top: var(--pickup-space-2);
+}
+
+.pickup-divider {
+  height: 1px;
+  background: var(--pickup-border);
+  margin: var(--pickup-space-2) 0;
+}
+
+.pickup-text-muted {
+  color: #64748b;
+}
+
+.pickup-text-error {
+  color: #b42318;
+}
+
+.pickup-text-bold {
+  font-weight: 600;
+  color: var(--pickup-primary);
+}

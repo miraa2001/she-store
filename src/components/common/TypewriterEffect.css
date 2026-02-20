@@ -1,0 +1,34 @@
+.typewriter-root {
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+  line-height: 1.2;
+  direction: ltr;
+  unicode-bidi: plaintext;
+}
+
+.typewriter-text {
+  display: inline-block;
+  min-height: 1.2em;
+}
+
+.typewriter-word {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.typewriter-char {
+  display: inline-block;
+}
+
+.typewriter-space {
+  display: inline-block;
+}
+
+.typewriter-cursor {
+  width: 4px;
+  height: 1.1em;
+  border-radius: 999px;
+  background: #6D3F6B;
+}

@@ -1,0 +1,421 @@
+﻿<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>تحصيل المبالغ</title>
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/8863/8863863.png" />
+  <link rel="stylesheet" href="assets/tokens.css">
+  <link rel="stylesheet" href="assets/base.css">
+  <script src="assets/ui.js" defer></script>
+
+  <style>
+    body{font-family:system-ui,Tahoma,Arial;margin:0;background:var(--color-bg);color:var(--color-text)}
+    .wrap{max-width:1100px;margin:auto;padding:16px}
+    .grid{display:grid;grid-template-columns:320px 1fr;gap:12px}
+    .grid > *{min-width:0}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+    .card{background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:12px}
+    .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .btn{border:1px solid var(--color-border);background:var(--color-card);padding:10px 14px;border-radius:var(--radius-lg);cursor:pointer}
+    .muted{color:var(--color-muted);font-size:13px}
+    .pill{display:inline-block;padding:6px 10px;border:1px solid var(--color-border);border-radius:999px;font-size:12px;color:var(--color-text);background:#f1f4f2}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+    .brand b{font-size:20px}
+    .menuBtn{border:1px solid var(--color-border);background:var(--color-card);padding:10px 12px;border-radius:var(--radius-lg);cursor:pointer}
+    .sidebarOverlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:50}
+    .sidebar{
+      position:fixed;top:0;right:0;height:100vh;width:min(220px,82vw);
+      background:var(--color-card);border-left:1px solid var(--color-border);z-index:60;
+      transform:translateX(100%);transition:transform .2s ease;
+      display:flex;flex-direction:column;padding:14px;box-sizing:border-box
+    }
+    .sidebar.open{transform:translateX(0)}
+    .sidebarOverlay.open{display:block}
+    .sidebarHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+    .sidebarHeader b{font-size:16px}
+    .sidebarHeader{position:relative;justify-content:center;text-align:center}
+    .sidebarHeader b{margin:0 auto}
+    .sidebarHeader .menuBtn{
+      position:absolute;left:0;padding:6px 8px;width:32px;height:32px;
+      display:flex;align-items:center;justify-content:center;color:#b00020;border-color:#f2c2c2
+    }
+    .sidebar a,.sidebar button{
+      width:100%;text-align:right;border:1px solid var(--color-border);background:var(--color-card);
+      padding:10px 12px;border-radius:var(--radius-md);cursor:pointer;margin-top:8px;font-family:inherit;
+      font-size:14px;line-height:1.3;box-sizing:border-box
+    }
+    .sidebar a{color:#111;text-decoration:none;display:block}
+    .sidebar .danger{border-color:#f2c2c2;color:#b00020}
+    .orderItem{border:1px solid var(--color-border);border-radius:var(--radius-md);padding:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+    .orderItem.active{border-color:var(--brand);background:var(--brand-tint)}
+    .ordersMeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+    .sectionTitle{font-weight:700;margin:10px 0 6px}
+    .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;direction:ltr;max-width:100%}
+    table{width:max-content;min-width:100%;border-collapse:collapse;direction:rtl;margin-left:auto}
+    body.ios-chrome .tableWrap{direction:rtl}
+    body.ios-chrome table{direction:rtl}
+    th,td{border-bottom:1px solid var(--color-border);padding:10px;text-align:right;vertical-align:top}
+    th{color:var(--color-muted);font-size:13px}
+    body.embed{overflow-x:hidden}
+    body.embed .topbar,
+    body.embed .sidebar,
+    body.embed .sidebarOverlay{display:none !important}
+    body.embed .wrap{padding:0;max-width:none}
+
+    /* ===== Page polish v2 ===== */
+    body[data-page="collections"] .wrap{max-width:1280px}
+    body[data-page="collections"] .grid{
+      grid-template-columns:340px 1fr;
+      gap:16px;
+      align-items:start;
+    }
+    body[data-page="collections"] .grid > aside.card{
+      position:sticky;
+      top:92px;
+      border-radius:20px 20px 10px 20px;
+      background:linear-gradient(180deg,#fff 0%,#f7fbf9 100%);
+    }
+    body[data-page="collections"] .grid > main.card{
+      border-radius:24px 24px 12px 24px;
+    }
+    body[data-page="collections"] #ordersList{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top:0 !important;
+    }
+    body[data-page="collections"] .ordersMeta{
+      gap:8px;
+    }
+    body[data-page="collections"] .sectionTitle{
+      display:inline-flex;
+      align-items:center;
+      padding:5px 10px;
+      border:1px solid #d5e2dd;
+      border-radius:999px;
+      background:#f3f8f6;
+      color:#5f6e69;
+      font-size:12px;
+      margin:10px 0 6px;
+    }
+    body[data-page="collections"] .tableWrap{
+      margin-bottom:10px;
+    }
+    @media(max-width:900px){
+      body[data-page="collections"] .grid{grid-template-columns:1fr}
+      body[data-page="collections"] .grid > aside.card{position:static}
+    }
+  </style>
+  <link rel="stylesheet" href="assets/dashboard-shell.css">
+  <script src="assets/dashboard-shell.js" defer></script>
+</head>
+<body data-page="collections">
+
+<div class="sidebarOverlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebarHeader">
+    <b>القائمة</b>
+    <button class="menuBtn" id="closeSidebarBtn" type="button" aria-label="إغلاق القائمة">✕</button>
+  </div>
+  <div id="sidebarContent"></div>
+</aside>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <b>تحصيل المبالغ</b>
+      <div class="muted">الطلبات المحصلة</div>
+    </div>
+    <button class="menuBtn" id="openSidebarBtn" type="button" aria-label="فتح القائمة">☰</button>
+  </div>
+
+  <div class="grid">
+    <aside class="card">
+      <div class="row" style="justify-content:space-between">
+        <b>الطلبيات</b>
+        <div class="ordersMeta">
+          <span class="pill" id="ordersCount">0</span>
+          <span class="pill" id="ordersCollectedTotal">إجمالي التحصيل: 0 ₪</span>
+        </div>
+      </div>
+      <div id="ordersList" style="margin-top:10px"></div>
+      <div id="ordersEmpty" class="muted" style="margin-top:10px;display:none">
+        لا يوجد بيانات
+        <div style="margin-top:8px"><button class="btn" id="ordersRefreshBtn" type="button">تحديث</button></div>
+      </div>
+    </aside>
+
+    <main class="card">
+      <div id="empty" class="muted">
+        لا يوجد بيانات
+        <div style="margin-top:8px"><button class="btn" id="emptyRefreshBtn" type="button">تحديث</button></div>
+      </div>
+
+        <div id="main" style="display:none">
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <div>
+              <b id="orderTitle"></b>
+              <span id="collectedBadge"></span>
+            </div>
+            <div class="row">
+            <span class="pill" id="purchaseCount">0</span>
+            <span class="pill" id="homeTotal">مجموع البيت: 0</span>
+            <span class="pill" id="pickupTotal">مجموع نقطة الاستلام: 0</span>
+            <span class="pill" id="grandTotal">المجموع الكلي: 0</span>
+          </div>
+        </div>
+
+        <div class="sectionTitle">مستلمو البيت</div>
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>الزبون</th>
+                <th>السعر</th>
+              </tr>
+            </thead>
+            <tbody id="homeBody"></tbody>
+          </table>
+        </div>
+
+        <div class="sectionTitle">نقطة الاستلام - La Aura</div>
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>الزبون</th>
+                <th>السعر</th>
+              </tr>
+            </thead>
+            <tbody id="pickupBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://maucjvxhrnkdeybltjco.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const isEmbed = new URLSearchParams(location.search).get("embed") === "1";
+if(isEmbed) document.body.classList.add("embed");
+const isIOSChrome = /CriOS/i.test(navigator.userAgent);
+if(isIOSChrome) document.body.classList.add("ios-chrome");
+
+const HOME_PICKUP_VALUE = "من البيت";
+const PICKUP_VALUE = "من نقطة الاستلام";
+const EMAIL_RAHAF = "rahaf@she-store.com";
+
+async function guardCollectionsAccess(){
+  const { data } = await sb.auth.getSession();
+  const session = data?.session;
+  if(!session){
+    window.location.href="./login.html?next=collections.html";
+    return;
+  }
+  const email = (session?.user?.email || "").toLowerCase();
+  if(email !== EMAIL_RAHAF){
+    window.location.replace("./login.html");
+  }
+}
+
+const ordersListEl = document.getElementById("ordersList");
+const ordersEmptyEl = document.getElementById("ordersEmpty");
+const ordersCountEl = document.getElementById("ordersCount");
+const ordersCollectedTotalEl = document.getElementById("ordersCollectedTotal");
+const ordersRefreshBtn = document.getElementById("ordersRefreshBtn");
+const emptyEl = document.getElementById("empty");
+const emptyRefreshBtn = document.getElementById("emptyRefreshBtn");
+const mainEl = document.getElementById("main");
+const orderTitleEl = document.getElementById("orderTitle");
+const collectedBadge = document.getElementById("collectedBadge");
+const purchaseCountEl = document.getElementById("purchaseCount");
+const homeTotalEl = document.getElementById("homeTotal");
+const pickupTotalEl = document.getElementById("pickupTotal");
+const grandTotalEl = document.getElementById("grandTotal");
+const homeBody = document.getElementById("homeBody");
+const pickupBody = document.getElementById("pickupBody");
+
+/* ===== Sidebar ===== */
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("sidebarOverlay");
+const openBtn = document.getElementById("openSidebarBtn");
+const closeBtn = document.getElementById("closeSidebarBtn");
+const sidebarContent = document.getElementById("sidebarContent");
+
+function openSidebar(){
+  sidebar.classList.add("open");
+  overlay.classList.add("open");
+}
+function closeSidebar(){
+  sidebar.classList.remove("open");
+  overlay.classList.remove("open");
+}
+openBtn.onclick = openSidebar;
+closeBtn.onclick = closeSidebar;
+overlay.onclick = closeSidebar;
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeSidebar(); });
+
+function renderSidebar(){
+  sidebarContent.innerHTML = "";
+
+  const link = (text, href)=>{
+    const a = document.createElement("a");
+    a.href = href;
+    a.textContent = text;
+    a.onclick = ()=> closeSidebar();
+    sidebarContent.appendChild(a);
+  };
+  const btn = (text, cls, onClick)=>{
+    const b = document.createElement("button");
+    b.type="button";
+    b.className = cls || "";
+    b.textContent = text;
+    b.onclick = async ()=>{
+      await onClick();
+      closeSidebar();
+    };
+    sidebarContent.appendChild(b);
+  };
+
+  link("الطلبيات", "./index.html");
+  link("الاستلام والتحصيل", "./pickup-dashboard.html");
+  link("الأرشيف", "./archive.html");
+  link("المالية", "./finance.html");
+
+  btn("تسجيل خروج", "danger", async ()=>{
+    await sb.auth.signOut();
+    window.location.href="./login.html";
+  });
+}
+
+let orders = [];
+let activeOrder = null;
+
+function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+
+function parsePrice(v){
+  if(v === null || v === undefined) return 0;
+  if(typeof v === "number") return isFinite(v) ? v : 0;
+  const s = String(v).replace(/[, ]/g, "").replace(/[₪]/g, "");
+  const m = s.match(/-?\d+(?:\.\d+)?/);
+  return m ? Number(m[0]) : 0;
+}
+
+function formatILS(n){
+  const x = Number(n || 0);
+  if(!isFinite(x)) return "0";
+  const fixed = x.toFixed(2);
+  return fixed.endsWith(".00") ? String(Math.round(x)) : fixed;
+}
+
+function showMain(on){
+  mainEl.style.display = on ? "" : "none";
+  emptyEl.style.display = on ? "none" : "";
+}
+
+async function loadOrders(){
+  const { data, error } = await sb
+    .from("orders")
+    .select("id, order_name, created_at, purchases!inner(pickup_point, collected)")
+    .eq("arrived", true)
+    .order("created_at",{ascending:false});
+
+  if(error){ console.error(error); return; }
+
+  orders = (data || []).filter(o=>{
+    const list = o.purchases || [];
+    return list.some(p=>p.pickup_point === HOME_PICKUP_VALUE && p.collected) ||
+      list.some(p=>p.pickup_point === PICKUP_VALUE && p.collected);
+  });
+
+  ordersCountEl.textContent = orders.length;
+  if(ordersCollectedTotalEl){
+    const orderIds = orders.map(o=>o.id);
+    if(orderIds.length){
+      const { data: pData, error: pErr } = await sb
+        .from("purchases")
+        .select("paid_price, price, collected, order_id")
+        .in("order_id", orderIds)
+        .eq("collected", true);
+      if(!pErr){
+        const total = (pData || []).reduce((sum,p)=> sum + parsePrice(p.paid_price ?? p.price), 0);
+        ordersCollectedTotalEl.textContent = `إجمالي التحصيل: ${formatILS(total)} ₪`;
+      }else{
+        console.error(pErr);
+        ordersCollectedTotalEl.textContent = "إجمالي التحصيل: —";
+      }
+    }else{
+      ordersCollectedTotalEl.textContent = "إجمالي التحصيل: 0 ₪";
+    }
+  }
+  ordersListEl.innerHTML = "";
+  ordersEmptyEl.style.display = orders.length ? "none" : "";
+
+  orders.forEach(o=>{
+    const div = document.createElement("div");
+    div.className = "orderItem" + (activeOrder?.id === o.id ? " active" : "");
+    div.innerHTML = `<span>${escapeHtml(o.order_name || "")}</span><span class="pill">فتح</span>`;
+    div.onclick = () => selectOrder(o);
+    ordersListEl.appendChild(div);
+  });
+}
+
+if(ordersRefreshBtn) ordersRefreshBtn.onclick = loadOrders;
+if(emptyRefreshBtn) emptyRefreshBtn.onclick = loadOrders;
+
+async function selectOrder(order){
+  activeOrder = order;
+  orderTitleEl.textContent = order.order_name || "";
+  if(collectedBadge){
+    collectedBadge.innerHTML = typeof statusBadge === "function"
+      ? statusBadge("تم التحصيل", "success")
+      : "تم التحصيل";
+  }
+
+  await loadOrders();
+
+  const { data, error } = await sb
+    .from("purchases")
+    .select("id, customer_name, price, paid_price, pickup_point, collected")
+    .eq("order_id", order.id)
+    .order("created_at",{ascending:true});
+
+  if(error){ console.error(error); return; }
+
+  const list = data || [];
+  const homeList = list.filter(p=>p.pickup_point === HOME_PICKUP_VALUE && p.collected);
+  const pickupList = list.filter(p=>p.pickup_point === PICKUP_VALUE && p.collected);
+
+  purchaseCountEl.textContent = `عدد المشتريات: ${homeList.length + pickupList.length}`;
+  const homeTotal = homeList.reduce((sum,p)=> sum + parsePrice(p.paid_price ?? p.price), 0);
+  const pickupTotal = pickupList.reduce((sum,p)=> sum + parsePrice(p.paid_price ?? p.price), 0);
+  homeTotalEl.textContent = `مجموع البيت: ${formatILS(homeTotal)} ₪`;
+  pickupTotalEl.textContent = `مجموع نقطة الاستلام: ${formatILS(pickupTotal)} ₪`;
+  grandTotalEl.textContent = `المجموع الكلي: ${formatILS(homeTotal + pickupTotal)} ₪`;
+
+  homeBody.innerHTML = homeList.length
+    ? homeList.map(p=>`<tr><td>${escapeHtml(p.customer_name || "")}</td><td>${escapeHtml(formatILS(p.paid_price ?? p.price))}</td></tr>`).join("")
+    : `<tr><td colspan="2" class="muted">لا يوجد مشتريات</td></tr>`;
+
+  pickupBody.innerHTML = pickupList.length
+    ? pickupList.map(p=>`<tr><td>${escapeHtml(p.customer_name || "")}</td><td>${escapeHtml(formatILS(p.paid_price ?? p.price))}</td></tr>`).join("")
+    : `<tr><td colspan="2" class="muted">لا يوجد مشتريات</td></tr>`;
+
+  showMain(true);
+}
+
+(async function init(){
+  await guardCollectionsAccess();
+  renderSidebar();
+  await loadOrders();
+  if(orders.length) selectOrder(orders[0]);
+})();
+</script>
+</body>
+</html>
+

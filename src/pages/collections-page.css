@@ -1,0 +1,468 @@
+.collections-page {
+  min-height: 100dvh;
+  background: #f6f8f7;
+  color: #0f172a;
+}
+
+.collections-page.embedded {
+  min-height: auto;
+  background: transparent;
+}
+
+.collections-wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.collections-page.embedded .collections-wrap {
+  max-width: none;
+  padding: 0;
+}
+
+.collections-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.collections-brand b {
+  font-size: 20px;
+}
+
+.collections-muted {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.collections-menu-btn {
+  border: 1px solid #dfd5e5;
+  background: #fff;
+  border-radius: 14px;
+  min-height: 40px;
+  min-width: 40px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.collections-menu-btn.danger {
+  color: #b42318;
+  border-color: rgba(180, 35, 24, 0.3);
+}
+
+.collections-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 40;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.collections-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.collections-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(240px, 84vw);
+  height: 100dvh;
+  background: #fff;
+  border-left: 1px solid #dfd5e5;
+  box-shadow: -24px 0 40px rgba(15, 23, 42, 0.12);
+  z-index: 50;
+  transform: translateX(100%);
+  transition: transform 0.2s ease;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.collections-sidebar.open {
+  transform: translateX(0);
+}
+
+.collections-sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.collections-sidebar-head b {
+  font-size: 16px;
+}
+
+.collections-sidebar-head .collections-menu-btn {
+  position: absolute;
+  left: 0;
+}
+
+.collections-sidebar-content {
+  display: grid;
+  gap: 8px;
+}
+
+.collections-sidebar-content a,
+.collections-sidebar-content button {
+  border: 1px solid #e7dfeb;
+  border-radius: 12px;
+  background: #fff;
+  min-height: 40px;
+  padding: 10px 12px;
+  text-align: right;
+  text-decoration: none;
+  color: #0f172a;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.collections-sidebar-content .danger {
+  color: #b42318;
+  border-color: rgba(180, 35, 24, 0.3);
+}
+
+.collections-grid {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.collections-grid--single {
+  grid-template-columns: 1fr;
+}
+
+.collections-orders-menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.collections-page.embedded .collections-grid {
+  grid-template-columns: 1fr;
+}
+
+.collections-card {
+  background: #fff;
+  border: 1px solid #e7dfeb;
+  border-radius: 22px 22px 12px 22px;
+  padding: 12px;
+}
+
+.collections-list-card {
+  position: sticky;
+  top: 88px;
+  border-radius: 20px 20px 10px 20px;
+  background: linear-gradient(180deg, #fff 0%, #fbf8fc 100%);
+}
+
+.collections-page.embedded .collections-list-card {
+  position: static;
+}
+
+.collections-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.collections-orders-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.collections-pill {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #d8e3de;
+  border-radius: 999px;
+  background: #f1f4f2;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.collections-orders-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.collections-order-item {
+  border: 1px solid #e7dfeb;
+  border-radius: 14px;
+  background: #fff;
+  padding: 10px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: right;
+  gap: 8px;
+}
+
+.collections-order-item.active {
+  border-color: #6D3F6B;
+  background: #f2ebf4;
+}
+
+.collections-status-badge {
+  display: inline-flex;
+  margin-top: 6px;
+  border: 1px solid #d9bfdc;
+  border-radius: 999px;
+  background: #f5eef7;
+  color: #47143F;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.collections-section-title {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border: 1px solid #d5e2dd;
+  border-radius: 999px;
+  background: #f3f8f6;
+  color: #5f6e69;
+  font-size: 12px;
+  margin: 10px 0 6px;
+}
+
+.collections-table-wrap {
+  overflow-x: auto;
+  direction: ltr;
+  max-width: 100%;
+  margin-bottom: 10px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  position: relative;
+}
+
+.collections-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  direction: rtl;
+  margin-left: auto;
+}
+
+.collections-table th,
+.collections-table td {
+  border-bottom: 1px solid #e5ece9;
+  padding: 10px;
+  text-align: right;
+  vertical-align: top;
+}
+
+.collections-table th {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.collections-spacer {
+  margin-top: 10px;
+}
+
+.collections-refresh-row {
+  margin-top: 8px;
+}
+
+.collections-btn {
+  border: 1px solid #dfd5e5;
+  background: #fff;
+  border-radius: 12px;
+  min-height: 38px;
+  padding: 0 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.collections-error {
+  color: #b42318;
+}
+
+.collections-state {
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.collections-note {
+  width: min(460px, 100%);
+  border: 1px solid #e7dfeb;
+  border-radius: 14px;
+  background: #fff;
+  padding: 16px;
+}
+
+.collections-note h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.collections-note p {
+  margin: 6px 0 0;
+  color: #64748b;
+}
+
+.collections-note-danger {
+  border-color: rgba(180, 35, 24, 0.3);
+}
+
+.collections-link {
+  margin-top: 12px;
+  display: inline-flex;
+  border: 1px solid #dfd5e5;
+  border-radius: 12px;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  text-decoration: none;
+  color: #0f172a;
+  background: #fff;
+}
+
+@media (max-width: 900px) {
+  .collections-wrap {
+    padding: 12px;
+  }
+
+  .collections-topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .collections-menu-btn,
+  .collections-btn,
+  .pickup-orders-menu-trigger {
+    min-height: 44px;
+  }
+
+  .collections-menu-btn {
+    min-width: 44px;
+  }
+
+  .collections-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .collections-orders-menu-row .pickup-orders-menu-trigger {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .collections-list-card {
+    position: static;
+  }
+
+  .collections-table-wrap::before,
+  .collections-table-wrap::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 14px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .collections-table-wrap::before {
+    left: 0;
+    background: linear-gradient(to right, #f6f8f7, rgba(246, 248, 247, 0));
+  }
+
+  .collections-table-wrap::after {
+    right: 0;
+    background: linear-gradient(to left, #f6f8f7, rgba(246, 248, 247, 0));
+  }
+}
+
+@media (max-width: 767px) {
+  .collections-wrap {
+    padding: 10px;
+  }
+
+  .collections-page.embedded .collections-wrap > * {
+    width: min(95vw, 100%);
+    max-width: 95vw;
+    margin-inline: auto;
+  }
+
+  .collections-topbar {
+    gap: 8px;
+  }
+
+  .collections-orders-menu-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .collections-orders-menu-row .pickup-orders-menu-trigger,
+  .collections-orders-menu-row .collections-pill {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .collections-card {
+    border-radius: 16px;
+    padding: 10px;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .collections-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .collections-row > * {
+    width: 100%;
+  }
+
+  .collections-row .collections-pill,
+  .collections-row .collections-btn {
+    min-height: 44px;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .collections-section-title {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .collections-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    max-height: min(58vh, 520px);
+    overflow: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-x pan-y;
+  }
+}

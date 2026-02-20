@@ -1,0 +1,504 @@
+.archive-page {
+  min-height: 100dvh;
+  background: #f6f8f7;
+  color: #0f172a;
+}
+
+.archive-wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.archive-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.archive-orders-menu-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.archive-main-shell {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  min-width: 0;
+}
+
+.archive-brand b {
+  font-size: 20px;
+}
+
+.archive-muted {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.archive-menu-btn {
+  border: 1px solid #dfd5e5;
+  background: #fff;
+  border-radius: 14px;
+  min-height: 40px;
+  min-width: 40px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.archive-menu-btn.danger {
+  color: #b42318;
+  border-color: rgba(180, 35, 24, 0.3);
+}
+
+.archive-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 40;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.archive-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.archive-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(240px, 84vw);
+  height: 100dvh;
+  background: #fff;
+  border-left: 1px solid #dfd5e5;
+  box-shadow: -24px 0 40px rgba(15, 23, 42, 0.12);
+  z-index: 50;
+  transform: translateX(100%);
+  transition: transform 0.2s ease;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.archive-sidebar.open {
+  transform: translateX(0);
+}
+
+.archive-sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.archive-sidebar-head b {
+  font-size: 16px;
+}
+
+.archive-sidebar-head .archive-menu-btn {
+  position: absolute;
+  left: 0;
+}
+
+.archive-sidebar-content {
+  display: grid;
+  gap: 8px;
+}
+
+.archive-sidebar-content a,
+.archive-sidebar-content button {
+  border: 1px solid #e7dfeb;
+  border-radius: 12px;
+  background: #fff;
+  min-height: 40px;
+  padding: 10px 12px;
+  text-align: right;
+  text-decoration: none;
+  color: #0f172a;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.archive-sidebar-content .danger {
+  color: #b42318;
+  border-color: rgba(180, 35, 24, 0.3);
+}
+
+.archive-grid {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.archive-card {
+  background: #fff;
+  border: 1px solid #e7dfeb;
+  border-radius: 22px 22px 12px 22px;
+  padding: 12px;
+}
+
+.archive-list-card {
+  position: sticky;
+  top: 88px;
+  border-radius: 20px 20px 10px 20px;
+  background: linear-gradient(180deg, #fff 0%, #fbf8fc 100%);
+}
+
+.archive-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.archive-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 5px;
+  border: 1px solid #d8e3de;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.archive-tab {
+  border: 0;
+  background: transparent;
+  color: #4b5563;
+  border-radius: 10px;
+  min-height: 38px;
+  padding: 0 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  flex: 1;
+}
+
+.archive-tab.active {
+  color: #fff;
+  background: #47143F;
+  box-shadow: 0 8px 16px rgba(109, 63, 107, 0.24);
+}
+
+.archive-orders-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.archive-pill {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #d8e3de;
+  border-radius: 999px;
+  background: #f1f4f2;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.archive-cleanup-msg {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px dashed #d3e1dc;
+  border-radius: 11px;
+  background: #f5faf8;
+  color: #55636f;
+  font-size: 13px;
+}
+
+.archive-orders-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.archive-order-item {
+  border: 1px solid #e7dfeb;
+  border-radius: 14px;
+  background: #fff;
+  padding: 10px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: right;
+  gap: 8px;
+}
+
+.archive-order-main {
+  display: grid;
+  gap: 3px;
+  justify-items: start;
+  text-align: right;
+}
+
+.archive-order-main small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.archive-order-item.active .archive-order-main small {
+  color: #335d52;
+}
+
+.archive-order-item.active {
+  border-color: #6D3F6B;
+  background: #f2ebf4;
+}
+
+.archive-spacer {
+  margin-top: 10px;
+}
+
+.archive-refresh-row {
+  margin-top: 8px;
+}
+
+.archive-btn {
+  border: 1px solid #dfd5e5;
+  background: #fff;
+  border-radius: 12px;
+  min-height: 38px;
+  padding: 0 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.archive-error {
+  color: #b42318;
+}
+
+.archive-divider {
+  border: 0;
+  border-top: 1px solid #e5ece9;
+  margin: 10px 0;
+}
+
+.archive-table-wrap {
+  overflow-x: auto;
+  direction: ltr;
+  max-width: 100%;
+  min-width: 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  position: relative;
+}
+
+.archive-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  direction: rtl;
+  margin-left: auto;
+}
+
+.archive-table th,
+.archive-table td {
+  border-bottom: 1px solid #e5ece9;
+  padding: 10px;
+  text-align: right;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.archive-table th {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.archive-th-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.archive-th-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  flex: 0 0 16px;
+}
+
+.archive-table-shell {
+  border: 1px solid #eadff0;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fff 0%, #fcf9fd 100%);
+  padding: 6px;
+}
+
+.archive-state {
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.archive-note {
+  width: min(460px, 100%);
+  border: 1px solid #e7dfeb;
+  border-radius: 14px;
+  background: #fff;
+  padding: 16px;
+}
+
+.archive-note h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.archive-note p {
+  margin: 6px 0 0;
+  color: #64748b;
+}
+
+.archive-note-danger {
+  border-color: rgba(180, 35, 24, 0.3);
+}
+
+.archive-link {
+  margin-top: 12px;
+  display: inline-flex;
+  border: 1px solid #dfd5e5;
+  border-radius: 12px;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  text-decoration: none;
+  color: #0f172a;
+  background: #fff;
+}
+
+@media (max-width: 900px) {
+  .archive-wrap {
+    padding: 12px;
+  }
+
+  .archive-topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .archive-menu-btn,
+  .archive-btn,
+  .pickup-orders-menu-trigger {
+    min-height: 44px;
+  }
+
+  .archive-menu-btn {
+    min-width: 44px;
+  }
+
+  .archive-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .archive-list-card {
+    position: static;
+  }
+
+  .archive-orders-menu-row {
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .archive-orders-menu-row .pickup-orders-menu-trigger {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .archive-orders-menu-row .archive-pill {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .archive-table-wrap::before,
+  .archive-table-wrap::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 14px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .archive-table-wrap::before {
+    left: 0;
+    background: linear-gradient(to right, #f6f8f7, rgba(246, 248, 247, 0));
+  }
+
+  .archive-table-wrap::after {
+    right: 0;
+    background: linear-gradient(to left, #f6f8f7, rgba(246, 248, 247, 0));
+  }
+}
+
+@media (max-width: 767px) {
+  .archive-wrap {
+    padding: 10px;
+  }
+
+  .archive-topbar {
+    gap: 8px;
+  }
+
+  .archive-orders-menu-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .archive-orders-menu-row .pickup-orders-menu-trigger,
+  .archive-orders-menu-row .archive-pill {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .archive-main-shell {
+    gap: 8px;
+  }
+
+  .archive-card {
+    border-radius: 16px;
+    padding: 10px;
+  }
+
+  .archive-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .archive-row > * {
+    width: 100%;
+  }
+
+  .archive-row .archive-pill,
+  .archive-row .archive-btn {
+    min-height: 44px;
+    justify-content: center;
+    text-align: center;
+  }
+}

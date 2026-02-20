@@ -1,0 +1,873 @@
+﻿<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>مستلمو البيت</title>
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/8863/8863863.png" />
+  <link rel="stylesheet" href="assets/tokens.css">
+  <link rel="stylesheet" href="assets/base.css">
+  <script src="assets/ui.js" defer></script>
+
+  <style>
+    body{font-family:system-ui,Tahoma,Arial;margin:0;background:var(--color-bg);color:var(--color-text)}
+    .wrap{max-width:1100px;margin:auto;padding:16px}
+    .grid{display:grid;grid-template-columns:320px 1fr;gap:12px}
+    .grid > *{min-width:0}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+    .card{background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:12px}
+    .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    input{padding:10px;border:1px solid var(--color-border);border-radius:var(--radius-md);font-family:inherit}
+    .searchBox{width:100%;max-width:420px}
+    .searchResults{margin-top:8px;border:1px solid var(--color-border);border-radius:var(--radius-md);overflow:hidden}
+    .searchResults button{
+      width:100%;text-align:right;background:var(--color-card);border:none;padding:10px;cursor:pointer;border-bottom:1px solid var(--color-border)
+    }
+    .searchResults button:last-child{border-bottom:none}
+    .searchResults button:hover{background:var(--color-bg)}
+    .highlight{background:#fff8d6;padding:6px 8px;border-radius:var(--radius-md)}
+    .btn{border:1px solid var(--color-border);background:var(--color-card);padding:10px 14px;border-radius:var(--radius-lg);cursor:pointer}
+    .muted{color:var(--color-muted);font-size:13px}
+    .pill{display:inline-block;padding:6px 10px;border:1px solid var(--color-border);border-radius:999px;font-size:12px;color:var(--color-text);background:#f1f4f2}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+    .brand b{font-size:20px}
+    .menuBtn{border:1px solid var(--color-border);background:var(--color-card);padding:10px 12px;border-radius:var(--radius-lg);cursor:pointer}
+    .sidebarOverlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:50}
+    .sidebar{
+      position:fixed;top:0;right:0;height:100vh;width:min(220px,82vw);
+      background:var(--color-card);border-left:1px solid var(--color-border);z-index:60;
+      transform:translateX(100%);transition:transform .2s ease;
+      display:flex;flex-direction:column;padding:14px;box-sizing:border-box
+    }
+    .sidebar.open{transform:translateX(0)}
+    .sidebarOverlay.open{display:block}
+    .sidebarHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+    .sidebarHeader b{font-size:16px}
+    .sidebarHeader{position:relative;justify-content:center;text-align:center}
+    .sidebarHeader b{margin:0 auto}
+    .sidebarHeader .menuBtn{
+      position:absolute;left:0;padding:6px 8px;width:32px;height:32px;
+      display:flex;align-items:center;justify-content:center;color:#b00020;border-color:#f2c2c2
+    }
+    .sidebar a,.sidebar button{
+      width:100%;text-align:right;border:1px solid var(--color-border);background:var(--color-card);
+      padding:10px 12px;border-radius:var(--radius-md);cursor:pointer;margin-top:8px;font-family:inherit;
+      font-size:14px;line-height:1.3;box-sizing:border-box
+    }
+    .sidebar a{color:#111;text-decoration:none;display:block}
+    .sidebar .danger{border-color:#f2c2c2;color:#b00020}
+
+    .orderItem{border:1px solid var(--color-border);border-radius:var(--radius-md);padding:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+    .orderItem.active{border-color:var(--brand);background:var(--brand-tint)}
+
+    .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;direction:ltr;max-width:100%}
+    table{width:max-content;min-width:100%;border-collapse:collapse;direction:rtl;margin-left:auto}
+    body.ios-chrome .tableWrap{direction:rtl}
+    body.ios-chrome table{direction:rtl}
+    th,td{border-bottom:1px solid var(--color-border);padding:10px;text-align:right;vertical-align:middle}
+    th{color:var(--color-muted);font-size:13px}
+    .chk{width:18px;height:18px}
+    .thumbs{display:flex;gap:8px;flex-wrap:wrap}
+    .thumbs img{width:72px;height:72px;object-fit:cover;border-radius:var(--radius-md);border:1px solid var(--color-border);cursor:pointer}
+    .editCol{width:1%;white-space:nowrap;text-align:center}
+    .editCol .btn{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:6px 10px;line-height:1;height:32px
+    }
+    #lightbox{
+      position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;
+      padding:16px;z-index:100;gap:16px
+    }
+    #lightbox img{max-width:92vw;max-height:92vh;border-radius:16px}
+    .lightboxBtn{
+      position:absolute;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer;
+      width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;
+      font-size:24px;line-height:1
+    }
+    .lightboxCount{
+      position:absolute;top:20px;left:20px;background:rgba(0,0,0,.55);color:#fff;
+      padding:6px 10px;border-radius:999px;font-size:13px
+    }
+    .lightboxClose{top:20px;right:20px}
+    .lightboxNav{top:50%;transform:translateY(-50%)}
+    .lightboxPrev{left:20px}
+    .lightboxNext{right:20px}
+    @media(max-width:700px){
+      .lightboxBtn{width:38px;height:38px;font-size:20px}
+      .lightboxPrev{left:10px}
+      .lightboxNext{right:10px}
+      .lightboxClose{top:12px;right:12px}
+      .lightboxCount{top:12px;left:12px;font-size:12px}
+    }
+    body.embed{overflow-x:hidden}
+    body.embed .topbar,
+    body.embed .sidebar,
+    body.embed .sidebarOverlay{display:none !important}
+    body.embed .wrap{padding:0;max-width:none}
+
+    /* ===== Page polish v2 ===== */
+    body[data-page="homepickup"] .wrap{max-width:1280px}
+    body[data-page="homepickup"] .grid{
+      grid-template-columns:330px 1fr;
+      gap:16px;
+      align-items:start;
+    }
+    body[data-page="homepickup"] .grid > aside.card{
+      position:sticky;
+      top:92px;
+      border-radius:20px 20px 10px 20px;
+      background:linear-gradient(180deg,#fff 0%,#f7fbf9 100%);
+    }
+    body[data-page="homepickup"] .grid > main.card{
+      border-radius:24px 24px 12px 24px;
+    }
+    body[data-page="homepickup"] #ordersList{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top:0 !important;
+    }
+    body[data-page="homepickup"] #ordersList .orderItem{
+      border-radius:14px;
+      padding:11px 12px;
+      box-shadow:0 6px 12px rgba(15,23,42,.04);
+    }
+    body[data-page="homepickup"] #ordersList .orderItem.active{
+      border-radius:18px;
+      box-shadow:0 12px 20px rgba(79,138,123,.16);
+    }
+    body[data-page="homepickup"] .tableWrap{
+      margin-top:6px;
+      padding-top:2px;
+    }
+    body[data-page="homepickup"] .thumbs img{
+      border-radius:12px;
+      box-shadow:0 6px 10px rgba(15,23,42,.08);
+    }
+    @media(max-width:900px){
+      body[data-page="homepickup"] .grid{grid-template-columns:1fr}
+      body[data-page="homepickup"] .grid > aside.card{position:static}
+    }
+  </style>
+  <link rel="stylesheet" href="assets/dashboard-shell.css">
+  <script src="assets/dashboard-shell.js" defer></script>
+</head>
+<body data-page="homepickup">
+
+<div class="sidebarOverlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebarHeader">
+    <b>القائمة</b>
+    <button class="menuBtn" id="closeSidebarBtn" type="button" aria-label="إغلاق القائمة">✕</button>
+  </div>
+  <div id="sidebarContent"></div>
+</aside>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <b>مستلمو البيت</b>
+      <div class="muted">طلبات الاستلام من البيت</div>
+    </div>
+    <button class="menuBtn" id="openSidebarBtn" type="button" aria-label="فتح القائمة">☰</button>
+  </div>
+
+  <div class="row" style="margin-bottom:12px">
+    <input id="searchInput" class="searchBox" placeholder="بحث باسم الزبون...">
+    <span class="pill" id="searchCount" style="display:none"></span>
+  </div>
+  <div id="searchResults" class="searchResults" style="display:none"></div>
+
+  <div class="grid">
+    <aside class="card">
+      <div class="row" style="justify-content:space-between">
+        <b>الطلبيات</b>
+        <span class="pill" id="ordersCount">0</span>
+      </div>
+      <div id="ordersList" style="margin-top:10px"></div>
+      <div id="ordersEmpty" class="muted" style="margin-top:10px;display:none">
+        لا يوجد بيانات
+        <div style="margin-top:8px"><button class="btn" id="ordersRefreshBtn" type="button">تحديث</button></div>
+      </div>
+    </aside>
+
+    <main class="card">
+      <div id="empty" class="muted">
+        لا يوجد بيانات
+        <div style="margin-top:8px"><button class="btn" id="emptyRefreshBtn" type="button">تحديث</button></div>
+      </div>
+
+      <div id="main" style="display:none">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div>
+            <b id="orderTitle"></b>
+          </div>
+          <div class="row">
+            <span class="pill" id="purchaseCount">0</span>
+            <span class="pill" id="totalPrice">مجموع أسعار المستلم: 0</span>
+            <button class="btn" id="collectHomeBtn" style="display:none">تم استلام تحصيل المستلمين</button>
+          </div>
+        </div>
+
+        <hr>
+
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>الزبون</th>
+                <th>السعر</th>
+                <th id="paidPriceHeader" style="display:none">المدفوع</th>
+                <th id="paidEditHeader" class="editCol" style="display:none"></th>
+                <th>صور</th>
+                <th>تم الاستلام</th>
+                <th>وقت الاستلام</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div id="lightbox">
+  <button type="button" class="lightboxBtn lightboxClose" id="lightboxClose" aria-label="إغلاق">✕</button>
+  <div class="lightboxCount" id="lightboxCount" aria-live="polite"></div>
+  <button type="button" class="lightboxBtn lightboxNav lightboxPrev" id="lightboxPrev" aria-label="السابق">‹</button>
+  <img alt="صورة كبيرة">
+  <button type="button" class="lightboxBtn lightboxNav lightboxNext" id="lightboxNext" aria-label="التالي">›</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://maucjvxhrnkdeybltjco.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_0N65DXPMsk_3WVcLQ9wavQ_p9HgB_Bo";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const BUCKET="purchase-images";
+
+const HOME_PICKUP_VALUE = "من البيت";
+const NTFY_TOPIC = "she-store-rahaf-2001-2014";
+const EMAIL_RAHAF = "rahaf@she-store.com";
+const EMAIL_REEM  = "reem@she-store.com";
+const EMAIL_RAWAND= "rawand@she-store.com";
+const EMAIL_LAAURA= "laaura@she-store.com";
+const isEmbed = new URLSearchParams(location.search).get("embed") === "1";
+if(isEmbed) document.body.classList.add("embed");
+const isIOSChrome = /CriOS/i.test(navigator.userAgent);
+if(isIOSChrome) document.body.classList.add("ios-chrome");
+
+async function requireAuth(){
+  const { data } = await sb.auth.getSession();
+  if(!data.session){
+    window.location.href="./login.html?next=homepickup.html";
+    return false;
+  }
+  return true;
+}
+
+let myEmail = "";
+async function guardHomePickupAccess(){
+  const ok = await requireAuth();
+  if(!ok) return;
+
+  const { data: u } = await sb.auth.getUser();
+  const email = (u?.user?.email || "").toLowerCase();
+  myEmail = email;
+
+  if(email !== EMAIL_RAHAF && email !== EMAIL_REEM && email !== EMAIL_RAWAND){
+    window.location.replace("./login.html");
+  }
+  if(paidPriceHeader) paidPriceHeader.style.display = email === EMAIL_RAHAF ? "" : "none";
+  if(paidEditHeader) paidEditHeader.style.display = email === EMAIL_RAHAF ? "" : "none";
+}
+/* ===== Sidebar ===== */
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("sidebarOverlay");
+const openBtn = document.getElementById("openSidebarBtn");
+const closeBtn = document.getElementById("closeSidebarBtn");
+const sidebarContent = document.getElementById("sidebarContent");
+
+function openSidebar(){
+  sidebar.classList.add("open");
+  overlay.classList.add("open");
+}
+function closeSidebar(){
+  sidebar.classList.remove("open");
+  overlay.classList.remove("open");
+}
+openBtn.onclick = openSidebar;
+closeBtn.onclick = closeSidebar;
+overlay.onclick = closeSidebar;
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeSidebar(); });
+
+function renderSidebar(){
+  sidebarContent.innerHTML = "";
+
+  const link = (text, href)=>{
+    const a = document.createElement("a");
+    a.href = href;
+    a.textContent = text;
+    a.onclick = ()=> closeSidebar();
+    sidebarContent.appendChild(a);
+  };
+  const btn = (text, cls, onClick)=>{
+    const b = document.createElement("button");
+    b.type="button";
+    b.className = cls || "";
+    b.textContent = text;
+    b.onclick = async ()=>{
+      await onClick();
+      closeSidebar();
+    };
+    sidebarContent.appendChild(b);
+  };
+
+  if(myEmail === EMAIL_RAHAF){
+    link("الطلبيات", "./index.html");
+    link("الاستلام والتحصيل", "./pickup-dashboard.html");
+    link("الأرشيف", "./archive.html");
+    link("المالية", "./finance.html");
+  }
+
+  if(myEmail === EMAIL_REEM || myEmail === EMAIL_RAWAND){
+    link("الطلبيات", "./index.html");
+    link("الاستلام والتحصيل", "./pickup-dashboard.html");
+  }
+
+  btn("تسجيل خروج", "danger", async ()=>{
+    await sb.auth.signOut();
+    window.location.href="./login.html";
+  });
+}
+
+const ordersListEl = document.getElementById("ordersList");
+const ordersEmptyEl = document.getElementById("ordersEmpty");
+const ordersCountEl = document.getElementById("ordersCount");
+const ordersRefreshBtn = document.getElementById("ordersRefreshBtn");
+const emptyEl = document.getElementById("empty");
+const emptyRefreshBtn = document.getElementById("emptyRefreshBtn");
+const mainEl = document.getElementById("main");
+const orderTitleEl = document.getElementById("orderTitle");
+const purchaseCountEl = document.getElementById("purchaseCount");
+const totalPriceEl = document.getElementById("totalPrice");
+const paidPriceHeader = document.getElementById("paidPriceHeader");
+const paidEditHeader = document.getElementById("paidEditHeader");
+const tbody = document.getElementById("tbody");
+const lb = document.getElementById("lightbox");
+const lbImg = lb ? lb.querySelector("img") : null;
+const lbClose = document.getElementById("lightboxClose");
+const lbPrev = document.getElementById("lightboxPrev");
+const lbNext = document.getElementById("lightboxNext");
+const lbCount = document.getElementById("lightboxCount");
+let lightboxImages = [];
+let lightboxIndex = 0;
+let lightboxLabel = "";
+let touchStartX = 0;
+let touchStartY = 0;
+
+function updateLightboxNav(){
+  const hasMultiple = lightboxImages.length > 1;
+  if(lbPrev) lbPrev.style.display = hasMultiple ? "flex" : "none";
+  if(lbNext) lbNext.style.display = hasMultiple ? "flex" : "none";
+  if(lbCount){
+    const total = lightboxImages.length;
+    const countText = total ? `${lightboxIndex + 1}/${total}` : "";
+    const labelText = lightboxLabel ? ` — ${lightboxLabel}` : "";
+    const text = countText ? `${countText}${labelText}` : (lightboxLabel || "");
+    lbCount.textContent = text;
+    lbCount.style.display = (total > 1 || lightboxLabel) ? "inline-flex" : "none";
+  }
+}
+function setLightboxIndex(nextIndex){
+  if(!lightboxImages.length) return;
+  const total = lightboxImages.length;
+  lightboxIndex = (nextIndex + total) % total;
+  if(lbImg) lbImg.src = lightboxImages[lightboxIndex];
+  updateLightboxNav();
+}
+function openLightbox(images, index, label){
+  if(!lb || !lbImg) return;
+  lightboxImages = images && images.length ? images : [];
+  lightboxIndex = Math.max(0, Math.min(index || 0, lightboxImages.length - 1));
+  lightboxLabel = (label || "").trim();
+  lbImg.src = lightboxImages[lightboxIndex] || "";
+  updateLightboxNav();
+  lb.style.display = "flex";
+}
+function closeLightbox(){
+  if(!lb || !lbImg) return;
+  lb.style.display = "none";
+  lbImg.src = "";
+  lightboxImages = [];
+  lightboxIndex = 0;
+  lightboxLabel = "";
+}
+function isLightboxOpen(){
+  return lb && lb.style.display === "flex";
+}
+function getGalleryImages(img){
+  const container = img.closest(".thumbs");
+  let label = (img.dataset && img.dataset.customer) ? img.dataset.customer : "";
+  if(!label && container && container.dataset && container.dataset.customer){
+    label = container.dataset.customer || "";
+  }
+  label = (label || "").trim();
+  if(!container) return { images:[img.src], index:0, label };
+  const imgs = Array.from(container.querySelectorAll("img"));
+  const images = imgs.map((item)=>item.src);
+  const index = Math.max(0, imgs.indexOf(img));
+  return { images, index, label };
+}
+if(lb){
+  lb.addEventListener("click", (e)=>{
+    if(e.target === lb) closeLightbox();
+  });
+  lb.addEventListener("touchstart", (e)=>{
+    if(!e.touches || !e.touches.length) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive:true });
+  lb.addEventListener("touchend", (e)=>{
+    if(!isLightboxOpen() || lightboxImages.length < 2) return;
+    const touch = e.changedTouches && e.changedTouches[0];
+    if(!touch) return;
+    const dx = touch.clientX - touchStartX;
+    const dy = touch.clientY - touchStartY;
+    if(Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)){
+      if(dx < 0) setLightboxIndex(lightboxIndex + 1);
+      else setLightboxIndex(lightboxIndex - 1);
+    }
+  });
+}
+if(lbClose) lbClose.addEventListener("click", (e)=>{ e.stopPropagation(); closeLightbox(); });
+if(lbPrev) lbPrev.addEventListener("click", (e)=>{ e.stopPropagation(); setLightboxIndex(lightboxIndex - 1); });
+if(lbNext) lbNext.addEventListener("click", (e)=>{ e.stopPropagation(); setLightboxIndex(lightboxIndex + 1); });
+document.addEventListener("keydown", (e)=>{
+  if(e.key === "Escape") closeLightbox();
+  if(!isLightboxOpen()) return;
+  if(e.key === "ArrowLeft") setLightboxIndex(lightboxIndex - 1);
+  if(e.key === "ArrowRight") setLightboxIndex(lightboxIndex + 1);
+});
+const collectHomeBtn = document.getElementById("collectHomeBtn");
+const searchInput = document.getElementById("searchInput");
+const searchResultsEl = document.getElementById("searchResults");
+const searchCountEl = document.getElementById("searchCount");
+
+let orders = [];
+let activeOrder = null;
+let purchases = [];
+let highlightPurchaseId = null;
+
+function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function escapeAttr(s=""){ return escapeHtml(s); }
+
+function showMain(on){
+  mainEl.style.display = on ? "" : "none";
+  emptyEl.style.display = on ? "none" : "";
+}
+
+function formatDateTime(iso){
+  if(!iso) return "—";
+  const d = new Date(iso);
+  const date = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+  const time = `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  return `${date} ${time}`;
+}
+
+function parsePrice(v){
+  if(v === null || v === undefined) return 0;
+  if(typeof v === "number") return isFinite(v) ? v : 0;
+  const s = String(v).replace(/[, ]/g, "").replace(/[₪]/g, "");
+  const m = s.match(/-?\d+(?:\.\d+)?/);
+  return m ? Number(m[0]) : 0;
+}
+
+function formatILS(n){
+  const x = Number(n || 0);
+  if(!isFinite(x)) return "0";
+  const fixed = x.toFixed(2);
+  return fixed.endsWith(".00") ? String(Math.round(x)) : fixed;
+}
+
+async function sendNtfy(message){
+  try{
+    await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+      method: "POST",
+      body: message
+    });
+  } catch (err){
+    console.error("NTFY ERROR:", err);
+  }
+}
+
+function buildPickupMessage({ picked, customerName, price, pickupLabel }){
+  const priceText = formatILS(price);
+  const nameText = customerName || "";
+  const pickupText = pickupLabel || "";
+  const status = picked ? "✅" : "❌";
+  return [
+    `تم استلام الطلب ${status}`,
+    `الزبون: ${nameText}`,
+    `نقطة الاستلام: ${pickupText}`,
+    `السعر: ${priceText}`
+  ].join("\n");
+}
+
+function renderPurchases(){
+  if(!activeOrder){
+    showMain(false);
+    return;
+  }
+
+  const visible = purchases.filter(p=>!p.collected);
+  purchaseCountEl.textContent = `عدد المشتريات: ${visible.length}`;
+  const pickedTotal = visible
+    .filter(p=>p.picked_up)
+    .reduce((sum,p)=> sum + parsePrice(p.paid_price ?? p.price), 0);
+  totalPriceEl.textContent = `مجموع أسعار المستلم: ${formatILS(pickedTotal)} ₪`;
+
+  tbody.innerHTML = "";
+  visible.forEach(p=>{
+    const imgs = (p.purchase_images || []).map(img=>{
+      const url = sb.storage.from(BUCKET).getPublicUrl(img.storage_path).data.publicUrl;
+      return `<img src="${escapeAttr(url)}" alt="صورة" data-customer="${escapeAttr(p.customer_name || "")}">`;
+    }).join("");
+
+    const highlight = (highlightPurchaseId && highlightPurchaseId === p.id)
+      ? `<div class="highlight" style="margin-bottom:6px">✅ هذا هو البحث</div>`
+      : "";
+
+    const paidCell = myEmail === EMAIL_RAHAF
+      ? `
+        <td data-paid-value-cell="${p.id}">${escapeHtml(p.paid_price ?? "—")}</td>
+        <td class="editCol" data-paid-edit-cell="${p.id}">
+          <button class="btn" data-edit-paid="${p.id}" title="تعديل المدفوع" aria-label="تعديل المدفوع">✏️</button>
+        </td>
+      `
+      : ``;
+
+    const pickupBadge = (typeof statusBadge === "function")
+      ? statusBadge(p.picked_up ? "تم الاستلام" : "غير مستلم", p.picked_up ? "success" : "neutral")
+      : (p.picked_up ? "تم الاستلام" : "غير مستلم");
+    const pickupInputId = `homePickupChk-${p.id}`;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${highlight}${escapeHtml(p.customer_name || "")}</td>
+      <td>${escapeHtml(p.paid_price ?? p.price ?? "")}</td>
+      ${paidCell}
+      <td class="thumbs">${imgs || "—"}</td>
+      <td>
+        <div class="row" style="gap:6px;align-items:center">
+          <label class="container">
+            <input class="chk" type="checkbox" id="${pickupInputId}" data-pick="${p.id}" ${p.picked_up ? "checked" : ""}>
+            <div class="checkmark"></div>
+          </label>
+          <label for="${pickupInputId}" style="cursor:pointer">${pickupBadge}</label>
+        </div>
+      </td>
+      <td data-picked-at="${p.id}">${formatDateTime(p.picked_up_at)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll("input[data-pick]").forEach(chk=>{
+    chk.onchange = async ()=>{
+      const id = chk.dataset.pick;
+      const checked = chk.checked;
+      const entry = purchases.find(p=>String(p.id) === String(id));
+      const payload = checked
+        ? { picked_up: true, picked_up_at: new Date().toISOString() }
+        : { picked_up: false, picked_up_at: null };
+
+      const { error: upErr } = await sb.from("purchases").update(payload).eq("id", id);
+      if(upErr){
+        console.error(upErr);
+        chk.checked = !checked;
+        return;
+      }
+
+      if(entry){
+        entry.picked_up = payload.picked_up;
+        entry.picked_up_at = payload.picked_up_at;
+      }
+
+      const cell = tbody.querySelector(`[data-picked-at="${id}"]`);
+      if(cell) cell.textContent = formatDateTime(payload.picked_up_at);
+
+      if(entry){
+        await sendNtfy(buildPickupMessage({
+          picked: payload.picked_up,
+          customerName: entry.customer_name,
+          price: entry.price,
+          pickupLabel: HOME_PICKUP_VALUE
+        }));
+      }
+
+      renderPurchases();
+
+      renderPurchases();
+    };
+  });
+
+  tbody.querySelectorAll("[data-edit-paid]").forEach(btn=>{
+    btn.onclick = async (e)=>{
+      e.stopPropagation();
+      const id = btn.dataset.editPaid;
+      const entry = purchases.find(p=>String(p.id) === String(id));
+      if(!entry || myEmail !== EMAIL_RAHAF) return;
+
+      const valueCell = tbody.querySelector(`[data-paid-value-cell="${id}"]`);
+      const editCell = tbody.querySelector(`[data-paid-edit-cell="${id}"]`);
+      if(!valueCell || !editCell) return;
+      const currentVal = entry.paid_price ?? "";
+      valueCell.innerHTML = `
+        <input type="number" step="0.01" min="0" data-paid-input="${id}" value="${escapeAttr(currentVal)}" style="width:90px">
+      `;
+      editCell.innerHTML = `
+        <button class="btn" data-paid-save="${id}">✅</button>
+        <button class="btn" data-paid-cancel="${id}">✖</button>
+      `;
+
+      const input = valueCell.querySelector(`[data-paid-input="${id}"]`);
+      const saveBtn = editCell.querySelector(`[data-paid-save="${id}"]`);
+      const cancelBtn = editCell.querySelector(`[data-paid-cancel="${id}"]`);
+
+      const cancel = ()=>{ renderPurchases(); };
+      cancelBtn.onclick = cancel;
+
+      const save = async ()=>{
+        const raw = input.value.trim();
+        const nextVal = raw === "" ? null : Number(raw);
+        if(raw !== "" && (!Number.isFinite(nextVal) || nextVal < 0)){
+          alert("السعر المدفوع غير صحيح.");
+          return;
+        }
+        const { error } = await sb.from("purchases").update({ paid_price: nextVal }).eq("id", id);
+        if(error){
+          console.error(error);
+          alert("فشل حفظ المدفوع");
+          return;
+        }
+        entry.paid_price = nextVal;
+        renderPurchases();
+      };
+
+      saveBtn.onclick = save;
+      input.onkeydown = (ev)=>{
+        if(ev.key === "Enter") save();
+        if(ev.key === "Escape") cancel();
+      };
+      input.focus();
+      input.select();
+    };
+  });
+
+  tbody.querySelectorAll(".thumbs img").forEach(img=>{
+    img.onclick = () => {
+      const { images, index, label } = getGalleryImages(img);
+      openLightbox(images, index, label);
+    };
+  });
+
+  showMain(true);
+}
+
+async function loadOrders(){
+  const { data: pRows, error: pErr } = await sb
+    .from("purchases")
+    .select("order_id, pickup_point, collected")
+    .eq("pickup_point", HOME_PICKUP_VALUE)
+    .eq("collected", false);
+
+  if(pErr){ console.error(pErr); return; }
+
+  const orderIds = [...new Set((pRows || []).map(p=>p.order_id))];
+  if(!orderIds.length){
+    orders = [];
+    ordersCountEl.textContent = "0";
+    ordersListEl.innerHTML = "";
+    ordersEmptyEl.style.display = "";
+    activeOrder = null;
+    showMain(false);
+    return;
+  }
+
+  const { data, error } = await sb
+    .from("orders")
+    .select("*")
+    .in("id", orderIds)
+    .eq("arrived", true)
+    .order("created_at",{ascending:false});
+
+  if(error){ console.error(error); return; }
+
+  orders = data || [];
+  ordersCountEl.textContent = orders.length;
+  ordersListEl.innerHTML = "";
+  ordersEmptyEl.style.display = orders.length ? "none" : "";
+
+  orders.forEach(o=>{
+    const div = document.createElement("div");
+    div.className = "orderItem" + (activeOrder?.id === o.id ? " active" : "");
+    div.innerHTML = `<span>${escapeHtml(o.order_name || "")}</span><span class="pill">فتح</span>`;
+    div.onclick = () => selectOrder(o);
+    ordersListEl.appendChild(div);
+  });
+
+  if(activeOrder && !orders.find(o=>o.id === activeOrder.id)){
+    activeOrder = null;
+    showMain(false);
+  }
+}
+
+if(ordersRefreshBtn) ordersRefreshBtn.onclick = loadOrders;
+if(emptyRefreshBtn) emptyRefreshBtn.onclick = loadOrders;
+
+async function selectOrder(order){
+  activeOrder = order;
+  orderTitleEl.textContent = order.order_name || "";
+
+  await loadOrders();
+
+  const { data, error } = await sb
+    .from("purchases")
+    .select("id, customer_name, price, paid_price, picked_up, picked_up_at, pickup_point, purchase_images(storage_path), collected")
+    .eq("order_id", order.id)
+    .eq("pickup_point", HOME_PICKUP_VALUE)
+    .eq("collected", false)
+    .order("created_at", { ascending: true });
+
+  if(error){ console.error(error); return; }
+
+  purchases = data || [];
+  if(collectHomeBtn){
+    collectHomeBtn.style.display = myEmail === EMAIL_RAHAF ? "" : "none";
+  }
+  renderPurchases();
+}
+
+// lightbox close handled by overlay/close button
+
+if(collectHomeBtn){
+  collectHomeBtn.onclick = async ()=>{
+    if(!activeOrder || myEmail !== EMAIL_RAHAF) return;
+
+    const pendingList = purchases.filter(p=>!p.collected && p.picked_up);
+    if(!pendingList.length) return;
+    const pendingTotal = pendingList.reduce((sum,p)=> sum + parsePrice(p.paid_price ?? p.price), 0);
+    const pendingText = formatILS(pendingTotal);
+    const ok = await (typeof confirmModal === "function"
+      ? confirmModal({
+          title:"تحصيل المبالغ",
+          message:`تأكيد تحصيل ${pendingList.length} مشتريات بمبلغ ${pendingText} ₪؟`
+        })
+      : Promise.resolve(confirm(`تأكيد تحصيل ${pendingList.length} مشتريات بمبلغ ${pendingText} ₪؟`)));
+    if(!ok) return;
+
+    collectHomeBtn.disabled = true;
+    const { error } = await sb
+      .from("purchases")
+      .update({ collected: true, collected_at: new Date().toISOString() })
+      .eq("order_id", activeOrder.id)
+      .eq("pickup_point", HOME_PICKUP_VALUE)
+      .eq("picked_up", true);
+
+    if(error){
+      console.error(error);
+      collectHomeBtn.disabled = false;
+      return;
+    }
+
+    await sendNtfy([
+      "تم استلام تحصيل النقود ✅",
+      "المكان: من البيت",
+      `المبلغ: ${pendingText}`
+    ].join("\n"));
+
+    const { data, error: reloadErr } = await sb
+      .from("purchases")
+      .select("id, customer_name, price, paid_price, picked_up, picked_up_at, pickup_point, purchase_images(storage_path), collected")
+      .eq("order_id", activeOrder.id)
+      .eq("pickup_point", HOME_PICKUP_VALUE)
+      .eq("collected", false)
+      .order("created_at", { ascending: true });
+    if(reloadErr){
+      console.error(reloadErr);
+    } else {
+      purchases = data || [];
+      renderPurchases();
+    }
+
+    await loadOrders();
+    collectHomeBtn.disabled = false;
+  };
+}
+
+let searchTimer = null;
+searchInput.addEventListener("input", ()=>{
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(runSearch, 250);
+});
+
+function clearSearchUI(){
+  searchResultsEl.style.display = "none";
+  searchCountEl.style.display = "none";
+  searchResultsEl.innerHTML = "";
+}
+
+async function runSearch(){
+  const q = (searchInput.value || "").trim();
+  if(q.length < 2){ clearSearchUI(); return; }
+
+  const orderIds = orders.map(o=>o.id);
+  if(!orderIds.length){ clearSearchUI(); return; }
+
+  const { data, error } = await sb
+    .from("purchases")
+    .select("id, order_id, customer_name, price, pickup_point, created_at")
+    .in("order_id", orderIds)
+    .eq("pickup_point", HOME_PICKUP_VALUE)
+    .eq("collected", false)
+    .ilike("customer_name", `%${q}%`)
+    .order("created_at",{ascending:false})
+    .limit(50);
+
+  if(error){ console.error(error); return; }
+
+  const results = data || [];
+  searchCountEl.textContent = `${results.length} نتيجة`;
+  searchCountEl.style.display = "";
+  searchResultsEl.style.display = "";
+  searchResultsEl.innerHTML = "";
+
+  results.forEach(r=>{
+    const ord = orders.find(o=>o.id === r.order_id);
+    const btn = document.createElement("button");
+    btn.innerHTML = `
+      <b>${escapeHtml(r.customer_name || "")}</b>
+      <div class="muted">${escapeHtml(ord?.order_name || "طلبية")} — السعر: ${escapeHtml(r.price ?? "")}</div>
+    `;
+    btn.onclick = async ()=>{
+      searchResultsEl.style.display="none";
+      highlightPurchaseId = r.id;
+
+      if(ord) await selectOrder(ord);
+
+      setTimeout(()=>{ highlightPurchaseId = null; renderPurchases(); }, 2500);
+    };
+    searchResultsEl.appendChild(btn);
+  });
+}
+
+(async function init(){
+  await guardHomePickupAccess();
+  renderSidebar();
+  await loadOrders();
+  if(orders.length) selectOrder(orders[0]);
+})();
+</script>
+</body>
+</html>
+
