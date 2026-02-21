@@ -3635,6 +3635,29 @@
   background: rgba(255, 255, 255, 0.96);
 }
 
+.orders-drawer-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.orders-menu-create-btn {
+  border: 1px solid rgba(71, 20, 63, 0.24);
+  background: rgba(109, 63, 107, 0.12);
+  color: #47143F;
+  border-radius: 10px;
+  min-height: 36px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.orders-menu-create-btn:hover {
+  background: rgba(109, 63, 107, 0.2);
+}
+
 .orders-drawer-list {
   flex: 1;
   overflow: auto;
@@ -3677,6 +3700,10 @@
   gap: 10px;
   padding: 0 14px 10px;
   border-bottom: 1px solid rgba(229, 231, 235, 0.9);
+}
+
+.orders-sheet-head .orders-menu-create-btn {
+  min-height: 34px;
 }
 
 .orders-sheet-list {

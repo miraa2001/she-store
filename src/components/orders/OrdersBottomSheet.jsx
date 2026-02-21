@@ -14,6 +14,7 @@ export default function OrdersBottomSheet({
   onSelectOrder,
   isRahaf,
   onForceOrdersTab,
+  onCreateOrder,
   onRenameOrder,
   onDeleteOrder
 }) {
@@ -60,9 +61,24 @@ export default function OrdersBottomSheet({
 
         <div className="orders-sheet-head">
           <strong>اختيار الطلب</strong>
-          <button type="button" className="icon-btn tiny" onClick={onClose} aria-label="إغلاق قائمة الطلبات">
-            ✕
-          </button>
+          <div className="orders-drawer-actions">
+            {isRahaf ? (
+              <button
+                type="button"
+                className="orders-menu-create-btn"
+                onClick={() => {
+                  setOpenActionsOrderId("");
+                  onCreateOrder?.();
+                  onClose?.();
+                }}
+              >
+                + طلب جديد
+              </button>
+            ) : null}
+            <button type="button" className="icon-btn tiny" onClick={onClose} aria-label="إغلاق قائمة الطلبات">
+              ✕
+            </button>
+          </div>
         </div>
 
         <div className="orders-sheet-list">

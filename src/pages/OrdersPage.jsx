@@ -4,6 +4,7 @@ import "./orders-page.css";
 import {
   ORDER_STATUS,
   ORDER_STATUS_LABELS,
+  createOrder,
   deriveOrderStatus,
   deleteOrderById,
   fetchOrdersWithSummary,
@@ -1142,6 +1143,15 @@ export default function OrdersPage() {
     });
   };
 
+  const openCreateOrderDialog = () => {
+    if (!isRahaf) return;
+    setOrderDialog({
+      kind: "create",
+      orderId: "",
+      name: ""
+    });
+  };
+
   const openDeleteOrderDialog = (order) => {
     if (!isRahaf || !order) return;
     setOrderDialog({
@@ -1290,6 +1300,31 @@ export default function OrdersPage() {
     } catch (error) {
       console.error(error);
       setToast({ type: "danger", text: error?.message || "تعذر فتح واتساب." });
+    }
+  };
+
+  const submitCreateOrder = async () => {
+    if (!orderDialog || orderDialog.kind !== "create" || orderDialogBusy) return;
+    const nextName = String(orderDialog.name || "").trim();
+    if (!nextName) {
+      setToast({ type: "warn", text: "اسم الطلب مطلوب." });
+      return;
+    }
+
+    setOrderDialogBusy(true);
+    try {
+      const created = await createOrder(nextName);
+      const createdId = created?.id ? String(created.id) : "";
+      setToast({ type: "success", text: "تم إنشاء طلب جديد." });
+      await refreshOrders(createdId);
+      if (createdId) setSelectedOrderId(createdId);
+      setActiveTab("orders");
+      setOrderDialog(null);
+    } catch (error) {
+      console.error(error);
+      setToast({ type: "danger", text: error?.message || "فشل إنشاء الطلب." });
+    } finally {
+      setOrderDialogBusy(false);
     }
   };
 
@@ -1614,6 +1649,7 @@ export default function OrdersPage() {
           onSelectOrder={setSelectedOrderId}
           isRahaf={isRahaf}
           onForceOrdersTab={() => setActiveTab("orders")}
+          onCreateOrder={openCreateOrderDialog}
           onRenameOrder={openRenameOrderDialog}
           onDeleteOrder={openDeleteOrderDialog}
           totalOrders={totalOrders}
@@ -1633,6 +1669,7 @@ export default function OrdersPage() {
           onSelectOrder={setSelectedOrderId}
           isRahaf={isRahaf}
           onForceOrdersTab={() => setActiveTab("orders")}
+          onCreateOrder={openCreateOrderDialog}
           onRenameOrder={openRenameOrderDialog}
           onDeleteOrder={openDeleteOrderDialog}
         />
@@ -1819,7 +1856,13 @@ export default function OrdersPage() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="purchase-modal-head">
-              <h3>{orderDialog.kind === "rename" ? "تعديل اسم الطلب" : "حذف الطلب"}</h3>
+              <h3>
+                {orderDialog.kind === "create"
+                  ? "إضافة طلب جديد"
+                  : orderDialog.kind === "rename"
+                    ? "تعديل اسم الطلب"
+                    : "حذف الطلب"}
+              </h3>
               <button
                 type="button"
                 className="icon-btn tiny"
@@ -1831,7 +1874,7 @@ export default function OrdersPage() {
             </div>
 
             <div className="purchase-modal-body delete-confirm-body">
-              {orderDialog.kind === "rename" ? (
+              {orderDialog.kind === "rename" || orderDialog.kind === "create" ? (
                 <>
                   <label>
                     <span>اسم الطلب</span>
@@ -1849,10 +1892,16 @@ export default function OrdersPage() {
                     <button
                       type="button"
                       className="btn-primary"
-                      onClick={submitRenameOrder}
+                      onClick={orderDialog.kind === "create" ? submitCreateOrder : submitRenameOrder}
                       disabled={orderDialogBusy}
                     >
-                      {orderDialogBusy ? "جاري الحفظ..." : "حفظ"}
+                      {orderDialogBusy
+                        ? orderDialog.kind === "create"
+                          ? "جاري الإنشاء..."
+                          : "جاري الحفظ..."
+                        : orderDialog.kind === "create"
+                          ? "إنشاء"
+                          : "حفظ"}
                     </button>
                     <button
                       type="button"

@@ -207,6 +207,24 @@ export async function updateOrderWorkflowStatus(orderId, nextStatus) {
   };
 }
 
+export async function createOrder(orderName) {
+  const name = String(orderName || "").trim();
+  if (!name) throw new Error("اسم الطلب مطلوب.");
+
+  const { data, error } = await sb
+    .from("orders")
+    .insert({ order_name: name })
+    .select("id, order_name")
+    .single();
+
+  if (error) throw error;
+
+  return {
+    id: data?.id,
+    name: String(data?.order_name || name).trim() || name
+  };
+}
+
 export async function updateOrderName(orderId, orderName) {
   const name = String(orderName || "").trim();
   if (!name) throw new Error("اسم الطلب مطلوب.");

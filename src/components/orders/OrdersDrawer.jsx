@@ -15,6 +15,7 @@ export default function OrdersDrawer({
   onSelectOrder,
   isRahaf,
   onForceOrdersTab,
+  onCreateOrder,
   onRenameOrder,
   onDeleteOrder,
   totalOrders,
@@ -68,9 +69,24 @@ export default function OrdersDrawer({
               <p>{totalOrders} طلب</p>
             </div>
           </div>
-          <button type="button" className="icon-btn tiny" onClick={onClose} aria-label="إغلاق قائمة الطلبات">
-            <Icon name="close" className="icon" />
-          </button>
+          <div className="orders-drawer-actions">
+            {isRahaf ? (
+              <button
+                type="button"
+                className="orders-menu-create-btn"
+                onClick={() => {
+                  setOpenActionsOrderId("");
+                  onCreateOrder?.();
+                  onClose?.();
+                }}
+              >
+                + طلب جديد
+              </button>
+            ) : null}
+            <button type="button" className="icon-btn tiny" onClick={onClose} aria-label="إغلاق قائمة الطلبات">
+              <Icon name="close" className="icon" />
+            </button>
+          </div>
         </div>
 
         <div className="orders-drawer-list">
