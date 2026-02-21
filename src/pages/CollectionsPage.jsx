@@ -12,6 +12,9 @@ import { sb } from "../lib/supabaseClient";
 import SessionLoader from "../components/common/SessionLoader";
 import AppNavIcon from "../components/common/AppNavIcon";
 import SheStoreLogo from "../components/common/SheStoreLogo";
+import customerHeaderIcon from "../assets/icons/pickup/customer.png";
+import priceHeaderIcon from "../assets/icons/pickup/price-ils.png";
+import pickedHeaderIcon from "../assets/icons/pickup/picked-up.png";
 import "./pickup-common.css";
 import "./collections-page.css";
 
@@ -68,16 +71,38 @@ export default function CollectionsPage({ embedded = false }) {
   );
 
   const homeTotal = useMemo(
-    () => homeList.reduce((sum, item) => sum + parsePrice(item.paid_price ?? item.price), 0),
+    () => homeList.reduce((sum, item) => sum + parsePrice(item.paid_price), 0),
     [homeList]
   );
 
   const pickupTotal = useMemo(
-    () => pickupList.reduce((sum, item) => sum + parsePrice(item.paid_price ?? item.price), 0),
+    () => pickupList.reduce((sum, item) => sum + parsePrice(item.paid_price), 0),
     [pickupList]
   );
 
   const grandTotal = homeTotal + pickupTotal;
+  const homePicked = useMemo(() => homeList.filter((purchase) => !!purchase.picked_up), [homeList]);
+  const pickupPicked = useMemo(() => pickupList.filter((purchase) => !!purchase.picked_up), [pickupList]);
+
+  const summarizeMethod = useCallback((list) => {
+    const pickedCollected = list.filter((purchase) => !!purchase.picked_up && !!purchase.collected);
+    const pickedNotCollected = list.filter((purchase) => !!purchase.picked_up && !purchase.collected);
+    const notPickedNotCollected = list.filter((purchase) => !purchase.picked_up && !purchase.collected);
+    const sumAmount = (rows) =>
+      rows.reduce((sum, purchase) => sum + parsePrice(purchase.paid_price ?? purchase.price), 0);
+
+    return {
+      pickedCollectedCount: pickedCollected.length,
+      pickedCollectedSum: sumAmount(pickedCollected),
+      pickedNotCollectedCount: pickedNotCollected.length,
+      pickedNotCollectedSum: sumAmount(pickedNotCollected),
+      notPickedNotCollectedCount: notPickedNotCollected.length,
+      notPickedNotCollectedSum: sumAmount(notPickedNotCollected)
+    };
+  }, []);
+
+  const homeSummary = useMemo(() => summarizeMethod(homeList), [homeList, summarizeMethod]);
+  const pickupSummary = useMemo(() => summarizeMethod(pickupList), [pickupList, summarizeMethod]);
 
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -127,7 +152,7 @@ export default function CollectionsPage({ embedded = false }) {
           const allCollected = (order.purchases || []).every((purchase) => !!purchase.collected);
           const collectedTotal = (order.purchases || []).reduce((sum, purchase) => {
             if (!purchase.collected) return sum;
-            return sum + parsePrice(purchase.paid_price ?? purchase.price);
+            return sum + parsePrice(purchase.paid_price);
           }, 0);
           return {
             id: order.id,
@@ -165,7 +190,7 @@ export default function CollectionsPage({ embedded = false }) {
     try {
       const { data, error: purchasesError } = await sb
         .from("purchases")
-        .select("id, customer_name, price, paid_price, pickup_point, collected")
+        .select("id, customer_name, price, paid_price, pickup_point, collected, picked_up")
         .eq("order_id", orderId)
         .order("created_at", { ascending: true });
 
@@ -283,7 +308,7 @@ export default function CollectionsPage({ embedded = false }) {
               <SheStoreLogo className="topbar-logo-link" imageClassName="topbar-logo-img" />
               <div className="collections-brand">
                 <b>تحصيل المبالغ</b>
-                <div className="collections-muted">الطلبات المحصلة</div>
+                <div className="collections-muted">طلبات البيت ونقطة الاستلام</div>
               </div>
             </div>
             <button type="button" className="collections-menu-btn" onClick={() => setSidebarOpen(true)}>
@@ -327,7 +352,7 @@ export default function CollectionsPage({ embedded = false }) {
                       {selectedOrder.allCollected ? "تم التحصيل" : "قيد التحصيل"}
                     </span>
                   </div>
-                  <div className="collections-row">
+                  <div className="collections-row collections-top-pills-row">
                     <span className="collections-pill">عدد المشتريات: {homeList.length + pickupList.length}</span>
                     <span className="collections-pill">مجموع البيت: {formatILS(homeTotal)} ₪</span>
                     <span className="collections-pill">مجموع نقطة الاستلام: {formatILS(pickupTotal)} ₪</span>
@@ -343,61 +368,143 @@ export default function CollectionsPage({ embedded = false }) {
 
                 {!loadingDetails ? (
                   <>
-                    <div className="collections-section-title">مستلمو البيت</div>
-                    <div className="collections-table-wrap">
-                      <table className="collections-table">
-                        <thead>
-                          <tr>
-                            <th>الزبون</th>
-                            <th>السعر</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {homeList.length ? (
-                            homeList.map((purchase) => (
-                              <tr key={purchase.id}>
-                                <td>{purchase.customer_name || ""}</td>
-                                <td>{formatILS(purchase.paid_price ?? purchase.price)}</td>
-                              </tr>
-                            ))
-                          ) : (
+                    <section className="collections-method-section">
+                      <div className="collections-section-title collections-section-title--with-icon">
+                        <AppNavIcon name="home" className="icon" />
+                        <span>استلام البيت</span>
+                      </div>
+                      <div className="collections-method-summary">
+                        <div className="collections-method-summary-row">
+                          <span className="collections-pill">محصّل ومستلم: {homeSummary.pickedCollectedCount}</span>
+                          <span className="collections-pill">المجموع: {formatILS(homeSummary.pickedCollectedSum)} ₪</span>
+                        </div>
+                        <div className="collections-method-summary-row">
+                          <span className="collections-pill">مستلم وغير محصّل: {homeSummary.pickedNotCollectedCount}</span>
+                          <span className="collections-pill">المجموع: {formatILS(homeSummary.pickedNotCollectedSum)} ₪</span>
+                        </div>
+                        <div className="collections-method-summary-row">
+                          <span className="collections-pill">غير مستلم وغير محصّل: {homeSummary.notPickedNotCollectedCount}</span>
+                          <span className="collections-pill">المجموع: {formatILS(homeSummary.notPickedNotCollectedSum)} ₪</span>
+                        </div>
+                      </div>
+                      <div className="collections-table-wrap">
+                        <table className="collections-table">
+                          <thead>
                             <tr>
-                              <td colSpan={2} className="collections-muted">
-                                لا يوجد مشتريات
-                              </td>
+                              <th>
+                                <span className="collections-th-label">
+                                  <img
+                                    src={customerHeaderIcon}
+                                    alt=""
+                                    aria-hidden="true"
+                                    className="collections-th-icon"
+                                  />
+                                  الزبون
+                                </span>
+                              </th>
+                              <th>
+                                <span className="collections-th-label">
+                                  <img src={priceHeaderIcon} alt="" aria-hidden="true" className="collections-th-icon" />
+                                  المدفوع
+                                </span>
+                              </th>
+                              <th>
+                                <span className="collections-th-label">
+                                  <img src={pickedHeaderIcon} alt="" aria-hidden="true" className="collections-th-icon" />
+                                  حالة التحصيل
+                                </span>
+                              </th>
                             </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody>
+                            {homePicked.length ? (
+                              homePicked.map((purchase) => (
+                                <tr key={purchase.id}>
+                                  <td>{purchase.customer_name || ""}</td>
+                                  <td>{formatILS(parsePrice(purchase.paid_price ?? purchase.price))}</td>
+                                  <td>{purchase.collected ? "محصّل" : "بانتظار التحصيل"}</td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={3} className="collections-muted">
+                                  لا يوجد مشتريات مستلمة
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
 
-                    <div className="collections-section-title">نقطة الاستلام - La Aura</div>
-                    <div className="collections-table-wrap">
-                      <table className="collections-table">
-                        <thead>
-                          <tr>
-                            <th>الزبون</th>
-                            <th>السعر</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {pickupList.length ? (
-                            pickupList.map((purchase) => (
-                              <tr key={purchase.id}>
-                                <td>{purchase.customer_name || ""}</td>
-                                <td>{formatILS(purchase.paid_price ?? purchase.price)}</td>
-                              </tr>
-                            ))
-                          ) : (
+                    <section className="collections-method-section">
+                      <div className="collections-section-title collections-section-title--with-icon">
+                        <AppNavIcon name="map" className="icon" />
+                        <span>نقطة الاستلام - La Aura</span>
+                      </div>
+                      <div className="collections-method-summary">
+                        <div className="collections-method-summary-row">
+                          <span className="collections-pill">محصّل ومستلم: {pickupSummary.pickedCollectedCount}</span>
+                          <span className="collections-pill">المجموع: {formatILS(pickupSummary.pickedCollectedSum)} ₪</span>
+                        </div>
+                        <div className="collections-method-summary-row">
+                          <span className="collections-pill">مستلم وغير محصّل: {pickupSummary.pickedNotCollectedCount}</span>
+                          <span className="collections-pill">المجموع: {formatILS(pickupSummary.pickedNotCollectedSum)} ₪</span>
+                        </div>
+                        <div className="collections-method-summary-row">
+                          <span className="collections-pill">غير مستلم وغير محصّل: {pickupSummary.notPickedNotCollectedCount}</span>
+                          <span className="collections-pill">المجموع: {formatILS(pickupSummary.notPickedNotCollectedSum)} ₪</span>
+                        </div>
+                      </div>
+                      <div className="collections-table-wrap">
+                        <table className="collections-table">
+                          <thead>
                             <tr>
-                              <td colSpan={2} className="collections-muted">
-                                لا يوجد مشتريات
-                              </td>
+                              <th>
+                                <span className="collections-th-label">
+                                  <img
+                                    src={customerHeaderIcon}
+                                    alt=""
+                                    aria-hidden="true"
+                                    className="collections-th-icon"
+                                  />
+                                  الزبون
+                                </span>
+                              </th>
+                              <th>
+                                <span className="collections-th-label">
+                                  <img src={priceHeaderIcon} alt="" aria-hidden="true" className="collections-th-icon" />
+                                  المدفوع
+                                </span>
+                              </th>
+                              <th>
+                                <span className="collections-th-label">
+                                  <img src={pickedHeaderIcon} alt="" aria-hidden="true" className="collections-th-icon" />
+                                  حالة التحصيل
+                                </span>
+                              </th>
                             </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody>
+                            {pickupPicked.length ? (
+                              pickupPicked.map((purchase) => (
+                                <tr key={purchase.id}>
+                                  <td>{purchase.customer_name || ""}</td>
+                                  <td>{formatILS(parsePrice(purchase.paid_price ?? purchase.price))}</td>
+                                  <td>{purchase.collected ? "محصّل" : "بانتظار التحصيل"}</td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={3} className="collections-muted">
+                                  لا يوجد مشتريات مستلمة
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
                   </>
                 ) : null}
               </>

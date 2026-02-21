@@ -1,0 +1,30 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Redirecting...</title>
+    <script>
+      (function () {
+        var path = window.location.pathname;
+        var base = path.replace(/[^/]*$/, "");
+        var file = path.split("/").pop().toLowerCase();
+        var map = {
+          "login.html": "/login",
+          "homepickup.html": "/homepickup",
+          "pickuppoint.html": "/pickuppoint",
+          "pickup-dashboard.html": "/pickup-dashboard",
+          "archive.html": "/archive",
+          "finance.html": "/finance",
+          "collections.html": "/collections",
+          "home.html": "/orders",
+          "orders.html": "/orders"
+        };
+        var route = map[file] || "/";
+        var target = base + "#" + route + window.location.search;
+        window.location.replace(target);
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>

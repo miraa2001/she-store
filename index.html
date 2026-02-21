@@ -7,77 +7,7 @@
     <title>She-Store React</title>
   </head>
   <body>
-    <div id="root">
-      <div
-        id="boot-fallback"
-        style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#1f2937;background:#f6f2f8;text-align:center"
-      >
-        Loading She-Store...
-      </div>
-    </div>
-    <script>
-      (function () {
-        window.__SHE_STORE_BOOTED__ = false;
-
-        function renderBootMessage(title, details) {
-          const root = document.getElementById("root");
-          if (!root) return;
-          root.innerHTML =
-            '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#111827;background:#f6f2f8;text-align:center">' +
-            '<div style="max-width:560px;background:#ffffff;border:1px solid #e7dfeb;border-radius:16px;padding:20px 22px">' +
-            '<h1 style="font-size:20px;margin:0 0 8px">Unable to start the React app</h1>' +
-            "<p style=\"margin:0 0 8px;line-height:1.45\">" +
-            title +
-            "</p>" +
-            "<p style=\"margin:0;line-height:1.45;color:#475569\">" +
-            details +
-            "</p>" +
-            "</div></div>";
-        }
-
-        window.__SHE_STORE_SHOW_BOOT_ERROR__ = function (reason) {
-          if (window.__SHE_STORE_BOOTED__) return;
-          if (window.location.protocol === "file:") {
-            renderBootMessage(
-              "This file was opened directly from disk (file://).",
-              "Run `npm install` then `npm run dev`, and open the localhost URL from Vite."
-            );
-            return;
-          }
-
-          renderBootMessage(
-            "React entry failed to load.",
-            "Serve the Vite build output (`dist/`) or start the Vite dev server. Reason: " + reason
-          );
-        };
-
-        if (window.location.protocol === "file:") {
-          window.__SHE_STORE_SHOW_BOOT_ERROR__("file protocol");
-        } else {
-          window.setTimeout(function () {
-            if (!window.__SHE_STORE_BOOTED__) {
-              window.__SHE_STORE_SHOW_BOOT_ERROR__("startup timeout");
-            }
-          }, 4000);
-        }
-
-        window.addEventListener(
-          "error",
-          function () {
-            if (!window.__SHE_STORE_BOOTED__) {
-              window.__SHE_STORE_SHOW_BOOT_ERROR__("module load error");
-            }
-          },
-          true
-        );
-
-        window.addEventListener("unhandledrejection", function () {
-          if (!window.__SHE_STORE_BOOTED__) {
-            window.__SHE_STORE_SHOW_BOOT_ERROR__("runtime rejection");
-          }
-        });
-      })();
-    </script>
+    <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

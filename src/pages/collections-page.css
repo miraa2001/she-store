@@ -190,11 +190,14 @@
 .collections-pill {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   border: 1px solid #d8e3de;
   border-radius: 999px;
   background: #f1f4f2;
-  padding: 6px 10px;
-  font-size: 12px;
+  padding: 4px 8px;
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: center;
 }
 
 .collections-orders-list {
@@ -244,6 +247,57 @@
   color: #5f6e69;
   font-size: 12px;
   margin: 10px 0 6px;
+}
+
+.collections-section-title--with-icon {
+  gap: 8px;
+}
+
+.collections-method-section {
+  margin-top: 12px;
+}
+
+.collections-method-summary {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.collections-method-summary-row {
+  display: grid;
+  grid-template-columns: repeat(2, 30vw);
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  max-width: none;
+  margin-inline: auto;
+}
+
+.collections-method-summary-row .collections-pill {
+  width: 100%;
+  height: 36px;
+  min-height: 36px;
+  max-height: 36px;
+  padding: 0 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.collections-top-pills-row {
+  justify-content: center;
+}
+
+.collections-th-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.collections-th-icon {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
 }
 
 .collections-table-wrap {
@@ -447,6 +501,20 @@
   .collections-row .collections-pill,
   .collections-row .collections-btn {
     min-height: 44px;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .collections-method-summary-row {
+    display: grid;
+    grid-template-columns: repeat(2, 30vw);
+  }
+
+  .collections-method-summary-row .collections-pill {
+    width: 100%;
+    height: 36px;
+    min-height: 36px;
+    max-height: 36px;
     justify-content: center;
     text-align: center;
   }

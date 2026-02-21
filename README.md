@@ -69,10 +69,9 @@ Workflow file: `.github/workflows/deploy-react-pages.yml`
 Requirements:
 1. Repository Pages source set to `GitHub Actions`
 2. Repository secrets configured:
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
 - `VITE_GEMINI_API_KEY`
-
-Important:
-- Never use a Supabase `service_role` key in frontend builds. Use only a publishable/anon key.
 
 On push to `main`, the workflow builds and deploys `dist/`.
 
