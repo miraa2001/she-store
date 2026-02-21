@@ -73,6 +73,10 @@ Requirements:
 - `VITE_SUPABASE_ANON_KEY`
 - `VITE_GEMINI_API_KEY`
 
+Important:
+- Any `VITE_*` variable is embedded into the frontend bundle at build time (public by design).
+- Never use a Supabase `service_role` key in frontend builds. Use only a publishable/anon key.
+
 On push to `main`, the workflow builds and deploys `dist/`.
 
 ## QA / Verification

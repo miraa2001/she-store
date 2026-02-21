@@ -34,6 +34,53 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Validate Public Supabase Config
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          node <<'NODE'
+          const rawUrl = String(process.env.VITE_SUPABASE_URL || "").trim();
+          const rawKey = String(process.env.VITE_SUPABASE_ANON_KEY || "").trim();
+
+          const fail = (message) => {
+            console.error(message);
+            process.exit(1);
+          };
+
+          if (!rawUrl) fail("Missing secret: VITE_SUPABASE_URL");
+          if (!rawKey) fail("Missing secret: VITE_SUPABASE_ANON_KEY");
+
+          const normalizedUrl =
+            /^https?:\/\//i.test(rawUrl) || !/^[a-z0-9-]+$/i.test(rawUrl)
+              ? rawUrl
+              : `https://${rawUrl}.supabase.co`;
+
+          try {
+            const parsed = new URL(normalizedUrl);
+            if (!/^https?:$/.test(parsed.protocol)) {
+              fail("Invalid VITE_SUPABASE_URL: must be HTTP/HTTPS.");
+            }
+          } catch {
+            fail(`Invalid VITE_SUPABASE_URL: ${rawUrl}`);
+          }
+
+          const parts = rawKey.split(".");
+          if (parts.length === 3) {
+            try {
+              const normalizedPayload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+              const payload = JSON.parse(Buffer.from(normalizedPayload, "base64").toString("utf8"));
+              if (payload?.role === "service_role") {
+                fail("Invalid VITE_SUPABASE_ANON_KEY: service_role key detected. Use publishable/anon key.");
+              }
+            } catch {
+              // If parsing fails, continue; this only checks common JWT-shaped keys.
+            }
+          }
+
+          console.log("Supabase public config validation passed.");
+          NODE
+
       - name: Build
         run: npm run build
         env:
