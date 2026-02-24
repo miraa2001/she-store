@@ -9,6 +9,17 @@ export const ORDER_STATUS = {
   COLLECTED: "collected"
 };
 
+export const ORDER_TYPES = {
+  IHERB: "iherb",
+  SHEIN: "shein"
+};
+
+export const SHEIN_ORDER_TYPES = {
+  NORMAL: "normal",
+  MAKEUP: "makeup",
+  ELECTRONICS: "electronics"
+};
+
 export const ORDER_STATUS_LABELS = {
   [ORDER_STATUS.PENDING]: "\u0642\u064a\u062f \u0627\u0644\u0627\u0646\u062a\u0638\u0627\u0631",
   [ORDER_STATUS.ARRIVED]: "\u062a\u0645 \u0648\u0635\u0648\u0644 \u0627\u0644\u0637\u0644\u0628",
@@ -33,6 +44,21 @@ export function formatILS(value) {
   if (!Number.isFinite(number)) return "0";
   const fixed = number.toFixed(2);
   return fixed.endsWith(".00") ? String(Math.round(number)) : fixed;
+}
+
+function normalizeOrderType(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === ORDER_TYPES.IHERB) return ORDER_TYPES.IHERB;
+  if (normalized === ORDER_TYPES.SHEIN) return ORDER_TYPES.SHEIN;
+  return "";
+}
+
+function normalizeSheinType(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === SHEIN_ORDER_TYPES.NORMAL) return SHEIN_ORDER_TYPES.NORMAL;
+  if (normalized === SHEIN_ORDER_TYPES.MAKEUP) return SHEIN_ORDER_TYPES.MAKEUP;
+  if (normalized === SHEIN_ORDER_TYPES.ELECTRONICS) return SHEIN_ORDER_TYPES.ELECTRONICS;
+  return "";
 }
 
 export function normalizeOrderStatus(rawStatus) {
@@ -207,21 +233,48 @@ export async function updateOrderWorkflowStatus(orderId, nextStatus) {
   };
 }
 
-export async function createOrder(orderName) {
+export async function createOrder(input) {
+  const orderName = typeof input === "string" ? input : input?.orderName;
+  const orderType = typeof input === "string" ? "" : input?.orderType;
+  const sheinType = typeof input === "string" ? "" : input?.sheinType;
+
   const name = String(orderName || "").trim();
-  if (!name) throw new Error("اسم الطلب مطلوب.");
+  if (!name) throw new Error("??? ????? ?????.");
+
+  const normalizedOrderType = normalizeOrderType(orderType);
+  if (!normalizedOrderType) throw new Error("??? ????? ?????.");
+
+  let normalizedSheinType = null;
+  if (normalizedOrderType === ORDER_TYPES.SHEIN) {
+    const nextSheinType = normalizeSheinType(sheinType);
+    if (!nextSheinType) throw new Error("??? ??? ?? ?? ?????.");
+    normalizedSheinType = nextSheinType;
+  }
+
+  const payload = {
+    order_name: name,
+    order_type: normalizedOrderType,
+    shein_type: normalizedSheinType
+  };
 
   const { data, error } = await sb
     .from("orders")
-    .insert({ order_name: name })
-    .select("id, order_name")
+    .insert(payload)
+    .select("id, order_name, order_type, shein_type")
     .single();
 
-  if (error) throw error;
+  if (error) {
+    if (error?.code === "42703") {
+      throw new Error("????? ???????? ????? ????? order_type ? shein_type ??? ????? ?????.");
+    }
+    throw error;
+  }
 
   return {
     id: data?.id,
-    name: String(data?.order_name || name).trim() || name
+    name: String(data?.order_name || name).trim() || name,
+    orderType: normalizeOrderType(data?.order_type || normalizedOrderType),
+    sheinType: normalizeSheinType(data?.shein_type || normalizedSheinType || "")
   };
 }
 

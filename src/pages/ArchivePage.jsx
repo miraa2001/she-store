@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuthProfile } from "../hooks/useAuthProfile";
 import { formatDMY } from "../lib/dateFormat";
-import { formatILS, isOlderThanCurrentMonth, parsePrice } from "../lib/orders";
+import { formatILS, parsePrice } from "../lib/orders";
 import { getOrdersNavItems, isNavHrefActive } from "../lib/navigation";
 import { setBodyScrollLock } from "../lib/bodyScrollLock";
 import { signOutAndRedirect } from "../lib/session";
@@ -182,20 +182,17 @@ export default function ArchivePage() {
       if (orderError) throw orderError;
 
       const nextOrders = [];
-      const collectedForCleanup = [];
 
       (orderRows || []).forEach((order) => {
         const entry = purchasesByOrder.get(order.id);
         const purchases = entry?.purchases || [];
         const allCollected = purchases.length > 0 && entry?.allCollected;
-        const previousMonth = isOlderThanCurrentMonth(order.created_at);
-        if (!allCollected && !previousMonth) return;
+        if (!allCollected) return;
 
         const normalized = {
           id: order.id,
           orderName: String(order.order_name || "").trim() || "طلب بدون اسم",
           createdAt: order.created_at,
-          archiveType: allCollected ? "تم تحصيلها" : "طلبات سابقة",
           purchases,
           totalPaid: purchases.reduce(
             (sum, purchase) => sum + parsePrice(purchase.paid_price ?? purchase.price),
@@ -203,7 +200,6 @@ export default function ArchivePage() {
           )
         };
         nextOrders.push(normalized);
-        if (allCollected) collectedForCleanup.push(normalized);
       });
 
       setOrders(nextOrders);
@@ -213,11 +209,9 @@ export default function ArchivePage() {
       });
 
       if (!nextOrders.length) {
-        setCleanupMsg("لا يوجد أرشيف بعد.");
-      } else if (collectedForCleanup.length) {
-        await cleanupArchiveImages(collectedForCleanup);
+        setCleanupMsg("لا توجد طلبات مكتملة التحصيل في الأرشيف.");
       } else {
-        setCleanupMsg("");
+        await cleanupArchiveImages(nextOrders);
       }
     } catch (err) {
       console.error(err);
@@ -317,7 +311,7 @@ export default function ArchivePage() {
             <SheStoreLogo className="topbar-logo-link" imageClassName="topbar-logo-img" />
             <div className="archive-brand">
               <b>الأرشيف</b>
-              <div className="archive-muted">طلبات تم تحصيلها + طلبات أقدم من الشهر الحالي</div>
+              <div className="archive-muted">طلبات مكتملة التحصيل فقط</div>
             </div>
           </div>
           <button type="button" className="archive-menu-btn" onClick={() => setSidebarOpen(true)}>
@@ -402,7 +396,6 @@ export default function ArchivePage() {
                               <span>{formatOrderDate(order.createdAt)}</span>
                             </div>
                             <div className="order-meta">
-                              <small className="status at_pickup">{order.archiveType}</small>
                               <small className="status at_pickup">{formatILS(order.totalPaid)} ₪</small>
                             </div>
                           </button>
@@ -443,7 +436,6 @@ export default function ArchivePage() {
                       <div className="archive-muted">{formatOrderDate(selectedOrder.createdAt)}</div>
                     </div>
                     <div className="archive-row">
-                      <span className="archive-pill">{selectedOrder.archiveType}</span>
                       <span className="archive-pill">عدد المشتريات: {selectedOrder.purchases.length}</span>
                       <span className="archive-pill">المجموع الكلي: {formatILS(selectedOrder.totalPaid)} ₪</span>
                     </div>

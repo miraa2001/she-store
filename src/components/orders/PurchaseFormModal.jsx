@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Stepper, { Step } from "../common/Stepper";
 import FileUploadDropzone from "../common/FileUploadDropzone";
+import ImageAnnotatorModal from "../common/ImageAnnotatorModal";
 
 export default function PurchaseFormModal({
   open,
@@ -28,11 +29,13 @@ export default function PurchaseFormModal({
   onAnalyzeWithGemini,
   onToggleExistingImageRemoval,
   onRemoveNewImage,
+  onReplaceNewImage,
   onOpenAddCustomerModal,
   Icon
 }) {
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerPicked, setCustomerPicked] = useState(false);
+  const [imageEditor, setImageEditor] = useState({ open: false, index: -1, file: null });
 
   useEffect(() => {
     if (!open) return;
@@ -51,10 +54,28 @@ export default function PurchaseFormModal({
   if (!open) return null;
 
   const isAddMode = formMode === "add";
+  const isCustomerLocked = formMode === "edit";
 
   const handleStepperSubmit = async () => {
     const ok = await onSubmit({ preventDefault: () => {} });
     return ok;
+  };
+
+  const openImageEditor = (index) => {
+    const targetFile = formState.newFiles?.[index];
+    if (!targetFile) return;
+    setImageEditor({ open: true, index, file: targetFile });
+  };
+
+  const closeImageEditor = () => {
+    setImageEditor({ open: false, index: -1, file: null });
+  };
+
+  const handleSaveEditedImage = async (editedFile) => {
+    if (typeof onReplaceNewImage === "function" && imageEditor.index >= 0) {
+      onReplaceNewImage(imageEditor.index, editedFile);
+    }
+    closeImageEditor();
   };
 
   const detailsFields = (
@@ -64,8 +85,9 @@ export default function PurchaseFormModal({
         <input
           type="text"
           value={customerSearch}
-          className={customerPicked ? "customer-picked-input" : ""}
+          className={`${customerPicked ? "customer-picked-input" : ""} ${isCustomerLocked ? "customer-locked-input" : ""}`.trim()}
           onChange={(event) => {
+            if (isCustomerLocked) return;
             const nextValue = event.target.value;
             setCustomerSearch(nextValue);
             if (customerPicked) {
@@ -73,7 +95,7 @@ export default function PurchaseFormModal({
             }
           }}
           placeholder="اكتبي اسم الزبون..."
-          disabled={customersLoading || formSaving}
+          disabled={isCustomerLocked || customersLoading || formSaving}
         />
       </label>
 
@@ -129,13 +151,14 @@ export default function PurchaseFormModal({
         <select
           value={formState.customerId}
           onChange={(event) => {
+            if (isCustomerLocked) return;
             const customerId = event.target.value;
             onCustomerChange(customerId);
             const selected = customers.find((customer) => String(customer.id) === String(customerId));
             setCustomerSearch(selected?.name || "");
             setCustomerPicked(Boolean(customerId && selected?.name));
           }}
-          disabled={customersLoading || formSaving}
+          disabled={isCustomerLocked || customersLoading || formSaving}
         >
           <option value="">اختاري الزبون</option>
           {customers.map((customer) => (
@@ -165,7 +188,14 @@ export default function PurchaseFormModal({
           step="0.01"
           min="0"
           value={formState.price}
-          onChange={(event) => onUpdateForm({ price: event.target.value })}
+          onChange={(event) => {
+            const nextPrice = event.target.value;
+            if (formMode === "add") {
+              onUpdateForm({ price: nextPrice, paidPrice: nextPrice });
+              return;
+            }
+            onUpdateForm({ price: nextPrice });
+          }}
           disabled={formSaving}
         />
       </label>
@@ -311,9 +341,22 @@ export default function PurchaseFormModal({
           {newFilePreviews.map((item, index) => (
             <div key={item.key} className="modal-new-image">
               <img src={item.url} alt="صورة جديدة" />
-              <button type="button" onClick={() => onRemoveNewImage(index)} disabled={formSaving || formAiRunning}>
-                حذف
-              </button>
+              <div className="modal-new-image-actions">
+                <button
+                  type="button"
+                  onClick={() => openImageEditor(index)}
+                  disabled={formSaving || formAiRunning}
+                >
+                  تعديل
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRemoveNewImage(index)}
+                  disabled={formSaving || formAiRunning}
+                >
+                  حذف
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -391,6 +434,15 @@ export default function PurchaseFormModal({
           </form>
         )}
       </div>
+
+      <ImageAnnotatorModal
+        open={imageEditor.open}
+        file={imageEditor.file}
+        onClose={closeImageEditor}
+        onSave={handleSaveEditedImage}
+        disabled={formSaving || formAiRunning}
+        Icon={Icon}
+      />
     </div>
   );
 }

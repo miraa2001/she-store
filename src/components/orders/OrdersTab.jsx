@@ -23,6 +23,7 @@ export default function OrdersTab({
   purchaseStats,
   isMobile = false,
   isRahaf,
+  isReem = false,
   editMode,
   onUpdateOrderStatus,
   onOpenAddModal,
@@ -47,6 +48,7 @@ export default function OrdersTab({
   const [cardSlideIndexes, setCardSlideIndexes] = useState({});
   const highlightRef = useRef(null);
   const canEditOrderStatus = isRahaf && editMode && !!selectedOrder;
+  const canShowPurchaseNotes = isRahaf || isReem;
   const pdfExportIcon = useMemo(() => {
     if (typeof navigator === "undefined") return pdfExportIconWeb;
     const ua = String(navigator.userAgent || "").toLowerCase();
@@ -151,7 +153,10 @@ export default function OrdersTab({
       {!purchasesLoading && !purchasesError && filteredPurchases.length && !hidePurchaseGrid ? (
         <div className="purchase-cards-grid">
           {filteredPurchases.map((purchase) => {
-            const canShowWhatsapp = !!selectedOrder?.arrived;
+            const canShowWhatsapp = isRahaf && !!selectedOrder?.arrived;
+            const purchaseNote = String(purchase.note || "").trim();
+            const mobileNoteText = purchaseNote || "لا توجد ملاحظة";
+            const shouldShowMobileNote = canShowPurchaseNotes && (isReem ? !!purchaseNote : true);
             const imageList = Array.isArray(purchase.images)
               ? purchase.images.filter((img) => img?.url)
               : [];
@@ -281,7 +286,11 @@ export default function OrdersTab({
                       </div>
                       <div className="purchaseVField">
                         <p className="purchaseVLabel">مكان الاستلام</p>
-                        <p className="purchaseVValue">{purchase.pickup_point || "—"}</p>
+                        <p className="purchaseVValue">{purchase.pickup_point || "-"}</p>
+                      </div>
+                      <div className="purchaseVField">
+                        <p className="purchaseVLabel">حجم الكيس</p>
+                        <p className="purchaseVValue">{purchase.bag_size || "-"}</p>
                       </div>
                     </div>
 
@@ -292,6 +301,12 @@ export default function OrdersTab({
                             رابط {index + 1}
                           </a>
                         ))}
+                      </div>
+                    ) : null}
+
+                    {canShowPurchaseNotes && purchaseNote ? (
+                      <div className="purchaseVNote" title={purchaseNote}>
+                        <strong>ملاحظة:</strong> <span>{purchaseNote}</span>
                       </div>
                     ) : null}
 
@@ -341,6 +356,14 @@ export default function OrdersTab({
                       {purchase.qty || 0} قطع • {formatILS(purchase.price)} ₪
                     </div>
 
+                    <div className="purchase-mobile-summary">
+                      مكان الاستلام: {purchase.pickup_point || "-"}
+                    </div>
+
+                    <div className="purchase-mobile-summary">
+                      حجم الكيس: {purchase.bag_size || "-"}
+                    </div>
+
                     {purchase.links?.length ? (
                       <div className="purchase-mobile-links">
                         {purchase.links.map((link, index) => (
@@ -362,6 +385,12 @@ export default function OrdersTab({
                       </div>
                     ) : null}
                   </div>
+
+                  {shouldShowMobileNote ? (
+                    <div className="purchase-mobile-note" title={purchaseNote}>
+                      <strong>ملاحظة:</strong> <span>{mobileNoteText}</span>
+                    </div>
+                  ) : null}
 
                   {menuNode ? (
                     <div className="purchase-mobile-actions">

@@ -2,8 +2,10 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import "./orders-page.css";
 import {
+  ORDER_TYPES,
   ORDER_STATUS,
   ORDER_STATUS_LABELS,
+  SHEIN_ORDER_TYPES,
   createOrder,
   deriveOrderStatus,
   deleteOrderById,
@@ -66,6 +68,15 @@ import ordersMenuIcon from "../assets/icons/navigation/orders.png";
 
 const BAG_OPTIONS = ["كيس كبير", "كيس صغير"];
 const MAX_IMAGES = 10;
+const ORDER_TYPE_OPTIONS = [
+  { value: ORDER_TYPES.IHERB, label: "iHerb" },
+  { value: ORDER_TYPES.SHEIN, label: "Shein" }
+];
+const SHEIN_TYPE_OPTIONS = [
+  { value: SHEIN_ORDER_TYPES.NORMAL, label: "Normal" },
+  { value: SHEIN_ORDER_TYPES.MAKEUP, label: "Makeup" },
+  { value: SHEIN_ORDER_TYPES.ELECTRONICS, label: "Electronics" }
+];
 
 function createEmptyForm(orderId, customers) {
   return {
@@ -73,10 +84,10 @@ function createEmptyForm(orderId, customers) {
     orderId: orderId || "",
     customerId: "",
     customerName: "",
-    qty: "",
+    qty: "1",
     price: "",
     paidPrice: "",
-    bagSize: "",
+    bagSize: "كيس صغير",
     pickupPoint: "",
     note: "",
     links: [""],
@@ -309,6 +320,8 @@ export default function OrdersPage() {
   const [deleteSnapshot, setDeleteSnapshot] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmDeleteBusy, setConfirmDeleteBusy] = useState(false);
+  const [paidPriceDialog, setPaidPriceDialog] = useState(null);
+  const [paidPriceDialogBusy, setPaidPriceDialogBusy] = useState(false);
   const [orderDialog, setOrderDialog] = useState(null);
   const [orderDialogBusy, setOrderDialogBusy] = useState(false);
   const [lightbox, setLightbox] = useState({ open: false, images: [], index: 0, title: "" });
@@ -435,13 +448,14 @@ export default function OrdersPage() {
     try {
       const data = await fetchOrdersWithSummary();
       const allOrders = data || [];
-      setOrders(allOrders);
+      const visibleOrders = isReem ? allOrders.filter((order) => !!order.arrived) : allOrders;
+      setOrders(visibleOrders);
       setSelectedOrderId((prev) => {
         const candidate = preferredId || prev;
-        if (candidate && allOrders.some((order) => String(order.id) === String(candidate))) {
+        if (candidate && visibleOrders.some((order) => String(order.id) === String(candidate))) {
           return candidate;
         }
-        return allOrders[0]?.id || "";
+        return visibleOrders[0]?.id || "";
       });
     } catch (error) {
       console.error(error);
@@ -449,7 +463,7 @@ export default function OrdersPage() {
     } finally {
       setOrdersLoading(false);
     }
-  }, []);
+  }, [isReem]);
 
   const refreshCustomers = useCallback(async () => {
     setCustomersLoading(true);
@@ -924,6 +938,17 @@ export default function OrdersPage() {
     clearFormAiStatus();
   };
 
+  const replaceNewImage = (index, nextFile) => {
+    if (!nextFile) return;
+    setFormState((prev) => {
+      if (!Array.isArray(prev.newFiles) || index < 0 || index >= prev.newFiles.length) return prev;
+      const nextFiles = [...prev.newFiles];
+      nextFiles[index] = nextFile;
+      return { ...prev, newFiles: nextFiles };
+    });
+    clearFormAiStatus();
+  };
+
   const toggleExistingImageRemoval = (imageId) => {
     setFormState((prev) => {
       const ids = prev.removeImageIds.includes(imageId)
@@ -1148,7 +1173,9 @@ export default function OrdersPage() {
     setOrderDialog({
       kind: "create",
       orderId: "",
-      name: ""
+      name: "",
+      orderType: ORDER_TYPES.SHEIN,
+      sheinType: SHEIN_ORDER_TYPES.NORMAL
     });
   };
 
@@ -1225,16 +1252,44 @@ export default function OrdersPage() {
     }
   };
 
-  const handleMarkPaid = async (purchase) => {
+  const handleMarkPaid = (purchase) => {
+    if (!purchase) return;
+    setMenuPurchaseId("");
+    setPaidPriceDialog({
+      purchaseId: purchase.id,
+      customerName: purchase.customer_name || "",
+      price: String(purchase.price ?? ""),
+      paidPrice: String(purchase.paid_price ?? purchase.price ?? "")
+    });
+  };
+
+  const closePaidPriceDialog = () => {
+    if (paidPriceDialogBusy) return;
+    setPaidPriceDialog(null);
+  };
+
+  const submitPaidPriceDialog = async () => {
+    if (!paidPriceDialog || paidPriceDialogBusy) return;
+    const nextPaid = Number(paidPriceDialog.paidPrice);
+    if (!Number.isFinite(nextPaid) || nextPaid < 0) {
+      setToast({ type: "warn", text: "السعر المدفوع غير صالح." });
+      return;
+    }
+
+    setPaidPriceDialogBusy(true);
     try {
-      await markPurchasePaidPrice(purchase.id, parsePrice(purchase.price));
-      setToast({ type: "success", text: "تم تحديث المدفوع." });
-      setMenuPurchaseId("");
-      await refreshPurchases(selectedOrder.id);
-      await refreshOrders(selectedOrder.id);
+      await markPurchasePaidPrice(paidPriceDialog.purchaseId, nextPaid);
+      setToast({ type: "success", text: "تم تحديث السعر المدفوع." });
+      setPaidPriceDialog(null);
+      if (selectedOrder?.id) {
+        await refreshPurchases(selectedOrder.id);
+        await refreshOrders(selectedOrder.id);
+      }
     } catch (error) {
       console.error(error);
-      setToast({ type: "danger", text: "فشل تحديث المدفوع." });
+      setToast({ type: "danger", text: "فشل تحديث السعر المدفوع." });
+    } finally {
+      setPaidPriceDialogBusy(false);
     }
   };
 
@@ -1306,14 +1361,29 @@ export default function OrdersPage() {
   const submitCreateOrder = async () => {
     if (!orderDialog || orderDialog.kind !== "create" || orderDialogBusy) return;
     const nextName = String(orderDialog.name || "").trim();
+    const nextOrderType = String(orderDialog.orderType || "").trim().toLowerCase();
+    const nextSheinType = String(orderDialog.sheinType || "").trim().toLowerCase();
+
     if (!nextName) {
       setToast({ type: "warn", text: "اسم الطلب مطلوب." });
+      return;
+    }
+    if (!Object.values(ORDER_TYPES).includes(nextOrderType)) {
+      setToast({ type: "warn", text: "حددي نوع الطلب." });
+      return;
+    }
+    if (nextOrderType === ORDER_TYPES.SHEIN && !Object.values(SHEIN_ORDER_TYPES).includes(nextSheinType)) {
+      setToast({ type: "warn", text: "حددي نوع طلب شي إن." });
       return;
     }
 
     setOrderDialogBusy(true);
     try {
-      const created = await createOrder(nextName);
+      const created = await createOrder({
+        orderName: nextName,
+        orderType: nextOrderType,
+        sheinType: nextOrderType === ORDER_TYPES.SHEIN ? nextSheinType : null
+      });
       const createdId = created?.id ? String(created.id) : "";
       setToast({ type: "success", text: "تم إنشاء طلب جديد." });
       await refreshOrders(createdId);
@@ -1687,6 +1757,7 @@ export default function OrdersPage() {
                 purchaseStats={purchaseStats}
                 isMobile={isMobile}
                 isRahaf={isRahaf}
+                isReem={isReem}
                 editMode={editMode}
                 onUpdateOrderStatus={handleUpdateOrderStatus}
                 onOpenAddModal={openAddModal}
@@ -1778,6 +1849,7 @@ export default function OrdersPage() {
         onAnalyzeWithGemini={analyzeFormImagesWithGemini}
         onToggleExistingImageRemoval={toggleExistingImageRemoval}
         onRemoveNewImage={removeNewImage}
+        onReplaceNewImage={replaceNewImage}
         onOpenAddCustomerModal={openQuickCustomerModal}
         Icon={Icon}
       />
@@ -1888,6 +1960,54 @@ export default function OrdersPage() {
                       autoFocus
                     />
                   </label>
+                  {orderDialog.kind === "create" ? (
+                    <label>
+                      <span>نوع الطلب</span>
+                      <select
+                        value={orderDialog.orderType || ""}
+                        onChange={(event) =>
+                          setOrderDialog((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  orderType: event.target.value,
+                                  sheinType:
+                                    event.target.value === ORDER_TYPES.SHEIN
+                                      ? prev.sheinType || SHEIN_ORDER_TYPES.NORMAL
+                                      : ""
+                                }
+                              : prev
+                          )
+                        }
+                        disabled={orderDialogBusy}
+                      >
+                        {ORDER_TYPE_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
+                  {orderDialog.kind === "create" && orderDialog.orderType === ORDER_TYPES.SHEIN ? (
+                    <label>
+                      <span>نوع شي إن</span>
+                      <select
+                        value={orderDialog.sheinType || ""}
+                        onChange={(event) =>
+                          setOrderDialog((prev) => (prev ? { ...prev, sheinType: event.target.value } : prev))
+                        }
+                        disabled={orderDialogBusy}
+                      >
+                        <option value="">اختاري النوع</option>
+                        {SHEIN_TYPE_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
                   <div className="purchase-modal-foot">
                     <button
                       type="button"
@@ -1937,6 +2057,77 @@ export default function OrdersPage() {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {paidPriceDialog ? (
+        <div className="purchase-modal-backdrop" onClick={closePaidPriceDialog}>
+          <div
+            className="purchase-modal-card purchase-modal-card-customer purchase-modal-card-delete"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="purchase-modal-head">
+              <h3>تعديل المدفوع</h3>
+              <button
+                type="button"
+                className="icon-btn tiny"
+                onClick={closePaidPriceDialog}
+                disabled={paidPriceDialogBusy}
+              >
+                <Icon name="close" className="icon" />
+              </button>
+            </div>
+
+            <div className="purchase-modal-body delete-confirm-body">
+              {paidPriceDialog.customerName ? (
+                <div className="delete-confirm-target">{paidPriceDialog.customerName}</div>
+              ) : null}
+
+              <label>
+                <span>السعر الأصلي</span>
+                <input
+                  type="number"
+                  value={paidPriceDialog.price}
+                  disabled
+                  className="readonly-field"
+                />
+              </label>
+
+              <label>
+                <span>السعر المدفوع</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={paidPriceDialog.paidPrice}
+                  onChange={(event) =>
+                    setPaidPriceDialog((prev) => (prev ? { ...prev, paidPrice: event.target.value } : prev))
+                  }
+                  disabled={paidPriceDialogBusy}
+                  autoFocus
+                />
+              </label>
+
+              <div className="purchase-modal-foot">
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={submitPaidPriceDialog}
+                  disabled={paidPriceDialogBusy}
+                >
+                  {paidPriceDialogBusy ? "جاري الحفظ..." : "حفظ"}
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost-light"
+                  onClick={closePaidPriceDialog}
+                  disabled={paidPriceDialogBusy}
+                >
+                  إلغاء
+                </button>
+              </div>
             </div>
           </div>
         </div>
