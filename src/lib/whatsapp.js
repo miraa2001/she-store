@@ -47,9 +47,15 @@ export function buildWhatsappUrl(phone, message) {
   return `https://wa.me/${safePhone}?text=${encodeURIComponent(safeText)}`;
 }
 
+function extractFirstName(value) {
+  const fullName = String(value || "").trim();
+  if (!fullName) return "";
+  return fullName.split(/\s+/)[0] || "";
+}
+
 export function buildArrivalNotifyMessage({ pickupPoint, price, customerName }) {
   const priceText = formatILS(price);
-  const name = String(customerName || "").trim();
+  const name = extractFirstName(customerName);
   const greeting = name ? `مرحباً ${name} ${EMOJI.sparkleHeart}` : `مرحباً حبيبتي ${EMOJI.sparkleHeart}`;
 
   if (pickupPoint === PICKUP_POINT) {

@@ -448,7 +448,9 @@ export default function OrdersPage() {
     try {
       const data = await fetchOrdersWithSummary();
       const allOrders = data || [];
-      const visibleOrders = isReem ? allOrders.filter((order) => !!order.arrived) : allOrders;
+      const visibleOrders = isReem
+        ? allOrders.filter((order) => !!order.arrived && !order.placedAtPickup)
+        : allOrders;
       setOrders(visibleOrders);
       setSelectedOrderId((prev) => {
         const candidate = preferredId || prev;
@@ -1575,6 +1577,21 @@ export default function OrdersPage() {
     isMobile
   ]);
 
+  const showMobileSpeedDial =
+    speedDialActions.length > 0 &&
+    (isMobile || isTablet) &&
+    !globalOpen &&
+    !formOpen &&
+    !lightbox.open &&
+    !ordersMenuOpen;
+
+  const ordersPageClassName = [
+    "orders-page",
+    showMobileSpeedDial && isRahaf && activeTab === "orders" ? "orders-page-fab-clearance" : ""
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   if (profile.loading) {
     return (
       <div className="orders-page orders-loading-screen" dir="rtl">
@@ -1621,7 +1638,7 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="orders-page" dir="rtl">
+    <div className={ordersPageClassName} dir="rtl">
       <>
         <div
           className={`global-overlay app-sidebar-overlay ${globalOpen ? "open" : ""}`}
@@ -1819,7 +1836,7 @@ export default function OrdersPage() {
         </section>
       </div>
 
-      {(isMobile || isTablet) && !globalOpen && !formOpen && !lightbox.open && !ordersMenuOpen ? (
+      {showMobileSpeedDial ? (
         <SpeedDial actions={speedDialActions} position="bottom-right" size="large" />
       ) : null}
 

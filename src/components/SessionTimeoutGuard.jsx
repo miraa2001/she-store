@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { sb } from "../lib/supabaseClient";
 
-const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
+const SESSION_TIMEOUT_MS = 60 * 60 * 1000;
 const ACTIVITY_STORAGE_KEY = "she_store:last_activity_at";
 const REMEMBER_ME_STORAGE_KEY = "she_store:remember_me";
 const ACTIVITY_EVENTS = [

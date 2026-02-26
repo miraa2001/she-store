@@ -3757,6 +3757,12 @@
   }
 }
 
+@media (max-width: 1023px) {
+  .orders-page.orders-page-fab-clearance .workspace-main {
+    padding-bottom: calc(124px + env(safe-area-inset-bottom));
+  }
+}
+
 /* Orders menu trigger + drawer */
 .orders-menu-trigger-btn {
   border-color: rgba(109, 63, 107, 0.35);
