@@ -36,11 +36,13 @@ export default function PurchaseFormModal({
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerPicked, setCustomerPicked] = useState(false);
   const [imageEditor, setImageEditor] = useState({ open: false, index: -1, file: null });
+  const [previewImage, setPreviewImage] = useState(null);
 
   useEffect(() => {
     if (!open) return;
     setCustomerSearch(formState.customerName || "");
     setCustomerPicked(Boolean(formState.customerId && formState.customerName));
+    setPreviewImage(null);
   }, [open, formState.customerId, formState.customerName]);
 
   const filteredCustomers = useMemo(() => {
@@ -76,6 +78,12 @@ export default function PurchaseFormModal({
       onReplaceNewImage(imageEditor.index, editedFile);
     }
     closeImageEditor();
+  };
+
+  const openImagePreview = (index) => {
+    const item = newFilePreviews?.[index];
+    if (!item?.url) return;
+    setPreviewImage({ url: item.url, key: item.key || String(index) });
   };
 
   const detailsFields = (
@@ -340,7 +348,15 @@ export default function PurchaseFormModal({
         <div className="modal-new-images">
           {newFilePreviews.map((item, index) => (
             <div key={item.key} className="modal-new-image">
-              <img src={item.url} alt="صورة جديدة" />
+              <button
+                type="button"
+                className="modal-image-preview-btn"
+                onClick={() => openImagePreview(index)}
+                disabled={formSaving || formAiRunning}
+                aria-label="فتح معاينة الصورة"
+              >
+                <img src={item.url} alt="صورة جديدة" />
+              </button>
               <div className="modal-new-image-actions">
                 <button
                   type="button"
@@ -365,7 +381,7 @@ export default function PurchaseFormModal({
   );
 
   return (
-    <div className="purchase-modal-backdrop" onClick={onClose}>
+    <div className="purchase-modal-backdrop">
       <div className="purchase-modal-card" onClick={(event) => event.stopPropagation()}>
         <div className="purchase-modal-head">
           <h3>{isAddMode ? "إضافة مشترى" : "تعديل المشترى"}</h3>
@@ -434,6 +450,22 @@ export default function PurchaseFormModal({
           </form>
         )}
       </div>
+
+      {previewImage ? (
+        <div className="purchase-modal-backdrop image-preview-backdrop" onClick={() => setPreviewImage(null)}>
+          <div className="purchase-modal-card image-preview-card" onClick={(event) => event.stopPropagation()}>
+            <div className="purchase-modal-head">
+              <h3>معاينة الصورة</h3>
+              <button type="button" className="icon-btn tiny" onClick={() => setPreviewImage(null)}>
+                <Icon name="close" className="icon" />
+              </button>
+            </div>
+            <div className="image-preview-body">
+              <img src={previewImage.url} alt="معاينة الصورة" key={previewImage.key} />
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <ImageAnnotatorModal
         open={imageEditor.open}

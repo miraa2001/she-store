@@ -3,14 +3,14 @@ import { formatILS } from "./orders";
 import { PICKUP_HOME, PICKUP_POINT } from "./pickup";
 
 const EMOJI = {
-  sparkleHeart: "💖",
-  package: "📦",
-  pin: "📍",
-  alarm: "⏰",
-  kiss: "💌",
-  heart: "❤️",
-  bell: "🔔",
-  question: "❓"
+  sparkleHeart: "\u{1F496}",
+  package: "\u{1F4E6}",
+  pin: "\u{1F4CD}",
+  alarm: "\u23F0",
+  kiss: "\u{1F48C}",
+  heart: "\u2764\uFE0F",
+  bell: "\u{1F514}",
+  question: "\u2753"
 };
 
 function normalizePhone(value) {

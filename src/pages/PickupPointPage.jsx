@@ -51,6 +51,20 @@ function buildOrderGroups(orderList) {
   return groups;
 }
 
+function formatDropOffOrderName(dateKey) {
+  const safeDate = String(dateKey || "").trim() || "غير محدد";
+  return `طلبية ${safeDate}`;
+}
+
+function buildMergedOrders(orderGroups) {
+  return orderGroups.map((group) => ({
+    id: `dropoff-${group.dateKey}`,
+    dateKey: group.dateKey,
+    orderName: formatDropOffOrderName(group.dateKey),
+    orderIds: group.orders.map((order) => order.id)
+  }));
+}
+
 export default function PickupPointPage({ embedded = false }) {
   const { profile } = useAuthProfile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -90,13 +104,14 @@ export default function PickupPointPage({ embedded = false }) {
   });
 
   const groupedOrders = useMemo(() => buildOrderGroups(orders), [orders]);
+  const mergedOrders = useMemo(() => buildMergedOrders(groupedOrders), [groupedOrders]);
   const selectedOrder = useMemo(() => {
-    return orders.find((order) => String(order.id) === String(selectedItemId)) || null;
-  }, [orders, selectedItemId]);
+    return mergedOrders.find((order) => String(order.id) === String(selectedItemId)) || null;
+  }, [mergedOrders, selectedItemId]);
 
   const selectedOrderIds = useMemo(() => {
     if (!selectedOrder) return [];
-    return [selectedOrder.id];
+    return selectedOrder.orderIds || [];
   }, [selectedOrder]);
 
   const visiblePurchases = useMemo(() => purchases.filter((purchase) => !purchase.collected), [purchases]);
@@ -140,11 +155,11 @@ export default function PickupPointPage({ embedded = false }) {
 
   useEffect(() => {
     setSelectedItemId((prev) => {
-      if (prev && orders.some((order) => String(order.id) === String(prev))) return prev;
-      return groupedOrders[0]?.orders?.[0]?.id || "";
+      if (prev && mergedOrders.some((order) => String(order.id) === String(prev))) return prev;
+      return mergedOrders[0]?.id || "";
     });
-    if (!orders.length) setPurchases([]);
-  }, [groupedOrders, orders]);
+    if (!mergedOrders.length) setPurchases([]);
+  }, [mergedOrders]);
 
   const loadOrders = useCallback(async () => {
     setLoadingOrders(true);
@@ -303,7 +318,7 @@ export default function PickupPointPage({ embedded = false }) {
   }
 
   async function collectCurrentOrder() {
-    if (!isRahaf || !selectedItemId) return;
+    if (!isRahaf || !selectedOrderIds.length) return;
     const pending = visiblePurchases.filter((purchase) => purchase.picked_up && !purchase.collected);
     if (!pending.length) return;
 
@@ -421,7 +436,9 @@ export default function PickupPointPage({ embedded = false }) {
   }
 
   function openSearchResult(result) {
-    const targetOrder = orders.find((order) => String(order.id) === String(result.order_id));
+    const targetOrder = mergedOrders.find((order) =>
+      (order.orderIds || []).some((id) => String(id) === String(result.order_id))
+    );
     if (!targetOrder) return;
     setSelectedItemId(targetOrder.id);
 
@@ -536,7 +553,7 @@ export default function PickupPointPage({ embedded = false }) {
           >
             <AppNavIcon name="package" className="icon" />
             <span>الطلبات</span>
-            <b>{orders.length}</b>
+            <b>{mergedOrders.length}</b>
           </button>
           <input
             value={search}
@@ -553,15 +570,20 @@ export default function PickupPointPage({ embedded = false }) {
 
         {search.trim().length >= 2 && searchResults.length ? (
           <div className="pickuppoint-search-results">
-            {searchResults.map((result) => (
-              <button key={result.id} type="button" onClick={() => openSearchResult(result)}>
-                <b>{result.customer_name || ""}</b>
-                <div className="pickuppoint-muted">
-                  {result.orderName}{" "}
-                  — السعر: {formatILS(result.price)}
-                </div>
-              </button>
-            ))}
+            {searchResults.map((result) => {
+              const targetOrder = mergedOrders.find((order) =>
+                (order.orderIds || []).some((id) => String(id) === String(result.order_id))
+              );
+              const orderDisplay = targetOrder?.orderName || "طلبية";
+              return (
+                <button key={result.id} type="button" onClick={() => openSearchResult(result)}>
+                  <b>{result.customer_name || ""}</b>
+                  <div className="pickuppoint-muted">
+                    {orderDisplay} — السعر: {formatILS(result.price)}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         ) : null}
 
@@ -782,7 +804,7 @@ export default function PickupPointPage({ embedded = false }) {
                   <div className="pickup-orders-menu-title">
                     <AppNavIcon name="package" className="icon" />
                     <strong>الطلبات</strong>
-                    <b>{orders.length}</b>
+                    <b>{mergedOrders.length}</b>
                   </div>
                   <button
                     type="button"
@@ -824,29 +846,25 @@ export default function PickupPointPage({ embedded = false }) {
                           </div>
 
                           <div className="group-orders">
-                            {group.orders.map((order) => {
-                              const active = String(order.id) === String(selectedItemId);
-                              return (
-                                <button
-                                  key={order.id}
-                                  type="button"
-                                  className={`order-row order-row-btn ${active ? "selected" : ""}`}
-                                  onClick={() => {
-                                    setSelectedItemId(order.id);
-                                    setOrdersMenuOpen(false);
-                                  }}
-                                >
-                                  <div className="order-main">
-                                    <strong>{order.orderName || "طلبية"}</strong>
-                                    <span>{getOrderDateKey(order) || "—"}</span>
-                                  </div>
+                            <button
+                              type="button"
+                              className={`order-row order-row-btn ${
+                                String(`dropoff-${group.dateKey}`) === String(selectedItemId) ? "selected" : ""
+                              }`}
+                              onClick={() => {
+                                setSelectedItemId(`dropoff-${group.dateKey}`);
+                                setOrdersMenuOpen(false);
+                              }}
+                            >
+                              <div className="order-main">
+                                <strong>{formatDropOffOrderName(group.dateKey)}</strong>
+                                <span>تم إسقاط {group.orders.length} طلب</span>
+                              </div>
 
-                                  <div className="order-meta">
-                                    <small className="status at_pickup">نقطة الاستلام</small>
-                                  </div>
-                                </button>
-                              );
-                            })}
+                              <div className="order-meta">
+                                <small className="status at_pickup">نقطة الاستلام</small>
+                              </div>
+                            </button>
                           </div>
                         </section>
                       ))}

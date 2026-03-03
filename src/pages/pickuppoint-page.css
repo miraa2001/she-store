@@ -702,6 +702,17 @@
     touch-action: pan-x pan-y;
   }
 
+  .pickuppoint-table-wrap::before,
+  .pickuppoint-table-wrap::after {
+    display: none;
+  }
+
+  .pickuppoint-page .pickup-orders-menu-panel,
+  .pickuppoint-page .order-row {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
   .pickuppoint-global-summary,
   .pickuppoint-card {
     border-radius: 16px;

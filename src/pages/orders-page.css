@@ -1917,6 +1917,15 @@
   display: block;
 }
 
+.modal-image-preview-btn {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
 .modal-existing-image span {
   display: block;
   font-size: 10px;
@@ -1954,6 +1963,36 @@
 
 .image-editor-backdrop {
   z-index: 96;
+}
+
+.image-preview-backdrop {
+  z-index: 95;
+}
+
+.image-preview-card {
+  width: min(980px, calc(100vw - 24px));
+  max-height: calc(100svh - 24px);
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.image-preview-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 8px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+}
+
+.image-preview-body img {
+  max-width: 100%;
+  max-height: calc(100svh - 120px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  border-radius: 10px;
 }
 
 .image-editor-card {
