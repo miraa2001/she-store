@@ -13,27 +13,7 @@ const EMOJI = {
   question: "\u2753"
 };
 
-const EMPTY_EMOJI = {
-  sparkleHeart: "",
-  package: "",
-  pin: "",
-  alarm: "",
-  kiss: "",
-  heart: "",
-  bell: "",
-  question: ""
-};
 
-function shouldUseWhatsappEmoji() {
-  if (typeof navigator === "undefined") return true;
-  const ua = String(navigator.userAgent || "");
-  const isIOS = /iPhone|iPad|iPod/i.test(ua);
-  if (!isIOS) return true;
-
-  const iosMatch = ua.match(/OS (\d+)_/i);
-  const iosMajor = iosMatch ? Number(iosMatch[1]) : 0;
-  return Number.isFinite(iosMajor) ? iosMajor < 18 : true;
-}
 
 function normalizePhone(value) {
   const converted = String(value || "")
@@ -78,44 +58,42 @@ function extractFirstName(value) {
 export function buildArrivalNotifyMessage({ pickupPoint, price, customerName }) {
   const priceText = formatILS(price);
   const name = extractFirstName(customerName);
-  const emoji = shouldUseWhatsappEmoji() ? EMOJI : EMPTY_EMOJI;
-  const greeting = name ? `مرحباً ${name} ${emoji.sparkleHeart}` : `مرحباً حبيبتي ${emoji.sparkleHeart}`;
+  const greeting = name ? `مرحباً ${name} ${EMOJI.sparkleHeart}` : `مرحباً حبيبتي ${EMOJI.sparkleHeart}`;
 
   if (pickupPoint === PICKUP_POINT) {
     return [
       greeting,
-      `${emoji.bell} طلبك جاهز في نقطة الاستلام`,
-      `${emoji.pin} كافيه La Aura - سوق الذهب`,
-      `${emoji.alarm} أوقات العمل: من ٨ صباحاً حتى ١٠ مساءً`,
-      `${emoji.package} حسابك: ${priceText} شيكل`
+      `${EMOJI.bell} طلبك جاهز في نقطة الاستلام`,
+      `${EMOJI.pin} كافيه La Aura - سوق الذهب`,
+      `${EMOJI.alarm} أوقات العمل: من ٨ صباحاً حتى ١٠ مساءً`,
+      `${EMOJI.package} حسابك: ${priceText} شيكل`
     ].join("\n");
   }
 
   if (pickupPoint === PICKUP_HOME) {
     return [
       greeting,
-      `${emoji.bell} طلبك جاهز عندي في البيت`,
-      `خبريني قبل بوقت متى رح تستلمي ${emoji.kiss}`,
-      `${emoji.package} حسابك: ${priceText} شيكل`
+      `${EMOJI.bell} طلبك جاهز عندي في البيت`,
+      `خبريني قبل بوقت متى رح تستلمي ${EMOJI.kiss}`,
+      `${EMOJI.package} حسابك: ${priceText} شيكل`
     ].join("\n");
   }
 
   return [
     greeting,
-    `${emoji.bell} طلبك جاهز للاستلام (${pickupPoint || "—"})`,
-    `${emoji.package} حسابك: ${priceText} شيكل`
+    `${EMOJI.bell} طلبك جاهز للاستلام (${pickupPoint || "—"})`,
+    `${EMOJI.package} حسابك: ${priceText} شيكل`
   ].join("\n");
 }
 
 export function buildPickupInquiryMessage() {
-  const emoji = shouldUseWhatsappEmoji() ? EMOJI : EMPTY_EMOJI;
   return [
-    `مرحباً حبيبتي، طلبك وصل ${emoji.package}`,
+    `مرحباً حبيبتي، طلبك وصل ${EMOJI.package}`,
     "بتحبي تستلمي من:",
-    `${emoji.pin} بيتي في الحي الجنوبي`,
+    `${EMOJI.pin} بيتي في الحي الجنوبي`,
     "أو",
-    `${emoji.pin} نقطة الاستلام كافيه La Aura - سوق الذهب ${emoji.question}`,
-    `خبريني لو سمحتي ${emoji.heart}`
+    `${EMOJI.pin} نقطة الاستلام كافيه La Aura - سوق الذهب ${EMOJI.question}`,
+    `خبريني لو سمحتي ${EMOJI.heart}`
   ].join("\n");
 }
 
