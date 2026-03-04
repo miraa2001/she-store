@@ -8,6 +8,7 @@ import {
 } from "../../lib/purchases";
 import {
   buildArrivalNotifyMessage,
+  buildWhatsappUrl,
   buildPickupInquiryMessage,
   resolvePurchaseWhatsappTarget
 } from "../../lib/whatsapp";
@@ -218,8 +219,12 @@ export default function ViewTab({ role, onOpenLightbox, onToast }) {
         price: purchase.price,
         customerName: target.customerName
       });
-      const url = `https://wa.me/${target.phone}?text=${encodeURIComponent(message)}`;
-      window.open(url, "_blank", "noopener,noreferrer");
+      const url = buildWhatsappUrl(target.phone, message);
+      if (url.startsWith("whatsapp://")) {
+        window.location.href = url;
+      } else {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
     } catch (error) {
       console.error(error);
       onToast?.({ type: "danger", text: error?.message || "تعذر فتح واتساب." });
@@ -230,8 +235,12 @@ export default function ViewTab({ role, onOpenLightbox, onToast }) {
     try {
       const target = await resolvePurchaseWhatsappTarget(purchase);
       const message = buildPickupInquiryMessage();
-      const url = `https://wa.me/${target.phone}?text=${encodeURIComponent(message)}`;
-      window.open(url, "_blank", "noopener,noreferrer");
+      const url = buildWhatsappUrl(target.phone, message);
+      if (url.startsWith("whatsapp://")) {
+        window.location.href = url;
+      } else {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
     } catch (error) {
       console.error(error);
       onToast?.({ type: "danger", text: error?.message || "تعذر فتح واتساب." });

@@ -1353,7 +1353,11 @@ export default function OrdersPage() {
         customerName: target.customerName
       });
       const url = buildWhatsappUrl(target.phone, message);
-      window.open(url, "_blank", "noopener,noreferrer");
+      if (url.startsWith("whatsapp://")) {
+        window.location.href = url;
+      } else {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
     } catch (error) {
       console.error(error);
       setToast({ type: "danger", text: error?.message || "تعذر فتح واتساب." });
@@ -1410,7 +1414,11 @@ export default function OrdersPage() {
       const target = await resolvePurchaseWhatsappTarget(purchase);
       const message = buildPickupInquiryMessage();
       const url = buildWhatsappUrl(target.phone, message);
-      window.open(url, "_blank", "noopener,noreferrer");
+      if (url.startsWith("whatsapp://")) {
+        window.location.href = url;
+      } else {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
     } catch (error) {
       console.error(error);
       setToast({ type: "danger", text: error?.message || "تعذر فتح واتساب." });

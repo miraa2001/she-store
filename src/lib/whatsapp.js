@@ -55,13 +55,16 @@ function isIOS18Plus() {
 export function buildWhatsappUrl(phone, message) {
   const safePhone = toWhatsappPhone(phone);
   const safeText = String(message || "");
-  const encodedText = encodeURIComponent(safeText);
+  const params = new URLSearchParams({
+    phone: safePhone,
+    text: safeText
+  });
 
   if (isIOS18Plus()) {
-    return `https://api.whatsapp.com/send?phone=${safePhone}&text=${encodedText}`;
+    return `whatsapp://send?${params.toString()}`;
   }
 
-  return `https://wa.me/${safePhone}?text=${encodedText}`;
+  return `https://wa.me/${safePhone}?text=${encodeURIComponent(safeText)}`;
 }
 
 function extractFirstName(value) {
