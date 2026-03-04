@@ -43,10 +43,25 @@ export function isValidWhatsappPhone(value) {
   return /^(970|972)\d{8,9}$/.test(phone);
 }
 
+function isIOS18Plus() {
+  if (typeof navigator === "undefined") return false;
+  const ua = String(navigator.userAgent || "");
+  if (!/iPhone|iPad|iPod/i.test(ua)) return false;
+  const match = ua.match(/OS (\d+)_/i);
+  const major = match ? Number(match[1]) : 0;
+  return Number.isFinite(major) && major >= 18;
+}
+
 export function buildWhatsappUrl(phone, message) {
   const safePhone = toWhatsappPhone(phone);
-  const safeText = String(message || "").normalize("NFC");
-  return `https://wa.me/${safePhone}?text=${encodeURIComponent(safeText)}`;
+  const safeText = String(message || "");
+  const encodedText = encodeURIComponent(safeText);
+
+  if (isIOS18Plus()) {
+    return `https://api.whatsapp.com/send?phone=${safePhone}&text=${encodedText}`;
+  }
+
+  return `https://wa.me/${safePhone}?text=${encodedText}`;
 }
 
 function extractFirstName(value) {
