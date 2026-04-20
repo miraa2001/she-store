@@ -216,7 +216,7 @@ export default function ViewTab({ role, onOpenLightbox, onToast }) {
       const target = await resolvePurchaseWhatsappTarget(purchase);
       const message = buildArrivalNotifyMessage({
         pickupPoint: purchase.pickup_point,
-        price: purchase.price,
+        price: purchase.paid_price ?? purchase.price,
         customerName: target.customerName
       });
       const url = buildWhatsappUrl(target.phone, message);
@@ -302,7 +302,7 @@ export default function ViewTab({ role, onOpenLightbox, onToast }) {
                 >
                   <b>{result.customer_name || "—"}</b>
                   <span>
-                    {order?.name || "طلبية"} — العدد: {result.qty ?? 0} — السعر: {result.price ?? 0}
+                    {order?.name || "طلبية"} — العدد: {result.qty ?? 0} — المدفوع: {formatILS(result.paid_price ?? result.price)} ₪
                   </span>
                 </button>
               );
@@ -426,10 +426,7 @@ export default function ViewTab({ role, onOpenLightbox, onToast }) {
                         >
                           <div><b>الزبون:</b> {selectedPurchase.customer_name || "—"}</div>
                           <div><b>العدد:</b> {selectedPurchase.qty ?? 0}</div>
-                          {role === "rahaf" ? (
-                            <div><b>السعر:</b> {selectedPurchase.price ?? 0}</div>
-                          ) : null}
-                          <div><b>السعر المدفوع:</b> {selectedPurchase.paid_price ?? selectedPurchase.price ?? 0}</div>
+                          <div><b>المدفوع:</b> {formatILS(selectedPurchase.paid_price ?? selectedPurchase.price)} ₪</div>
                           <div>
                             <b>حجم الكيس:</b> {renderBagControl(selectedPurchase)}
                           </div>
@@ -494,8 +491,7 @@ export default function ViewTab({ role, onOpenLightbox, onToast }) {
                             <th>#</th>
                             <th>الزبون</th>
                             <th>العدد</th>
-                            {role === "rahaf" ? <th>السعر</th> : null}
-                            <th>السعر المدفوع</th>
+                            <th>المدفوع</th>
                             <th>مكان الاستلام</th>
                             <th>حجم الكيس</th>
                             <th>روابط</th>
@@ -518,7 +514,6 @@ export default function ViewTab({ role, onOpenLightbox, onToast }) {
                               <td>{index + 1}</td>
                               <td>{purchase.customer_name || "—"}</td>
                               <td>{purchase.qty ?? 0}</td>
-                              {role === "rahaf" ? <td>{formatILS(purchase.price)} ₪</td> : null}
                               <td>{formatILS(purchase.paid_price ?? purchase.price)} ₪</td>
                               <td>{purchase.pickup_point || "—"}</td>
                               <td>{renderBagControl(purchase)}</td>

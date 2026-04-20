@@ -1,14 +1,24 @@
+import { PICKUP_POINT_LOCATIONS, getPickupRouteHashForRole } from "./pickup";
+
 const ROLE_LABELS = {
   rahaf: "رهف",
   reem: "ريم",
   rawand: "روند",
-  laaura: "لارا"
+  laaura: "لارا",
+  maryamti: "مريمتي"
 };
 
+const PICKUP_NAV_ITEMS = PICKUP_POINT_LOCATIONS.map((location) => ({
+  id: location.navId,
+  label: location.navLabel,
+  href: location.routeHash,
+  icon: "home"
+}));
+
 const ORDERS_NAV_ITEMS = [
-  { id: "orders", label: "الطلبات", href: "#/orders", icon: "package" },
+  { id: "orders", label: "الطلبيات", href: "#/orders", icon: "package" },
   { id: "pickup-dashboard", label: "لوحة الاستلام", href: "#/pickup-dashboard", icon: "map" },
-  { id: "pickuppoint", label: "نقطة الاستلام", href: "#/pickuppoint", icon: "home" },
+  ...PICKUP_NAV_ITEMS,
   { id: "archive", label: "الأرشيف", href: "#/archive", icon: "archive" },
   { id: "finance", label: "المالية", href: "#/finance", icon: "dollar" },
   { id: "homepickup", label: "استلام المنزل", href: "#/homepickup", icon: "truck" }
@@ -18,7 +28,8 @@ const ORDERS_NAV_ACCESS = {
   rahaf: ["orders", "pickup-dashboard", "archive", "finance"],
   reem: ["orders", "pickup-dashboard", "homepickup"],
   rawand: ["orders", "pickup-dashboard", "homepickup"],
-  laaura: ["orders", "pickuppoint"]
+  laaura: ["orders", "pickuppoint-laaura"],
+  maryamti: ["orders", "pickuppoint-maryamti"]
 };
 
 const PICKUP_SIDEBAR_LINKS_BY_ROLE = {
@@ -39,10 +50,11 @@ const PICKUP_SIDEBAR_LINKS_BY_ROLE = {
 };
 
 const PICKUP_TABS_BY_ROLE = {
-  rahaf: ["home", "aura", "collections"],
+  rahaf: ["home", "laaura", "maryamti", "collections"],
   reem: ["home"],
   rawand: ["home"],
-  laaura: ["aura"]
+  laaura: ["laaura"],
+  maryamti: ["maryamti"]
 };
 
 export function getRoleLabel(role) {
@@ -60,6 +72,13 @@ export function getPickupDashboardTabs(role) {
 
 export function getPickupSidebarLinks(role) {
   return PICKUP_SIDEBAR_LINKS_BY_ROLE[role] || [];
+}
+
+export function getRoleLandingHref(role) {
+  if (role === "laaura" || role === "maryamti") {
+    return getPickupRouteHashForRole(role);
+  }
+  return "#/orders";
 }
 
 export function isNavHrefActive(href, location) {

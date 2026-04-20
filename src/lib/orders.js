@@ -141,7 +141,7 @@ export async function fetchOrdersWithSummary() {
     const id = purchase.order_id;
     if (!id) return;
 
-    const next = (totals.get(id) || 0) + parsePrice(purchase.price);
+    const next = (totals.get(id) || 0) + parsePrice(purchase.paid_price ?? purchase.price);
     totals.set(id, next);
     purchaseCounts.set(id, (purchaseCounts.get(id) || 0) + 1);
 

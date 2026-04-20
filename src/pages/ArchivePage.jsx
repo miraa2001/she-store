@@ -463,12 +463,6 @@ export default function ArchivePage() {
                             <th>
                               <span className="archive-th-label">
                                 <img src={amountHeaderIcon} alt="" className="archive-th-icon" aria-hidden="true" />
-                                <span>السعر</span>
-                              </span>
-                            </th>
-                            <th>
-                              <span className="archive-th-label">
-                                <img src={amountHeaderIcon} alt="" className="archive-th-icon" aria-hidden="true" />
                                 <span>المدفوع</span>
                               </span>
                             </th>
@@ -480,17 +474,12 @@ export default function ArchivePage() {
                               <tr key={purchase.id}>
                                 <td>{purchase.customer_name || ""}</td>
                                 <td>{purchase.pickup_point || ""}</td>
-                                <td>{formatILS(parsePrice(purchase.price))} ₪</td>
-                                <td>
-                                  {purchase.paid_price === null || purchase.paid_price === undefined || purchase.paid_price === ""
-                                    ? "—"
-                                    : `${formatILS(parsePrice(purchase.paid_price))} ₪`}
-                                </td>
+                                <td>{formatILS(parsePrice(purchase.paid_price ?? purchase.price))} ₪</td>
                               </tr>
                             ))
                           ) : (
                             <tr>
-                              <td colSpan={4} className="archive-muted">
+                              <td colSpan={3} className="archive-muted">
                                 لا يوجد مشتريات
                               </td>
                             </tr>

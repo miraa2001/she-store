@@ -119,7 +119,7 @@ export default function KanbanView({ purchases, onMovePurchase, onOpenLightbox, 
 
                   <div className="kanban-meta">
                     <span>{purchase.qty || 0} قطع</span>
-                    <span>{formatILS(purchase.price)} ₪</span>
+                    <span>{formatILS(purchase.paid_price ?? purchase.price)} ₪</span>
                   </div>
                 </article>
               );

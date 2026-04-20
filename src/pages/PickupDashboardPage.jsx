@@ -9,6 +9,7 @@ import SessionLoader from "../components/common/SessionLoader";
 import HomePickupPage from "./HomePickupPage";
 import PickupPointPage from "./PickupPointPage";
 import CollectionsPage from "./CollectionsPage";
+import { isPickupPointRole } from "../lib/pickup";
 import "./pickup-dashboard-page.css";
 import SheStoreLogo from "../components/common/SheStoreLogo";
 import homePickupsIcon from "../assets/icons/pickup-dashboard/home-pickups.png";
@@ -17,7 +18,8 @@ import moneyCollectionsIcon from "../assets/icons/pickup-dashboard/money-collect
 
 const TAB_CONFIG = {
   home: { id: "home", label: "مستلمو البيت", icon: homePickupsIcon },
-  aura: { id: "aura", label: "La Aura", icon: laauraPickupsIcon },
+  laaura: { id: "laaura", label: "La Aura", icon: laauraPickupsIcon },
+  maryamti: { id: "maryamti", label: "مريمتي", icon: laauraPickupsIcon },
   collections: { id: "collections", label: "تحصيل المبالغ", icon: moneyCollectionsIcon }
 };
 
@@ -29,7 +31,7 @@ export default function PickupDashboardPage() {
 
   const roleTabs = useMemo(() => getPickupDashboardTabs(profile.role), [profile.role]);
   const sidebarLinks = useMemo(() => getOrdersNavItems(profile.role), [profile.role]);
-  const showSidebar = profile.role !== "laaura";
+  const showSidebar = !isPickupPointRole(profile.role);
 
   useEffect(() => {
     const firstTab = roleTabs[0];
@@ -62,7 +64,8 @@ export default function PickupDashboardPage() {
 
   function renderPanel(tabId) {
     if (tabId === "home") return <HomePickupPage embedded />;
-    if (tabId === "aura") return <PickupPointPage embedded />;
+    if (tabId === "laaura") return <PickupPointPage key="laaura" embedded locationId="laaura" />;
+    if (tabId === "maryamti") return <PickupPointPage key="maryamti" embedded locationId="maryamti" />;
     if (tabId === "collections") return <CollectionsPage embedded />;
     return null;
   }

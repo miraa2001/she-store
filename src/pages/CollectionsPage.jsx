@@ -5,7 +5,7 @@ import { useAuthProfile } from "../hooks/useAuthProfile";
 import { formatDMY } from "../lib/dateFormat";
 import { getOrdersNavItems, isNavHrefActive } from "../lib/navigation";
 import { formatILS, parsePrice } from "../lib/orders";
-import { isAuraPickup, PICKUP_HOME } from "../lib/pickup";
+import { PICKUP_HOME, isPickupPointPickup } from "../lib/pickup";
 import { setBodyScrollLock } from "../lib/bodyScrollLock";
 import { signOutAndRedirect } from "../lib/session";
 import { sb } from "../lib/supabaseClient";
@@ -146,7 +146,7 @@ export default function CollectionsPage({ embedded = false }) {
           const list = order.purchases || [];
           if (!list.length) return false;
 
-          return list.some((p) => p.pickup_point === PICKUP_HOME || isAuraPickup(p.pickup_point));
+          return list.some((p) => p.pickup_point === PICKUP_HOME || isPickupPointPickup(p.pickup_point));
         })
         .map((order) => {
           const allCollected = (order.purchases || []).every((purchase) => !!purchase.collected);
@@ -198,7 +198,7 @@ export default function CollectionsPage({ embedded = false }) {
 
       const list = data || [];
       setHomeList(list.filter((purchase) => purchase.pickup_point === PICKUP_HOME));
-      setPickupList(list.filter((purchase) => isAuraPickup(purchase.pickup_point)));
+      setPickupList(list.filter((purchase) => isPickupPointPickup(purchase.pickup_point)));
     } catch (err) {
       console.error(err);
       setError("تعذر تحميل بيانات التحصيل.");
@@ -308,7 +308,7 @@ export default function CollectionsPage({ embedded = false }) {
               <SheStoreLogo className="topbar-logo-link" imageClassName="topbar-logo-img" />
               <div className="collections-brand">
                 <b>تحصيل المبالغ</b>
-                <div className="collections-muted">طلبات البيت ونقطة الاستلام</div>
+                <div className="collections-muted">طلبات البيت ونقاط الاستلام</div>
               </div>
             </div>
             <button type="button" className="collections-menu-btn" onClick={() => setSidebarOpen(true)}>
@@ -355,7 +355,7 @@ export default function CollectionsPage({ embedded = false }) {
                   <div className="collections-row collections-top-pills-row">
                     <span className="collections-pill">عدد المشتريات: {homeList.length + pickupList.length}</span>
                     <span className="collections-pill">مجموع البيت: {formatILS(homeTotal)} ₪</span>
-                    <span className="collections-pill">مجموع نقطة الاستلام: {formatILS(pickupTotal)} ₪</span>
+                    <span className="collections-pill">مجموع نقاط الاستلام: {formatILS(pickupTotal)} ₪</span>
                     <span className="collections-pill">المجموع الكلي: {formatILS(grandTotal)} ₪</span>
                   </div>
                 </div>
@@ -440,7 +440,7 @@ export default function CollectionsPage({ embedded = false }) {
                     <section className="collections-method-section">
                       <div className="collections-section-title collections-section-title--with-icon">
                         <AppNavIcon name="map" className="icon" />
-                        <span>نقطة الاستلام - La Aura</span>
+                        <span>نقاط الاستلام</span>
                       </div>
                       <div className="collections-method-summary">
                         <div className="collections-method-summary-row">

@@ -305,7 +305,7 @@ export default function HomePickupPage({ embedded = false }) {
         buildPickupStatusMessage({
           picked: payload.picked_up,
           customerName: target.customer_name,
-          price: target.price,
+          price: target.paid_price ?? target.price,
           pickupLabel: PICKUP_HOME
         })
       );
@@ -445,7 +445,9 @@ export default function HomePickupPage({ embedded = false }) {
         </header>
 
         <div className="homepickup-kanban-meta">
-          <span>السعر: {formatILS(parsePrice(purchase.price))} ₪</span>
+          {!isRahaf ? (
+            <span>المدفوع: {formatILS(parsePrice(purchase.paid_price ?? purchase.price))} ₪</span>
+          ) : null}
           {isRahaf ? (
             isEditing ? (
               <input
@@ -613,7 +615,7 @@ export default function HomePickupPage({ embedded = false }) {
               <button key={result.id} type="button" onClick={() => openSearchResult(result)}>
                 <b>{result.customer_name || ""}</b>
                 <div className="homepickup-muted">
-                  {result.orderName} — السعر: {result.price ?? ""}
+                  {result.orderName} — المدفوع: {formatILS(result.paid_price ?? result.price)} ₪
                 </div>
               </button>
             ))}
@@ -729,18 +731,16 @@ export default function HomePickupPage({ embedded = false }) {
                             <th>
                               <span className="homepickup-th-label">
                                 <img src={priceHeaderIcon} alt="" className="homepickup-th-icon" aria-hidden="true" />
-                                <span>السعر</span>
+                                <span>المدفوع</span>
                               </span>
                             </th>
                             {isRahaf ? (
-                              <th>
+                              <th className="homepickup-edit-col">
                                 <span className="homepickup-th-label">
-                                  <img src={priceHeaderIcon} alt="" className="homepickup-th-icon" aria-hidden="true" />
-                                  <span>المدفوع</span>
+                                  <span>تعديل المدفوع</span>
                                 </span>
                               </th>
                             ) : null}
-                            {isRahaf ? <th className="homepickup-edit-col" /> : null}
                             <th>
                               <span className="homepickup-th-label">
                                 <img src={imagesHeaderIcon} alt="" className="homepickup-th-icon" aria-hidden="true" />
@@ -772,29 +772,27 @@ export default function HomePickupPage({ embedded = false }) {
                                     {isHighlight ? <div className="homepickup-highlight">✅ نتيجة البحث</div> : null}
                                     {purchase.customer_name || ""}
                                   </td>
-                                  <td>{purchase.paid_price ?? purchase.price ?? ""}</td>
+                                  <td>{formatILS(purchase.paid_price ?? purchase.price)} ₪</td>
 
                                   {isRahaf ? (
                                     <>
-                                      <td>
-                                        {isEditing ? (
-                                          <input
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            value={paidEditor.value}
-                                            onChange={(event) =>
-                                              setPaidEditor((prev) => ({ ...prev, value: event.target.value }))
-                                            }
-                                            className="homepickup-paid-input pickup-input mini"
-                                          />
-                                        ) : (
-                                          purchase.paid_price ?? "—"
-                                        )}
-                                      </td>
                                       <td className="homepickup-edit-col">
                                         {isEditing ? (
                                           <div className="homepickup-edit-actions pickup-edit-actions">
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              step="0.01"
+                                              value={paidEditor.value}
+                                              onChange={(event) =>
+                                                setPaidEditor((prev) => ({ ...prev, value: event.target.value }))
+                                              }
+                                              className="homepickup-paid-input pickup-input mini"
+                                              onKeyDown={(event) => {
+                                                if (event.key === "Enter") savePaidPrice();
+                                                if (event.key === "Escape") cancelEditPaid();
+                                              }}
+                                            />
                                             <button
                                               type="button"
                                               className="homepickup-btn mini"

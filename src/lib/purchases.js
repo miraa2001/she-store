@@ -261,6 +261,24 @@ export async function markPurchasePaidPrice(purchaseId, paidPrice) {
   if (error) throw error;
 }
 
+export async function movePurchasesToOrder(purchaseIds, targetOrderId) {
+  const ids = Array.isArray(purchaseIds)
+    ? purchaseIds.map((id) => String(id || "").trim()).filter(Boolean)
+    : [];
+  const orderId = String(targetOrderId || "").trim();
+
+  if (!ids.length) {
+    throw new Error("يجب اختيار مشتريات للنقل.");
+  }
+
+  if (!orderId) {
+    throw new Error("يجب اختيار الطلب الهدف.");
+  }
+
+  const { error } = await sb.from("purchases").update({ order_id: orderId }).in("id", ids);
+  if (error) throw error;
+}
+
 export async function updatePurchaseBagSize(purchaseId, bagSize) {
   const { error } = await sb.from("purchases").update({ bag_size: bagSize }).eq("id", purchaseId);
   if (error) throw error;
@@ -272,7 +290,7 @@ export async function searchPurchasesByCustomerName(query, limit = 50) {
 
   const { data, error } = await sb
     .from("purchases")
-    .select("id, order_id, customer_name, price, qty, created_at")
+    .select("id, order_id, customer_name, price, paid_price, qty, created_at")
     .ilike("customer_name", `%${text}%`)
     .order("created_at", { ascending: false })
     .limit(limit);

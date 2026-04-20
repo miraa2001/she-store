@@ -4,10 +4,10 @@ import { useLocation } from "react-router-dom";
 import { formatDMY, formatDateTime } from "../lib/dateFormat";
 import { useAuthProfile } from "../hooks/useAuthProfile";
 import { usePurchaseCustomerSearch } from "../hooks/usePurchaseCustomerSearch";
-import { getOrdersNavItems, isNavHrefActive } from "../lib/navigation";
+import { getOrdersNavItems, getRoleLabel, isNavHrefActive } from "../lib/navigation";
 import { formatILS, parsePrice } from "../lib/orders";
 import { buildCollectedMoneyMessage, buildPickupStatusMessage, notifyPickupStatus } from "../lib/pickupNotifications";
-import { isAuraPickup, PICKUP_POINT } from "../lib/pickup";
+import { getPickupLocationById, isPickupPointForLocation } from "../lib/pickup";
 import { setBodyScrollLock } from "../lib/bodyScrollLock";
 import { signOutAndRedirect } from "../lib/session";
 import { sb } from "../lib/supabaseClient";
@@ -22,8 +22,6 @@ import pickedUpHeaderIcon from "../assets/icons/pickup/picked-up.png";
 import pickupTimeHeaderIcon from "../assets/icons/pickup/pickup-time.png";
 import "./pickup-common.css";
 import "./pickuppoint-page.css";
-
-const AURA_PICKUP_LABEL = `${PICKUP_POINT} (La Aura)`;
 
 function getOrderDateKey(order) {
   return formatDMY(order?.placedAtPickupAt || order?.orderDate || order?.createdAt);
@@ -65,8 +63,9 @@ function buildMergedOrders(orderGroups) {
   }));
 }
 
-export default function PickupPointPage({ embedded = false }) {
+export default function PickupPointPage({ embedded = false, locationId = "laaura" }) {
   const { profile } = useAuthProfile();
+  const pickupLocation = useMemo(() => getPickupLocationById(locationId), [locationId]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [orders, setOrders] = useState([]);
   const [selectedItemId, setSelectedItemId] = useState("");
@@ -87,21 +86,21 @@ export default function PickupPointPage({ embedded = false }) {
   const purchaseRowRefs = useRef(new Map());
 
   const isRahaf = profile.role === "rahaf";
-  const isLaaura = profile.role === "laaura";
-  const canAccess = isRahaf || isLaaura;
+  const isLocationRole = profile.role === pickupLocation.role;
+  const canAccess = isRahaf || isLocationRole;
   const sidebarLinks = useMemo(
     () => (isRahaf ? getOrdersNavItems(profile.role) : []),
     [isRahaf, profile.role]
   );
   const ordersMenuPortalTarget = typeof document !== "undefined" ? document.body : null;
-  const auraSearchPostFilter = useCallback(
-    (purchase) => isAuraPickup(purchase.pickup_point),
-    []
+  const pickupSearchPostFilter = useCallback(
+    (purchase) => isPickupPointForLocation(purchase.pickup_point, pickupLocation.id),
+    [pickupLocation.id]
   );
   const { searchResults, searchLoading, clearSearchResults } = usePurchaseCustomerSearch({
     search,
     orders,
-    postFilter: auraSearchPostFilter
+    postFilter: pickupSearchPostFilter
   });
 
   const groupedOrders = useMemo(() => buildOrderGroups(orders), [orders]);
@@ -112,10 +111,10 @@ export default function PickupPointPage({ embedded = false }) {
   }, [mergedOrders, selectedItemId]);
 
   const selectedOrderIds = useMemo(() => {
-    if (isLaaura) return allOrderIds;
+    if (isLocationRole) return allOrderIds;
     if (!selectedOrder) return [];
     return selectedOrder.orderIds || [];
-  }, [allOrderIds, isLaaura, selectedOrder]);
+  }, [allOrderIds, isLocationRole, selectedOrder]);
 
   const visiblePurchases = useMemo(() => purchases.filter((purchase) => !purchase.collected), [purchases]);
   const pickedTotal = useMemo(
@@ -125,7 +124,7 @@ export default function PickupPointPage({ embedded = false }) {
         .reduce((sum, purchase) => sum + parsePrice(purchase.paid_price ?? purchase.price), 0),
     [visiblePurchases]
   );
-  const laauraOrderSections = useMemo(() => {
+  const pickupOrderSections = useMemo(() => {
     return groupedOrders
       .map((group) => {
         const ids = new Set(group.orders.map((order) => String(order.id)));
@@ -183,7 +182,7 @@ export default function PickupPointPage({ embedded = false }) {
   }, [location.pathname, location.search, location.hash]);
 
   useEffect(() => {
-    if (isLaaura) {
+    if (isLocationRole) {
       setSelectedItemId("");
       if (!orders.length) setPurchases([]);
       return;
@@ -195,7 +194,7 @@ export default function PickupPointPage({ embedded = false }) {
     });
 
     if (!mergedOrders.length) setPurchases([]);
-  }, [isLaaura, mergedOrders, orders.length]);
+  }, [isLocationRole, mergedOrders, orders.length]);
 
   const loadOrders = useCallback(async () => {
     setLoadingOrders(true);
@@ -208,8 +207,10 @@ export default function PickupPointPage({ embedded = false }) {
 
       if (purchasesError) throw purchasesError;
 
-      const pendingAura = (purchaseRows || []).filter((purchase) => isAuraPickup(purchase.pickup_point));
-      const orderIds = Array.from(new Set(pendingAura.map((purchase) => purchase.order_id)));
+      const pendingPickupRows = (purchaseRows || []).filter((purchase) =>
+        isPickupPointForLocation(purchase.pickup_point, pickupLocation.id)
+      );
+      const orderIds = Array.from(new Set(pendingPickupRows.map((purchase) => purchase.order_id)));
 
       if (!orderIds.length) {
         setOrders([]);
@@ -241,7 +242,7 @@ export default function PickupPointPage({ embedded = false }) {
     } finally {
       setLoadingOrders(false);
     }
-  }, []);
+  }, [pickupLocation.id]);
 
   const loadPurchases = useCallback(async (orderIds) => {
     if (!orderIds?.length) {
@@ -261,7 +262,9 @@ export default function PickupPointPage({ embedded = false }) {
 
       if (purchasesError) throw purchasesError;
 
-      setPurchases((data || []).filter((purchase) => isAuraPickup(purchase.pickup_point)));
+      setPurchases(
+        (data || []).filter((purchase) => isPickupPointForLocation(purchase.pickup_point, pickupLocation.id))
+      );
       setPaidEditor({ id: "", value: "", saving: false });
     } catch (err) {
       console.error(err);
@@ -270,7 +273,7 @@ export default function PickupPointPage({ embedded = false }) {
     } finally {
       setLoadingPurchases(false);
     }
-  }, []);
+  }, [pickupLocation.id]);
 
   const loadAllOrdersTotal = useCallback(async () => {
     if (!isRahaf) {
@@ -291,11 +294,11 @@ export default function PickupPointPage({ embedded = false }) {
     }
 
     const total = (data || [])
-      .filter((purchase) => isAuraPickup(purchase.pickup_point))
+      .filter((purchase) => isPickupPointForLocation(purchase.pickup_point, pickupLocation.id))
       .reduce((sum, purchase) => sum + parsePrice(purchase.paid_price ?? purchase.price), 0);
 
     setAllOrdersTotal(total);
-  }, [isRahaf]);
+  }, [isRahaf, pickupLocation.id]);
 
   useEffect(() => {
     if (profile.loading || !profile.authenticated || !canAccess) return;
@@ -344,8 +347,8 @@ export default function PickupPointPage({ embedded = false }) {
         buildPickupStatusMessage({
           picked: payload.picked_up,
           customerName: target.customer_name,
-          price: target.price,
-          pickupLabel: AURA_PICKUP_LABEL
+          price: target.paid_price ?? target.price,
+          pickupLabel: pickupLocation.pickupLabel
         })
       );
     }
@@ -379,7 +382,7 @@ export default function PickupPointPage({ embedded = false }) {
       return;
     }
     await notifyPickupStatus(
-      buildCollectedMoneyMessage({ pickupLabel: AURA_PICKUP_LABEL, amountText: pendingText })
+      buildCollectedMoneyMessage({ pickupLabel: pickupLocation.pickupLabel, amountText: pendingText })
     );
     await loadOrders();
     await loadAllOrdersTotal();
@@ -400,15 +403,17 @@ export default function PickupPointPage({ embedded = false }) {
       return;
     }
 
-    const auraList = (data || []).filter((purchase) => isAuraPickup(purchase.pickup_point));
-    const total = auraList.reduce((sum, purchase) => sum + parsePrice(purchase.paid_price ?? purchase.price), 0);
+    const pickupList = (data || []).filter((purchase) =>
+      isPickupPointForLocation(purchase.pickup_point, pickupLocation.id)
+    );
+    const total = pickupList.reduce((sum, purchase) => sum + parsePrice(purchase.paid_price ?? purchase.price), 0);
     if (total <= 0) return;
 
-    const ok = window.confirm(`تأكيد تحصيل كل المبالغ (${auraList.length} مشتريات) بمبلغ ${formatILS(total)} ₪؟`);
+    const ok = window.confirm(`تأكيد تحصيل كل المبالغ (${pickupList.length} مشتريات) بمبلغ ${formatILS(total)} ₪؟`);
     if (!ok) return;
 
     setCollectingAll(true);
-    const ids = auraList.map((purchase) => purchase.id);
+    const ids = pickupList.map((purchase) => purchase.id);
     const { error: collectError } = await sb
       .from("purchases")
       .update({ collected: true, collected_at: new Date().toISOString() })
@@ -420,7 +425,7 @@ export default function PickupPointPage({ embedded = false }) {
       return;
     }
     await notifyPickupStatus(
-      buildCollectedMoneyMessage({ pickupLabel: AURA_PICKUP_LABEL, amountText: formatILS(total) })
+      buildCollectedMoneyMessage({ pickupLabel: pickupLocation.pickupLabel, amountText: formatILS(total) })
     );
     await loadOrders();
     await loadAllOrdersTotal();
@@ -476,7 +481,7 @@ export default function PickupPointPage({ embedded = false }) {
       (order.orderIds || []).some((id) => String(id) === String(result.order_id))
     );
     if (!targetOrder) return;
-    if (!isLaaura) {
+    if (!isLocationRole) {
       setSelectedItemId(targetOrder.id);
     }
 
@@ -526,7 +531,7 @@ export default function PickupPointPage({ embedded = false }) {
       <div className="pickuppoint-page pickuppoint-state" dir="rtl">
         <div className="pickuppoint-note pickuppoint-note-danger">
           <h2>لا توجد صلاحية</h2>
-          <p>هذه الصفحة متاحة لرهف أو لارا فقط.</p>
+          <p>هذه الصفحة متاحة لرهف أو {getRoleLabel(pickupLocation.role)} فقط.</p>
           <a href="#/pickup-dashboard" className="pickuppoint-link">
             العودة
           </a>
@@ -582,8 +587,8 @@ export default function PickupPointPage({ embedded = false }) {
             <div className="topbar-brand-with-logo">
               <SheStoreLogo className="topbar-logo-link" imageClassName="topbar-logo-img" />
               <div className="pickuppoint-brand">
-                <b>نقطة الاستلام - La Aura</b>
-                <div className="pickuppoint-muted">طلبات الاستلام من نقطة الاستلام</div>
+                <b>{pickupLocation.pageTitle}</b>
+                <div className="pickuppoint-muted">{pickupLocation.pageSubtitle}</div>
               </div>
             </div>
             <button type="button" className="pickuppoint-menu-btn" onClick={() => setSidebarOpen(true)}>
@@ -593,7 +598,7 @@ export default function PickupPointPage({ embedded = false }) {
         ) : null}
 
         <div className="pickuppoint-search-row pickup-section-header">
-          {!isLaaura ? (
+          {!isLocationRole ? (
           <button
             type="button"
             className="pickup-orders-menu-trigger"
@@ -629,7 +634,7 @@ export default function PickupPointPage({ embedded = false }) {
                 <button key={result.id} type="button" onClick={() => openSearchResult(result)}>
                   <b>{result.customer_name || ""}</b>
                   <div className="pickuppoint-muted">
-                    {orderDisplay} — السعر: {formatILS(result.price)}
+                    {orderDisplay} — المدفوع: {formatILS(result.paid_price ?? result.price)}
                   </div>
                 </button>
               );
@@ -656,7 +661,7 @@ export default function PickupPointPage({ embedded = false }) {
               </div>
             ) : null}
 
-            {isLaaura ? (
+            {isLocationRole ? (
               <>
                 {loadingPurchases ? (
                   <div className="pickuppoint-spacer">
@@ -664,7 +669,7 @@ export default function PickupPointPage({ embedded = false }) {
                   </div>
                 ) : null}
 
-                {!loadingPurchases && !laauraOrderSections.length ? (
+                {!loadingPurchases && !pickupOrderSections.length ? (
                   <div className="pickuppoint-muted pickuppoint-spacer">
                     {"\u0644\u0627 \u064A\u0648\u062C\u062F \u0628\u064A\u0627\u0646\u0627\u062A"}
                     <div className="pickuppoint-refresh-row">
@@ -675,9 +680,9 @@ export default function PickupPointPage({ embedded = false }) {
                   </div>
                 ) : null}
 
-                {!loadingPurchases && laauraOrderSections.length ? (
+                {!loadingPurchases && pickupOrderSections.length ? (
                   <div className="pickuppoint-laaura-groups">
-                    {laauraOrderSections.map((section) => (
+                    {pickupOrderSections.map((section) => (
                       <section key={section.id} className="pickuppoint-laaura-group">
                         <div className="pickuppoint-row">
                           <div>
@@ -710,7 +715,7 @@ export default function PickupPointPage({ embedded = false }) {
                                 <th>
                                   <span className="pickuppoint-th-label">
                                     <img src={priceHeaderIcon} alt="" className="pickuppoint-th-icon" aria-hidden="true" />
-                                    <span>{"\u0627\u0644\u0633\u0639\u0631"}</span>
+                                    <span>{"\u0627\u0644\u0645\u062F\u0641\u0648\u0639"}</span>
                                   </span>
                                 </th>
                                 <th>
@@ -824,18 +829,16 @@ export default function PickupPointPage({ embedded = false }) {
                           <th>
                             <span className="pickuppoint-th-label">
                               <img src={priceHeaderIcon} alt="" className="pickuppoint-th-icon" aria-hidden="true" />
-                              <span>السعر</span>
+                              <span>المدفوع</span>
                             </span>
                           </th>
                           {isRahaf ? (
-                            <th>
+                            <th className="pickuppoint-edit-col">
                               <span className="pickuppoint-th-label">
-                                <img src={priceHeaderIcon} alt="" className="pickuppoint-th-icon" aria-hidden="true" />
-                                <span>المدفوع</span>
+                                <span>تعديل المدفوع</span>
                               </span>
                             </th>
                           ) : null}
-                          {isRahaf ? <th className="pickuppoint-edit-col" /> : null}
                           <th>
                             <span className="pickuppoint-th-label">
                               <img src={bagHeaderIcon} alt="" className="pickuppoint-th-icon" aria-hidden="true" />
@@ -873,9 +876,9 @@ export default function PickupPointPage({ embedded = false }) {
                                 <td>{purchase.customer_name || ""}</td>
                                 <td>{formatILS(purchase.paid_price ?? purchase.price)}</td>
                                 {isRahaf ? (
-                                  <>
-                                    <td>
-                                      {isEditing ? (
+                                  <td className="pickuppoint-edit-col">
+                                    {isEditing ? (
+                                      <div className="pickuppoint-edit-actions pickup-edit-actions">
                                         <input
                                           type="number"
                                           min="0"
@@ -890,41 +893,33 @@ export default function PickupPointPage({ embedded = false }) {
                                             if (event.key === "Escape") cancelEditPaid();
                                           }}
                                         />
-                                      ) : (
-                                        purchase.paid_price ?? "—"
-                                      )}
-                                    </td>
-                                    <td className="pickuppoint-edit-col">
-                                      {isEditing ? (
-                                        <div className="pickuppoint-edit-actions pickup-edit-actions">
-                                          <button
-                                            type="button"
-                                            className="pickuppoint-btn mini"
-                                            onClick={savePaidPrice}
-                                            disabled={paidEditor.saving}
-                                          >
-                                            ✅
-                                          </button>
-                                          <button
-                                            type="button"
-                                            className="pickuppoint-btn mini"
-                                            onClick={cancelEditPaid}
-                                            disabled={paidEditor.saving}
-                                          >
-                                            ✖
-                                          </button>
-                                        </div>
-                                      ) : (
                                         <button
                                           type="button"
                                           className="pickuppoint-btn mini"
-                                          onClick={() => startEditPaid(purchase)}
+                                          onClick={savePaidPrice}
+                                          disabled={paidEditor.saving}
                                         >
-                                          ✏️
+                                          ✅
                                         </button>
-                                      )}
-                                    </td>
-                                  </>
+                                        <button
+                                          type="button"
+                                          className="pickuppoint-btn mini"
+                                          onClick={cancelEditPaid}
+                                          disabled={paidEditor.saving}
+                                        >
+                                          ✖
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        className="pickuppoint-btn mini"
+                                        onClick={() => startEditPaid(purchase)}
+                                      >
+                                        ✏️
+                                      </button>
+                                    )}
+                                  </td>
                                 ) : null}
                                 <td>{purchase.bag_size || "—"}</td>
                                 <td>
@@ -960,7 +955,7 @@ export default function PickupPointPage({ embedded = false }) {
         </div>
       </div>
 
-      {ordersMenuPortalTarget && !isLaaura
+      {ordersMenuPortalTarget && !isLocationRole
         ? createPortal(
             <div
               className={`pickup-orders-menu-overlay ${ordersMenuOpen ? "open" : ""}`}

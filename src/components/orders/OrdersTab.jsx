@@ -27,6 +27,7 @@ export default function OrdersTab({
   editMode,
   onUpdateOrderStatus,
   onOpenAddModal,
+  onOpenMoveDialog,
   onExportPdf,
   canExportPdf = true,
   pdfExporting,
@@ -48,6 +49,8 @@ export default function OrdersTab({
   const [cardSlideIndexes, setCardSlideIndexes] = useState({});
   const highlightRef = useRef(null);
   const canEditOrderStatus = isRahaf && editMode && !!selectedOrder;
+  const canMovePurchases = isRahaf && editMode && !!selectedOrder;
+  const moveDisabled = !filteredPurchases.length;
   const canShowPurchaseNotes = isRahaf || isReem;
   const pdfExportIcon = useMemo(() => {
     if (typeof navigator === "undefined") return pdfExportIconWeb;
@@ -77,7 +80,7 @@ export default function OrdersTab({
         <div>
           <h2>{selectedOrder?.name || "اختاري طلبًا"}</h2>
           <p>
-            عدد المشتريات: {purchaseStats.count} — مجموع القطع: {purchaseStats.totalQty} — مجموع الأسعار:{" "}
+            عدد المشتريات: {purchaseStats.count} — مجموع القطع: {purchaseStats.totalQty} — مجموع المدفوع:{" "}
             {formatILS(purchaseStats.totalPrice)} ₪
           </p>
         </div>
@@ -99,6 +102,12 @@ export default function OrdersTab({
           {!isMobile && isRahaf && editMode ? (
             <button className="btn-primary" type="button" onClick={onOpenAddModal}>
               + إضافة مشترى
+            </button>
+          ) : null}
+
+          {!isMobile && canMovePurchases ? (
+            <button className="btn-ghost-light" type="button" onClick={onOpenMoveDialog} disabled={moveDisabled}>
+              نقل مشتريات
             </button>
           ) : null}
 
@@ -135,6 +144,16 @@ export default function OrdersTab({
           <button className="btn-primary mobile-add-purchase-btn" type="button" onClick={onOpenAddModal}>
             + إضافة مشترى
           </button>
+          {canMovePurchases ? (
+            <button
+              className="btn-ghost-light mobile-add-purchase-btn"
+              type="button"
+              onClick={onOpenMoveDialog}
+              disabled={moveDisabled}
+            >
+              نقل مشتريات
+            </button>
+          ) : null}
         </div>
       ) : null}
 
@@ -281,8 +300,8 @@ export default function OrdersTab({
                         <p className="purchaseVValue">{purchase.qty || 0}</p>
                       </div>
                       <div className="purchaseVField">
-                        <p className="purchaseVLabel">السعر</p>
-                        <p className="purchaseVValue">{formatILS(purchase.price)} ₪</p>
+                        <p className="purchaseVLabel">المدفوع</p>
+                        <p className="purchaseVValue">{formatILS(purchase.paid_price ?? purchase.price)} ₪</p>
                       </div>
                       <div className="purchaseVField">
                         <p className="purchaseVLabel">مكان الاستلام</p>
@@ -353,7 +372,7 @@ export default function OrdersTab({
                     </div>
 
                     <div className="purchase-mobile-summary">
-                      {purchase.qty || 0} قطع • {formatILS(purchase.price)} ₪
+                      {purchase.qty || 0} قطع • {formatILS(purchase.paid_price ?? purchase.price)} ₪
                     </div>
 
                     <div className="purchase-mobile-summary">

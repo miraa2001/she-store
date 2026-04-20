@@ -1,6 +1,6 @@
 import { sb } from "./supabaseClient";
 import { formatILS } from "./orders";
-import { PICKUP_HOME, PICKUP_POINT } from "./pickup";
+import { PICKUP_HOME, PICKUP_POINT_LOCATIONS, getPickupLocationByPickupPoint } from "./pickup";
 
 const EMOJI = {
   sparkleHeart: "\u{1F496}",
@@ -77,15 +77,18 @@ export function buildArrivalNotifyMessage({ pickupPoint, price, customerName }) 
   const priceText = formatILS(price);
   const name = extractFirstName(customerName);
   const greeting = name ? `مرحباً ${name} ${EMOJI.sparkleHeart}` : `مرحباً حبيبتي ${EMOJI.sparkleHeart}`;
+  const pickupLocation = getPickupLocationByPickupPoint(pickupPoint);
 
-  if (pickupPoint === PICKUP_POINT) {
-    return [
+  if (pickupLocation) {
+    const messageLines = [
       greeting,
       `${EMOJI.bell} طلبك جاهز في نقطة الاستلام`,
-      `${EMOJI.pin} كافيه La Aura - سوق الذهب`,
-      `${EMOJI.alarm} أوقات العمل: من ٨ صباحاً حتى ١٠ مساءً`,
+      `${EMOJI.pin} ${pickupLocation.whatsappLocationLine}`,
+      pickupLocation.whatsappHoursLine ? `${EMOJI.alarm} ${pickupLocation.whatsappHoursLine}` : "",
       `${EMOJI.package} حسابك: ${priceText} شيكل`
-    ].join("\n");
+    ].filter(Boolean);
+
+    return messageLines.join("\n");
   }
 
   if (pickupPoint === PICKUP_HOME) {
@@ -105,12 +108,20 @@ export function buildArrivalNotifyMessage({ pickupPoint, price, customerName }) 
 }
 
 export function buildPickupInquiryMessage() {
+  const pickupLines = PICKUP_POINT_LOCATIONS.flatMap((location, index) => {
+    const lines = [];
+    if (index > 0) lines.push("أو");
+    const suffix = index === PICKUP_POINT_LOCATIONS.length - 1 ? ` ${EMOJI.question}` : "";
+    lines.push(`${EMOJI.pin} نقطة الاستلام ${location.whatsappLocationLine}${suffix}`);
+    return lines;
+  });
+
   return [
     `مرحباً حبيبتي، طلبك وصل ${EMOJI.package}`,
     "بتحبي تستلمي من:",
     `${EMOJI.pin} بيتي في الحي الجنوبي`,
     "أو",
-    `${EMOJI.pin} نقطة الاستلام كافيه La Aura - سوق الذهب ${EMOJI.question}`,
+    ...pickupLines,
     `خبريني لو سمحتي ${EMOJI.heart}`
   ].join("\n");
 }

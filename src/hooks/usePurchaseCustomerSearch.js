@@ -65,7 +65,7 @@ export function usePurchaseCustomerSearch({
       try {
         let request = sb
           .from("purchases")
-          .select("id, order_id, customer_name, price, created_at, pickup_point")
+          .select("id, order_id, customer_name, price, paid_price, created_at, pickup_point")
           .in("order_id", orderIds)
           .eq("collected", false)
           .ilike("customer_name", `%${query}%`)
