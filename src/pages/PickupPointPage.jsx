@@ -17,7 +17,6 @@ import PickupAnimatedCheckbox from "../components/common/PickupAnimatedCheckbox"
 import SheStoreLogo from "../components/common/SheStoreLogo";
 import customerHeaderIcon from "../assets/icons/pickup/customer.png";
 import priceHeaderIcon from "../assets/icons/pickup/price-ils.png";
-import bagHeaderIcon from "../assets/icons/pickup/bag-size.png";
 import pickedUpHeaderIcon from "../assets/icons/pickup/picked-up.png";
 import pickupTimeHeaderIcon from "../assets/icons/pickup/pickup-time.png";
 import "./pickup-common.css";
@@ -269,7 +268,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
     try {
       const { data, error: purchasesError } = await sb
         .from("purchases")
-        .select("id, order_id, customer_name, price, paid_price, bag_size, picked_up, picked_up_at, pickup_point, collected")
+        .select("id, order_id, customer_name, price, paid_price, picked_up, picked_up_at, pickup_point, collected")
         .in("order_id", orderIds)
         .eq("collected", false)
         .order("created_at", { ascending: true });
@@ -734,12 +733,6 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                 </th>
                                 <th>
                                   <span className="pickuppoint-th-label">
-                                    <img src={bagHeaderIcon} alt="" className="pickuppoint-th-icon" aria-hidden="true" />
-                                    <span>{"\u062D\u062C\u0645 \u0627\u0644\u0643\u064A\u0633"}</span>
-                                  </span>
-                                </th>
-                                <th>
-                                  <span className="pickuppoint-th-label">
                                     <img src={pickedUpHeaderIcon} alt="" className="pickuppoint-th-icon" aria-hidden="true" />
                                     <span>{"\u062A\u0645 \u0627\u0644\u0627\u0633\u062A\u0644\u0627\u0645"}</span>
                                   </span>
@@ -758,7 +751,6 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                     <td>{index + 1}</td>
                                     <td>{purchase.customer_name || ""}</td>
                                     <td>{formatILS(purchase.paid_price ?? purchase.price)}</td>
-                                    <td>{purchase.bag_size || "—"}</td>
                                     <td>
                                       <div className="pickuppoint-pick-row pickup-checkbox-wrap">
                                         <PickupAnimatedCheckbox
@@ -855,12 +847,6 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                           ) : null}
                           <th>
                             <span className="pickuppoint-th-label">
-                              <img src={bagHeaderIcon} alt="" className="pickuppoint-th-icon" aria-hidden="true" />
-                              <span>حجم الكيس</span>
-                            </span>
-                          </th>
-                          <th>
-                            <span className="pickuppoint-th-label">
                               <img src={pickedUpHeaderIcon} alt="" className="pickuppoint-th-icon" aria-hidden="true" />
                               <span>تم الاستلام</span>
                             </span>
@@ -935,7 +921,6 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                     )}
                                   </td>
                                 ) : null}
-                                <td>{purchase.bag_size || "—"}</td>
                                 <td>
                                   <div className="pickuppoint-pick-row pickup-checkbox-wrap">
                                     <PickupAnimatedCheckbox
@@ -954,7 +939,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                           })
                         ) : (
                           <tr>
-                            <td colSpan={isRahaf ? 8 : 5} className="pickuppoint-muted">
+                            <td colSpan={isRahaf ? 6 : 4} className="pickuppoint-muted">
                               لا يوجد مشتريات
                             </td>
                           </tr>

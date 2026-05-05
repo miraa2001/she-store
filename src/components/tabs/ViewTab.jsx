@@ -2,11 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchArrivedOrders, formatILS, updateOrderPlacedAtPickup } from "../../lib/orders";
 import { formatPickupDisplayLabel } from "../../lib/pickup";
 import { searchByName } from "../../lib/search";
-import {
-  fetchPurchasesByOrder,
-  searchPurchasesByCustomerName,
-  updatePurchaseBagSize
-} from "../../lib/purchases";
+import { fetchPurchasesByOrder, searchPurchasesByCustomerName } from "../../lib/purchases";
 import {
   buildArrivalNotifyMessage,
   buildWhatsappUrl,
@@ -14,9 +10,6 @@ import {
   resolvePurchaseWhatsappTarget
 } from "../../lib/whatsapp";
 import SessionLoader from "../common/SessionLoader";
-
-const CAN_EDIT_BAG_ROLES = new Set(["rahaf", "reem", "rawand"]);
-const BAG_OPTIONS = ["كيس كبير", "كيس صغير"];
 
 export default function ViewTab({ role, onOpenLightbox, onToast }) {
   const [orders, setOrders] = useState([]);
@@ -36,7 +29,6 @@ export default function ViewTab({ role, onOpenLightbox, onToast }) {
   const [searching, setSearching] = useState(false);
 
   const [placedAtPickupSaving, setPlacedAtPickupSaving] = useState(false);
-  const [bagSavingId, setBagSavingId] = useState("");
 
   const selectedOrder = useMemo(
     () => orders.find((order) => String(order.id) === String(selectedOrderId)) || null,
@@ -48,7 +40,6 @@ export default function ViewTab({ role, onOpenLightbox, onToast }) {
     [purchases, viewIndex]
   );
 
-  const canEditBag = CAN_EDIT_BAG_ROLES.has(role);
   const canShowWhatsapp = role === "rahaf" && !!selectedOrder?.arrived;
 
   const purchaseCountLabel = useMemo(() => {
@@ -168,24 +159,6 @@ export default function ViewTab({ role, onOpenLightbox, onToast }) {
     setSearchResults([]);
   };
 
-  const updateBagSize = async (purchaseId, nextValue) => {
-    setBagSavingId(String(purchaseId));
-    try {
-      await updatePurchaseBagSize(purchaseId, nextValue);
-      setPurchases((prev) =>
-        prev.map((item) =>
-          String(item.id) === String(purchaseId) ? { ...item, bag_size: nextValue } : item
-        )
-      );
-      onToast?.({ type: "success", text: "تم تحديث حجم الكيس." });
-    } catch (error) {
-      console.error(error);
-      onToast?.({ type: "danger", text: "فشل تحديث حجم الكيس." });
-    } finally {
-      setBagSavingId("");
-    }
-  };
-
   const handlePlacedAtPickup = async (checked) => {
     if (!selectedOrder || role !== "rahaf") return;
     setPlacedAtPickupSaving(true);
@@ -246,24 +219,6 @@ export default function ViewTab({ role, onOpenLightbox, onToast }) {
       console.error(error);
       onToast?.({ type: "danger", text: error?.message || "تعذر فتح واتساب." });
     }
-  };
-
-  const renderBagControl = (purchase) => {
-    if (!canEditBag) return <span>{purchase.bag_size || "كيس صغير"}</span>;
-
-    return (
-      <select
-        value={purchase.bag_size || "كيس صغير"}
-        onChange={(event) => updateBagSize(purchase.id, event.target.value)}
-        disabled={bagSavingId === String(purchase.id)}
-      >
-        {BAG_OPTIONS.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    );
   };
 
   return (
@@ -429,9 +384,6 @@ export default function ViewTab({ role, onOpenLightbox, onToast }) {
                           <div><b>العدد:</b> {selectedPurchase.qty ?? 0}</div>
                           <div><b>المدفوع:</b> {formatILS(selectedPurchase.paid_price ?? selectedPurchase.price)} ₪</div>
                           <div>
-                            <b>حجم الكيس:</b> {renderBagControl(selectedPurchase)}
-                          </div>
-                          <div>
                             <b>روابط:</b>{" "}
                             {selectedPurchase.links?.length
                               ? selectedPurchase.links.map((link, index) => (
@@ -494,7 +446,6 @@ export default function ViewTab({ role, onOpenLightbox, onToast }) {
                             <th>العدد</th>
                             <th>المدفوع</th>
                             <th>مكان الاستلام</th>
-                            <th>حجم الكيس</th>
                             <th>روابط</th>
                             <th>صور</th>
                             <th>ملاحظة</th>
@@ -517,7 +468,6 @@ export default function ViewTab({ role, onOpenLightbox, onToast }) {
                               <td>{purchase.qty ?? 0}</td>
                               <td>{formatILS(purchase.paid_price ?? purchase.price)} ₪</td>
                               <td>{formatPickupDisplayLabel(purchase.pickup_point, "—")}</td>
-                              <td>{renderBagControl(purchase)}</td>
                               <td>
                                 {purchase.links?.length
                                   ? purchase.links.map((link, i) => (

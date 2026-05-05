@@ -2,6 +2,7 @@ import { sb } from "./supabaseClient";
 import { IMAGE_BUCKET } from "./orders";
 
 const IMAGE_UPLOAD_CONCURRENCY = 3;
+const DEFAULT_BAG_SIZE = "كيس صغير";
 
 function safeFileName(name) {
   return String(name || "image")
@@ -125,9 +126,10 @@ export async function createPurchaseWithRelations({
   files,
   onUploadProgress
 }) {
+  const normalizedPurchase = { ...purchase, bag_size: DEFAULT_BAG_SIZE };
   const { data: created, error: createError } = await sb
     .from("purchases")
-    .insert(purchase)
+    .insert(normalizedPurchase)
     .select()
     .single();
 
@@ -145,7 +147,7 @@ export async function createPurchaseWithRelations({
 
   const uploadResult = await uploadPurchaseImages({
     files,
-    orderId: purchase.order_id,
+    orderId: normalizedPurchase.order_id,
     purchaseId: created.id,
     onProgress: onUploadProgress
   });
@@ -171,7 +173,8 @@ export async function updatePurchaseWithRelations({
   newFiles,
   onUploadProgress
 }) {
-  const { error: updateError } = await sb.from("purchases").update(purchasePatch).eq("id", purchaseId);
+  const normalizedPatch = { ...purchasePatch, bag_size: DEFAULT_BAG_SIZE };
+  const { error: updateError } = await sb.from("purchases").update(normalizedPatch).eq("id", purchaseId);
   if (updateError) throw updateError;
 
   const { error: deleteLinksError } = await sb.from("purchase_links").delete().eq("purchase_id", purchaseId);
@@ -201,7 +204,7 @@ export async function updatePurchaseWithRelations({
 
   const uploadResult = await uploadPurchaseImages({
     files: newFiles,
-    orderId: purchasePatch.order_id,
+    orderId: normalizedPatch.order_id,
     purchaseId,
     onProgress: onUploadProgress
   });
@@ -228,7 +231,8 @@ export async function restoreDeletedPurchase(snapshot) {
   if (!snapshot?.purchase?.id) return;
 
   const { purchase, links, images } = snapshot;
-  const { error: purchaseError } = await sb.from("purchases").insert(purchase);
+  const normalizedPurchase = { ...purchase, bag_size: DEFAULT_BAG_SIZE };
+  const { error: purchaseError } = await sb.from("purchases").insert(normalizedPurchase);
   if (purchaseError) throw purchaseError;
 
   const cleanLinks = sanitizeLinks(links || []);
@@ -276,11 +280,6 @@ export async function movePurchasesToOrder(purchaseIds, targetOrderId) {
   }
 
   const { error } = await sb.from("purchases").update({ order_id: orderId }).in("id", ids);
-  if (error) throw error;
-}
-
-export async function updatePurchaseBagSize(purchaseId, bagSize) {
-  const { error } = await sb.from("purchases").update({ bag_size: bagSize }).eq("id", purchaseId);
   if (error) throw error;
 }
 

@@ -16,7 +16,6 @@ export default function PurchaseFormModal({
   formError,
   newFilePreviews,
   maxImages,
-  bagOptions,
   pickupOptions,
   onClose,
   onSubmit,
@@ -218,22 +217,6 @@ export default function PurchaseFormModal({
           onChange={(event) => onUpdateForm({ paidPrice: event.target.value })}
           disabled={formSaving}
         />
-      </label>
-
-      <label>
-        <span>حجم الكيس</span>
-        <select
-          value={formState.bagSize}
-          onChange={(event) => onUpdateForm({ bagSize: event.target.value })}
-          disabled={formSaving}
-        >
-          <option value="">اختاري حجم الكيس</option>
-          {bagOptions.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
       </label>
 
       <label>

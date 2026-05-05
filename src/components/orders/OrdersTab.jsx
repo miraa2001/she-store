@@ -308,10 +308,6 @@ export default function OrdersTab({
                         <p className="purchaseVLabel">مكان الاستلام</p>
                         <p className="purchaseVValue">{formatPickupDisplayLabel(purchase.pickup_point, "-")}</p>
                       </div>
-                      <div className="purchaseVField">
-                        <p className="purchaseVLabel">حجم الكيس</p>
-                        <p className="purchaseVValue">{purchase.bag_size || "-"}</p>
-                      </div>
                     </div>
 
                     {purchase.links?.length ? (
@@ -380,9 +376,6 @@ export default function OrdersTab({
                       مكان الاستلام: {formatPickupDisplayLabel(purchase.pickup_point, "-")}
                     </div>
 
-                    <div className="purchase-mobile-summary">
-                      حجم الكيس: {purchase.bag_size || "-"}
-                    </div>
 
                     {purchase.links?.length ? (
                       <div className="purchase-mobile-links">

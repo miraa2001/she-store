@@ -72,8 +72,6 @@ import SpeedDial from "../components/common/SpeedDial";
 import SheStoreLogo from "../components/common/SheStoreLogo";
 import AppNavIcon from "../components/common/AppNavIcon";
 import ordersMenuIcon from "../assets/icons/navigation/orders.png";
-
-const BAG_OPTIONS = ["كيس كبير", "كيس صغير"];
 const MAX_IMAGES = 10;
 const ORDER_TYPE_OPTIONS = [
   { value: ORDER_TYPES.IHERB, label: "iHerb" },
@@ -94,7 +92,6 @@ function createEmptyForm(orderId, customers) {
     qty: "1",
     price: "",
     paidPrice: "",
-    bagSize: "كيس صغير",
     pickupPoint: "",
     note: "",
     links: [""],
@@ -916,7 +913,6 @@ export default function OrdersPage() {
       qty: purchase.qty ?? 1,
       price: purchase.price ?? "",
       paidPrice: purchase.paid_price ?? purchase.price ?? "",
-      bagSize: purchase.bag_size || "كيس صغير",
       pickupPoint: formatPickupFormValue(purchase.pickup_point, DEFAULT_PICKUP_OPTION),
       note: purchase.note || "",
       links: purchase.links?.length ? purchase.links : [""],
@@ -1061,10 +1057,6 @@ export default function OrdersPage() {
       setFormError("السعر المدفوع غير صالح.");
       return false;
     }
-    if (!formState.bagSize) {
-      setFormError("اختاري حجم الكيس.");
-      return false;
-    }
     if (!formState.pickupPoint) {
       setFormError("اختاري مكان الاستلام.");
       return false;
@@ -1085,7 +1077,7 @@ export default function OrdersPage() {
             qty,
             price,
             paid_price: paidPrice,
-            bag_size: formState.bagSize,
+            bag_size: "كيس صغير",
             pickup_point: formState.pickupPoint,
             note: formState.note.trim()
           },
@@ -1115,7 +1107,7 @@ export default function OrdersPage() {
             qty,
             price,
             paid_price: paidPrice,
-            bag_size: formState.bagSize,
+            bag_size: "كيس صغير",
             pickup_point: formState.pickupPoint,
             note: formState.note.trim()
           },
@@ -2017,7 +2009,6 @@ export default function OrdersPage() {
         formError={formError}
         newFilePreviews={newFilePreviews}
         maxImages={MAX_IMAGES}
-        bagOptions={BAG_OPTIONS}
         pickupOptions={purchasePickupOptions}
         onClose={closeFormModal}
         onSubmit={submitPurchaseForm}
