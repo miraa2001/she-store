@@ -1,58 +1,52 @@
+// La Aura is intentionally hidden from the app UI while legacy database values stay supported here.
+// To restore La Aura later, re-add a dedicated pickup config/route/navigation entry and unblock `laaura` in `src/lib/auth.js`.
 export const PICKUP_HOME = "من البيت";
 export const PICKUP_DELIVERY = "توصيل";
 export const PICKUP_POINT = "من نقطة الاستلام";
 export const PICKUP_POINT_LAAURA = `${PICKUP_POINT} - La Aura`;
 export const PICKUP_POINT_MARYAMTI = `${PICKUP_POINT} - مريمتي`;
+export const DEFAULT_PICKUP_OPTION = PICKUP_POINT;
+
+const LEGACY_LAAURA_ALIASES = [
+  PICKUP_POINT_LAAURA,
+  "La Aura",
+  "la aura",
+  "LAAURA",
+  "لا اورا",
+  "لا أورا",
+  "لاورا"
+];
 
 const PICKUP_LOCATION_CONFIGS = {
-  laaura: {
-    id: "laaura",
-    role: "laaura",
-    tabId: "laaura",
-    routePath: "/pickuppoint",
-    routeHash: "#/pickuppoint",
-    navId: "pickuppoint-laaura",
-    navLabel: "نقطة La Aura",
-    dashboardLabel: "La Aura",
-    pageTitle: "نقطة الاستلام - La Aura",
-    pageSubtitle: "طلبات الاستلام من نقطة الاستلام",
-    pickupValue: PICKUP_POINT_LAAURA,
-    pickupLabel: PICKUP_POINT_LAAURA,
-    whatsappLocationLine: "كافيه La Aura - سوق الذهب",
-    whatsappHoursLine: "أوقات العمل: من ٨ صباحاً حتى ١٠ مساءً",
-    aliases: [
-      PICKUP_POINT,
-      PICKUP_POINT_LAAURA,
-      "La Aura",
-      "la aura",
-      "LAAURA",
-      "لا اورا",
-      "لا أورا",
-      "لاورا"
-    ]
-  },
   maryamti: {
     id: "maryamti",
     role: "maryamti",
-    tabId: "maryamti",
-    routePath: "/pickuppoint-maryamti",
-    routeHash: "#/pickuppoint-maryamti",
-    navId: "pickuppoint-maryamti",
-    navLabel: "نقطة مريمتي",
-    dashboardLabel: "مريمتي",
-    pageTitle: "نقطة الاستلام - مريمتي",
+    tabId: "pickup",
+    routePath: "/pickuppoint",
+    routeHash: "#/pickuppoint",
+    navId: "pickuppoint",
+    navLabel: "نقطة الاستلام",
+    dashboardLabel: "نقطة الاستلام",
+    pageTitle: "نقطة الاستلام",
     pageSubtitle: "طلبات الاستلام من نقطة الاستلام",
-    pickupValue: PICKUP_POINT_MARYAMTI,
-    pickupLabel: PICKUP_POINT_MARYAMTI,
+    pickupValue: PICKUP_POINT,
+    pickupLabel: PICKUP_POINT,
     whatsappLocationLine: "مريمتي - مجمع ابو طريف والزغل الطابق الثاني",
     whatsappHoursLine: "",
-    aliases: [PICKUP_POINT_MARYAMTI, "Maryamti", "maryamti", "مريمتي"]
+    aliases: [
+      PICKUP_POINT,
+      PICKUP_POINT_MARYAMTI,
+      "Maryamti",
+      "maryamti",
+      "مريمتي",
+      ...LEGACY_LAAURA_ALIASES
+    ]
   }
 };
 
 export const PICKUP_POINT_LOCATIONS = Object.values(PICKUP_LOCATION_CONFIGS);
 export const PICKUP_POINT_ROLE_IDS = PICKUP_POINT_LOCATIONS.map((location) => location.role);
-export const CUSTOMER_PICKUP_OPTIONS = [PICKUP_HOME, PICKUP_DELIVERY, ...PICKUP_POINT_LOCATIONS.map((location) => location.pickupValue)];
+export const CUSTOMER_PICKUP_OPTIONS = [PICKUP_HOME, PICKUP_POINT];
 
 export function normalizePickup(value) {
   return String(value || "")
@@ -62,18 +56,24 @@ export function normalizePickup(value) {
     .replace(/[أإآ]/g, "ا");
 }
 
-function matchesLocationPickup(value, location) {
+function matchesAliases(value, aliases = []) {
   const normalized = normalizePickup(value);
-  if (!normalized || normalized.includes("بيت") || normalized.includes("توصيل")) return false;
+  if (!normalized) return false;
 
-  return location.aliases.some((alias) => {
+  return aliases.some((alias) => {
     const normalizedAlias = normalizePickup(alias);
     return normalizedAlias && (normalized === normalizedAlias || normalized.includes(normalizedAlias));
   });
 }
 
-export function getPickupLocationById(locationId = "laaura") {
-  return PICKUP_LOCATION_CONFIGS[locationId] || PICKUP_LOCATION_CONFIGS.laaura;
+function matchesLocationPickup(value, location) {
+  const normalized = normalizePickup(value);
+  if (!normalized || normalized.includes("بيت") || normalized.includes("توصيل")) return false;
+  return matchesAliases(value, location?.aliases || []);
+}
+
+export function getPickupLocationById(locationId = "maryamti") {
+  return PICKUP_LOCATION_CONFIGS[locationId] || PICKUP_LOCATION_CONFIGS.maryamti;
 }
 
 export function getPickupLocationByRole(role) {
@@ -87,9 +87,6 @@ export function getPickupLocationByTabId(tabId) {
 export function getPickupLocationByPickupPoint(value) {
   if (matchesLocationPickup(value, PICKUP_LOCATION_CONFIGS.maryamti)) {
     return PICKUP_LOCATION_CONFIGS.maryamti;
-  }
-  if (matchesLocationPickup(value, PICKUP_LOCATION_CONFIGS.laaura)) {
-    return PICKUP_LOCATION_CONFIGS.laaura;
   }
   return null;
 }
@@ -106,8 +103,35 @@ export function getPickupRoutePathForRole(role) {
   return getPickupLocationByRole(role)?.routePath || "/orders";
 }
 
+export function formatPickupDisplayLabel(value, fallback = "—") {
+  const text = String(value || "").trim();
+  if (!text) return fallback;
+  if (isPickupPointPickup(text)) return PICKUP_POINT;
+  if (normalizePickup(text) === normalizePickup(PICKUP_HOME)) return PICKUP_HOME;
+  return text;
+}
+
+export function formatPickupFormValue(value, fallback = DEFAULT_PICKUP_OPTION) {
+  const text = String(value || "").trim();
+  if (!text) return fallback;
+  if (isPickupPointPickup(text)) return PICKUP_POINT;
+  if (normalizePickup(text) === normalizePickup(PICKUP_HOME)) return PICKUP_HOME;
+  if (normalizePickup(text) === normalizePickup(PICKUP_DELIVERY)) return PICKUP_DELIVERY;
+  return text;
+}
+
+export function getPickupOptionsWithCurrentValue(currentValue) {
+  const options = [...CUSTOMER_PICKUP_OPTIONS];
+  const displayValue = formatPickupFormValue(currentValue, "");
+  if (!displayValue) return options;
+
+  const exists = options.some((option) => normalizePickup(option) === normalizePickup(displayValue));
+  if (!exists) options.push(displayValue);
+  return options;
+}
+
 export function isLaauraPickup(value) {
-  return matchesLocationPickup(value, PICKUP_LOCATION_CONFIGS.laaura);
+  return matchesAliases(value, LEGACY_LAAURA_ALIASES);
 }
 
 export function isMaryamtiPickup(value) {

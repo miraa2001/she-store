@@ -32,7 +32,7 @@ The app is role-aware and route-protected, with different capabilities for each 
 Current role behavior is implemented in the app routing and UI controls:
 - `rahaf`: full operational access
 - `reem`, `rawand`: restricted/view-focused access
-- `laaura`: pickup point focused access
+- `maryamti`: pickup point focused access
 
 ## Architecture Notes
 - Data access is centralized in `src/lib/*` helpers (`orders`, `purchases`, `customers`, `pickup`, `session`, `whatsapp`).

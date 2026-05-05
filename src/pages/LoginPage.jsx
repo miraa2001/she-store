@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { sb } from "../lib/supabaseClient";
+import { getCurrentUserProfile, isBlockedRole } from "../lib/auth";
 import SessionLoader from "../components/common/SessionLoader";
 import SheStoreLogo from "../components/common/SheStoreLogo";
 
@@ -11,7 +12,7 @@ const LEGACY_ROUTE_MAP = {
   "index.html": "/orders",
   "pickup-dashboard.html": "/pickup-dashboard",
   "pickuppoint.html": "/pickuppoint",
-  "pickuppoint-maryamti.html": "/pickuppoint-maryamti",
+  "pickuppoint-maryamti.html": "/pickuppoint",
   "archive.html": "/archive",
   "finance.html": "/finance",
   "collections.html": "/collections",
@@ -42,6 +43,10 @@ function normalizeNextRoute(rawNext) {
     return fallback;
   }
 
+  if (target === "/pickuppoint-maryamti" || target.startsWith("/pickuppoint-maryamti?")) {
+    return target.replace("/pickuppoint-maryamti", "/pickuppoint");
+  }
+
   if (target.startsWith("/legacy/")) return target;
 
   const allowedRoutes = [
@@ -49,7 +54,6 @@ function normalizeNextRoute(rawNext) {
     "/orders",
     "/pickup-dashboard",
     "/pickuppoint",
-    "/pickuppoint-maryamti",
     "/archive",
     "/finance",
     "/collections",
@@ -104,12 +108,13 @@ export default function LoginPage() {
 
     async function checkSession() {
       try {
-        const {
-          data: { session }
-        } = await sb.auth.getSession();
-
+        const profile = await getCurrentUserProfile();
         if (!mounted) return;
-        if (session) {
+        if (profile?.blocked || isBlockedRole(profile?.role)) {
+          setError("This account is disabled in the app.");
+          return;
+        }
+        if (profile?.authenticated) {
           navigate(nextRoute, { replace: true });
           return;
         }
@@ -146,6 +151,14 @@ export default function LoginPage() {
     if (loginError) {
       setLoading(false);
       setError(`Failed to sign in: ${loginError.message}`);
+      window.setTimeout(() => setError(""), 3500);
+      return;
+    }
+
+    const profile = await getCurrentUserProfile();
+    if (profile?.blocked || isBlockedRole(profile?.role)) {
+      setLoading(false);
+      setError("This account is disabled in the app.");
       window.setTimeout(() => setError(""), 3500);
       return;
     }

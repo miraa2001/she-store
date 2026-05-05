@@ -5,6 +5,7 @@ import { formatDMY } from "../lib/dateFormat";
 import { getOrdersNavItems, isNavHrefActive } from "../lib/navigation";
 import { setBodyScrollLock } from "../lib/bodyScrollLock";
 import { formatILS, parsePrice } from "../lib/orders";
+import { formatPickupDisplayLabel } from "../lib/pickup";
 import { signOutAndRedirect } from "../lib/session";
 import { sb } from "../lib/supabaseClient";
 import SessionLoader from "../components/common/SessionLoader";
@@ -134,7 +135,7 @@ export default function FinancePage({ embedded = false }) {
 
         const stat = stats.get(orderId);
         const value = parsePrice(purchase.paid_price ?? purchase.price);
-        const pickup = String(purchase.pickup_point || "").trim() || "بدون نقطة";
+        const pickup = formatPickupDisplayLabel(purchase.pickup_point, "بدون نقطة");
 
         stat.expected += value;
         stat.purchaseCount += 1;

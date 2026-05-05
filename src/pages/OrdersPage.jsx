@@ -33,7 +33,6 @@ import {
 import { searchByName } from "../lib/search";
 import {
   CUSTOMER_CITIES,
-  CUSTOMER_PICKUP_OPTIONS,
   createCustomer,
   customerFriendlyError,
   deleteCustomer,
@@ -51,7 +50,13 @@ import {
 import { exportOrderPdf } from "../lib/pdfExport";
 import { hasGeminiKey, resolveTotalFromGemini, runGeminiCartAnalysis } from "../lib/gemini";
 import { getOrdersNavItems, getRoleLandingHref, isNavHrefActive } from "../lib/navigation";
-import { isPickupPointRole } from "../lib/pickup";
+import {
+  DEFAULT_PICKUP_OPTION,
+  formatPickupDisplayLabel,
+  formatPickupFormValue,
+  getPickupOptionsWithCurrentValue,
+  isPickupPointRole
+} from "../lib/pickup";
 import { signOutAndRedirect } from "../lib/session";
 import CustomersTab from "../components/tabs/CustomersTab";
 import CommandHeader from "../components/orders/CommandHeader";
@@ -287,7 +292,7 @@ export default function OrdersPage() {
     name: "",
     phone: "",
     city: CUSTOMER_CITIES[0],
-    pickup: CUSTOMER_PICKUP_OPTIONS[2]
+    pickup: DEFAULT_PICKUP_OPTION
   });
   const [customerFormMessage, setCustomerFormMessage] = useState("");
   const [customerFormSaving, setCustomerFormSaving] = useState(false);
@@ -311,7 +316,7 @@ export default function OrdersPage() {
     name: "",
     phone: "",
     city: CUSTOMER_CITIES[0],
-    pickup: CUSTOMER_PICKUP_OPTIONS[2]
+    pickup: DEFAULT_PICKUP_OPTION
   });
   const [pdfExporting, setPdfExporting] = useState(false);
   const [orderStatusSaving, setOrderStatusSaving] = useState(false);
@@ -461,6 +466,26 @@ export default function OrdersPage() {
       customer.city
     ]);
   }, [customerSearch, customers]);
+
+  const customerCreatePickupOptions = useMemo(
+    () => getPickupOptionsWithCurrentValue(customerForm.pickup),
+    [customerForm.pickup]
+  );
+
+  const customerEditPickupOptions = useMemo(
+    () => getPickupOptionsWithCurrentValue(editingCustomerForm?.pickup),
+    [editingCustomerForm?.pickup]
+  );
+
+  const quickCustomerPickupOptions = useMemo(
+    () => getPickupOptionsWithCurrentValue(quickCustomerForm.pickup),
+    [quickCustomerForm.pickup]
+  );
+
+  const purchasePickupOptions = useMemo(
+    () => getPickupOptionsWithCurrentValue(formState.pickupPoint),
+    [formState.pickupPoint]
+  );
 
   useEffect(() => {
     setMovePurchasesDialog((prev) => {
@@ -709,7 +734,7 @@ export default function OrdersPage() {
         name: "",
         phone: "",
         city: CUSTOMER_CITIES[0],
-        pickup: CUSTOMER_PICKUP_OPTIONS[2]
+        pickup: DEFAULT_PICKUP_OPTION
       });
       setCustomerFormMessage("تم ✅");
       await refreshCustomers();
@@ -727,7 +752,7 @@ export default function OrdersPage() {
       name: String(prefillName || "").trim(),
       phone: "",
       city: CUSTOMER_CITIES[0],
-      pickup: CUSTOMER_PICKUP_OPTIONS[2]
+      pickup: DEFAULT_PICKUP_OPTION
     });
     setQuickCustomerStatus({ text: "", isError: false });
     setQuickCustomerOpen(true);
@@ -783,7 +808,7 @@ export default function OrdersPage() {
           ...prev,
           customerId: createdCustomer.id,
           customerName: createdCustomer.name || prev.customerName,
-          pickupPoint: createdCustomer.usual_pickup_point || prev.pickupPoint
+          pickupPoint: formatPickupFormValue(createdCustomer.usual_pickup_point, prev.pickupPoint)
         }));
       }
 
@@ -807,7 +832,7 @@ export default function OrdersPage() {
       name: customer.name || "",
       phone: customer.phone || "",
       city: customer.city || CUSTOMER_CITIES[0],
-      pickup: customer.usual_pickup_point || CUSTOMER_PICKUP_OPTIONS[2]
+      pickup: formatPickupFormValue(customer.usual_pickup_point, DEFAULT_PICKUP_OPTION)
     });
   };
 
@@ -892,7 +917,7 @@ export default function OrdersPage() {
       price: purchase.price ?? "",
       paidPrice: purchase.paid_price ?? purchase.price ?? "",
       bagSize: purchase.bag_size || "كيس صغير",
-      pickupPoint: purchase.pickup_point || CUSTOMER_PICKUP_OPTIONS[2],
+      pickupPoint: formatPickupFormValue(purchase.pickup_point, DEFAULT_PICKUP_OPTION),
       note: purchase.note || "",
       links: purchase.links?.length ? purchase.links : [""],
       newFiles: [],
@@ -996,7 +1021,7 @@ export default function OrdersPage() {
       ...prev,
       customerId,
       customerName: customer?.name || "",
-      pickupPoint: customer?.usual_pickup_point || prev.pickupPoint
+      pickupPoint: formatPickupFormValue(customer?.usual_pickup_point, prev.pickupPoint)
     }));
   };
 
@@ -1968,7 +1993,8 @@ export default function OrdersPage() {
               cancelEditCustomer={cancelEditCustomer}
               handleDeleteCustomer={handleDeleteCustomer}
               cityOptions={CUSTOMER_CITIES}
-              pickupOptions={CUSTOMER_PICKUP_OPTIONS}
+              createPickupOptions={customerCreatePickupOptions}
+              editingPickupOptions={customerEditPickupOptions}
             />
           ) : null}
         </section>
@@ -1992,7 +2018,7 @@ export default function OrdersPage() {
         newFilePreviews={newFilePreviews}
         maxImages={MAX_IMAGES}
         bagOptions={BAG_OPTIONS}
-        pickupOptions={CUSTOMER_PICKUP_OPTIONS}
+        pickupOptions={purchasePickupOptions}
         onClose={closeFormModal}
         onSubmit={submitPurchaseForm}
         onCustomerChange={onCustomerChange}
@@ -2015,7 +2041,7 @@ export default function OrdersPage() {
         saving={quickCustomerSaving}
         status={quickCustomerStatus}
         cityOptions={CUSTOMER_CITIES}
-        pickupOptions={CUSTOMER_PICKUP_OPTIONS}
+        pickupOptions={quickCustomerPickupOptions}
         onClose={closeQuickCustomerModal}
         onSubmit={handleQuickCustomerSubmit}
         onChange={(patch) => setQuickCustomerForm((prev) => ({ ...prev, ...patch }))}
@@ -2362,7 +2388,7 @@ export default function OrdersPage() {
                               <span>
                                 {purchase.qty || 0} قطع • المدفوع: {formatILS(purchase.paid_price ?? purchase.price)} ₪
                               </span>
-                              <span>{purchase.pickup_point || "بدون مكان استلام"}</span>
+                              <span>{formatPickupDisplayLabel(purchase.pickup_point, "بدون مكان استلام")}</span>
                             </div>
                           </label>
                         );

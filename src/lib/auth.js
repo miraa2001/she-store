@@ -1,12 +1,20 @@
-﻿import { sb } from "./supabaseClient";
+import { sb } from "./supabaseClient";
+
+// La Aura app access is intentionally blocked for now. To restore it later, map `laaura`
+// back to an active role here and re-enable its dedicated pickup-point config in `src/lib/pickup.js`.
+export const BLOCKED_LAAURA_ROLE = "blocked_laaura";
 
 const EMAIL_ROLE_FALLBACK = {
   "rahaf@she-store.com": "rahaf",
   "reem@she-store.com": "reem",
   "rawand@she-store.com": "rawand",
-  "laaura@she-store.com": "laaura",
+  "laaura@she-store.com": BLOCKED_LAAURA_ROLE,
   "maryamti@she-store.com": "maryamti"
 };
+
+export function isBlockedRole(role) {
+  return String(role || "").trim().toLowerCase() === BLOCKED_LAAURA_ROLE;
+}
 
 function normalizeRole(rawRole, email = "") {
   const role = String(rawRole || "").trim().toLowerCase();
@@ -20,9 +28,7 @@ function normalizeRole(rawRole, email = "") {
     if (normalizedEmail.includes("rawand")) return "rawand";
     if (normalizedEmail.includes("reem")) return "reem";
     if (isMaryamtiEmail) return "maryamti";
-    if (isLaauraEmail) {
-      return "laaura";
-    }
+    if (isLaauraEmail) return BLOCKED_LAAURA_ROLE;
     return "viewer";
   }
 
@@ -34,11 +40,11 @@ function normalizeRole(rawRole, email = "") {
 
   if (role === "pickup" || role === "pickuppoint" || role === "pickup point") {
     if (isMaryamtiEmail) return "maryamti";
-    if (isLaauraEmail) return "laaura";
+    if (isLaauraEmail) return BLOCKED_LAAURA_ROLE;
   }
 
   if (role === "laaura" || role === "la aura" || role === "aura") {
-    return "laaura";
+    return BLOCKED_LAAURA_ROLE;
   }
 
   if (role === "rawand") return "rawand";
@@ -50,7 +56,7 @@ function normalizeRole(rawRole, email = "") {
   }
 
   if (isMaryamtiEmail) return "maryamti";
-  if (isLaauraEmail) return "laaura";
+  if (isLaauraEmail) return BLOCKED_LAAURA_ROLE;
 
   return role;
 }
@@ -61,7 +67,7 @@ export async function getCurrentUserProfile() {
   } = await sb.auth.getSession();
 
   if (!session) {
-    return { authenticated: false, role: "viewer", user: null, email: "" };
+    return { authenticated: false, role: "viewer", user: null, email: "", blocked: false };
   }
 
   const {
@@ -72,11 +78,29 @@ export async function getCurrentUserProfile() {
   const userId = String(user?.id || "");
 
   if (!userId) {
+    const role = normalizeRole(EMAIL_ROLE_FALLBACK[email], email);
+    if (isBlockedRole(role)) {
+      try {
+        await sb.auth.signOut();
+      } catch (signOutError) {
+        console.error("blocked role sign out error", signOutError);
+      }
+
+      return {
+        authenticated: false,
+        role,
+        user: null,
+        email,
+        blocked: true
+      };
+    }
+
     return {
       authenticated: true,
-      role: normalizeRole(EMAIL_ROLE_FALLBACK[email], email),
+      role,
       user,
-      email
+      email,
+      blocked: false
     };
   }
 
@@ -92,10 +116,27 @@ export async function getCurrentUserProfile() {
 
   const role = normalizeRole(data?.role || EMAIL_ROLE_FALLBACK[email], email);
 
+  if (isBlockedRole(role)) {
+    try {
+      await sb.auth.signOut();
+    } catch (signOutError) {
+      console.error("blocked role sign out error", signOutError);
+    }
+
+    return {
+      authenticated: false,
+      role,
+      user: null,
+      email,
+      blocked: true
+    };
+  }
+
   return {
     authenticated: true,
     role,
     user,
-    email
+    email,
+    blocked: false
   };
 }

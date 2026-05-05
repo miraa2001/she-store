@@ -123,8 +123,8 @@ export default function App() {
         <Route path="/archive" element={<ArchivePage />} />
         <Route path="/collections" element={<CollectionsPage />} />
         <Route path="/homepickup" element={<HomePickupPage />} />
-        <Route path="/pickuppoint" element={<PickupPointPage />} />
-        <Route path="/pickuppoint-maryamti" element={<PickupPointPage locationId="maryamti" />} />
+        <Route path="/pickuppoint" element={<PickupPointPage locationId="maryamti" />} />
+        <Route path="/pickuppoint-maryamti" element={<Navigate to="/pickuppoint" replace />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/legacy/:page" element={<LegacyFrame />} />
         <Route path="*" element={<Navigate to="/" replace />} />

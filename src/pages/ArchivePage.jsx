@@ -4,6 +4,7 @@ import { useAuthProfile } from "../hooks/useAuthProfile";
 import { formatDMY } from "../lib/dateFormat";
 import { formatILS, parsePrice } from "../lib/orders";
 import { getOrdersNavItems, isNavHrefActive } from "../lib/navigation";
+import { formatPickupDisplayLabel } from "../lib/pickup";
 import { setBodyScrollLock } from "../lib/bodyScrollLock";
 import { signOutAndRedirect } from "../lib/session";
 import { sb } from "../lib/supabaseClient";
@@ -473,7 +474,7 @@ export default function ArchivePage() {
                             selectedOrder.purchases.map((purchase) => (
                               <tr key={purchase.id}>
                                 <td>{purchase.customer_name || ""}</td>
-                                <td>{purchase.pickup_point || ""}</td>
+                                <td>{formatPickupDisplayLabel(purchase.pickup_point, "")}</td>
                                 <td>{formatILS(parsePrice(purchase.paid_price ?? purchase.price))} ₪</td>
                               </tr>
                             ))

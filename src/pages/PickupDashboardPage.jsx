@@ -13,13 +13,12 @@ import { isPickupPointRole } from "../lib/pickup";
 import "./pickup-dashboard-page.css";
 import SheStoreLogo from "../components/common/SheStoreLogo";
 import homePickupsIcon from "../assets/icons/pickup-dashboard/home-pickups.png";
-import laauraPickupsIcon from "../assets/icons/pickup-dashboard/laaura-pickups.png";
+import pickupPointIcon from "../assets/icons/pickup-dashboard/pickup-point.png";
 import moneyCollectionsIcon from "../assets/icons/pickup-dashboard/money-collections.png";
 
 const TAB_CONFIG = {
   home: { id: "home", label: "مستلمو البيت", icon: homePickupsIcon },
-  laaura: { id: "laaura", label: "La Aura", icon: laauraPickupsIcon },
-  maryamti: { id: "maryamti", label: "مريمتي", icon: laauraPickupsIcon },
+  pickup: { id: "pickup", label: "نقطة الاستلام", icon: pickupPointIcon },
   collections: { id: "collections", label: "تحصيل المبالغ", icon: moneyCollectionsIcon }
 };
 
@@ -64,8 +63,7 @@ export default function PickupDashboardPage() {
 
   function renderPanel(tabId) {
     if (tabId === "home") return <HomePickupPage embedded />;
-    if (tabId === "laaura") return <PickupPointPage key="laaura" embedded locationId="laaura" />;
-    if (tabId === "maryamti") return <PickupPointPage key="maryamti" embedded locationId="maryamti" />;
+    if (tabId === "pickup") return <PickupPointPage key="pickup" embedded locationId="maryamti" />;
     if (tabId === "collections") return <CollectionsPage embedded />;
     return null;
   }

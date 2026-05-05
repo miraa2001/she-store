@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchArrivedOrders, formatILS, updateOrderPlacedAtPickup } from "../../lib/orders";
+import { formatPickupDisplayLabel } from "../../lib/pickup";
 import { searchByName } from "../../lib/search";
 import {
   fetchPurchasesByOrder,
@@ -440,7 +441,7 @@ export default function ViewTab({ role, onOpenLightbox, onToast }) {
                                 ))
                               : "—"}
                           </div>
-                          <div><b>مكان الاستلام:</b> {selectedPurchase.pickup_point || "—"}</div>
+                          <div><b>مكان الاستلام:</b> {formatPickupDisplayLabel(selectedPurchase.pickup_point, "—")}</div>
                           <div className="view-card-images">
                             {selectedPurchase.images?.length
                               ? selectedPurchase.images.map((img, index) => (
@@ -515,7 +516,7 @@ export default function ViewTab({ role, onOpenLightbox, onToast }) {
                               <td>{purchase.customer_name || "—"}</td>
                               <td>{purchase.qty ?? 0}</td>
                               <td>{formatILS(purchase.paid_price ?? purchase.price)} ₪</td>
-                              <td>{purchase.pickup_point || "—"}</td>
+                              <td>{formatPickupDisplayLabel(purchase.pickup_point, "—")}</td>
                               <td>{renderBagControl(purchase)}</td>
                               <td>
                                 {purchase.links?.length

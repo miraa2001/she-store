@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatILS } from "../../lib/orders";
+import { formatPickupDisplayLabel } from "../../lib/pickup";
 import SessionLoader from "../common/SessionLoader";
 import OrderStatusDropdown from "./OrderStatusDropdown";
 import pdfExportIconWeb from "../../assets/icons/documents/pdf-web.png";
@@ -305,7 +306,7 @@ export default function OrdersTab({
                       </div>
                       <div className="purchaseVField">
                         <p className="purchaseVLabel">مكان الاستلام</p>
-                        <p className="purchaseVValue">{purchase.pickup_point || "-"}</p>
+                        <p className="purchaseVValue">{formatPickupDisplayLabel(purchase.pickup_point, "-")}</p>
                       </div>
                       <div className="purchaseVField">
                         <p className="purchaseVLabel">حجم الكيس</p>
@@ -376,7 +377,7 @@ export default function OrdersTab({
                     </div>
 
                     <div className="purchase-mobile-summary">
-                      مكان الاستلام: {purchase.pickup_point || "-"}
+                      مكان الاستلام: {formatPickupDisplayLabel(purchase.pickup_point, "-")}
                     </div>
 
                     <div className="purchase-mobile-summary">

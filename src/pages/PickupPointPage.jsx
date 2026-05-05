@@ -63,7 +63,13 @@ function buildMergedOrders(orderGroups) {
   }));
 }
 
-export default function PickupPointPage({ embedded = false, locationId = "laaura" }) {
+function toSortableTime(value) {
+  if (!value) return 0;
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+export default function PickupPointPage({ embedded = false, locationId = "maryamti" }) {
   const { profile } = useAuthProfile();
   const pickupLocation = useMemo(() => getPickupLocationById(locationId), [locationId]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -214,26 +220,34 @@ export default function PickupPointPage({ embedded = false, locationId = "laaura
 
       if (!orderIds.length) {
         setOrders([]);
+        setSelectedItemId("");
+        setPurchases([]);
         return;
       }
 
       const { data: orderRows, error: ordersError } = await sb
         .from("orders")
-        .select("id, order_name, created_at, order_date, placed_at_pickup_at")
+        .select("id, order_name, created_at, order_date, placed_at_pickup, placed_at_pickup_at")
         .in("id", orderIds)
         .eq("arrived", true)
-        .order("created_at", { ascending: false });
+        .eq("placed_at_pickup", true);
 
       if (ordersError) throw ordersError;
 
       setOrders(
-        (orderRows || []).map((order) => ({
-          id: order.id,
-          orderName: order.order_name || "",
-          createdAt: order.created_at,
-          orderDate: order.order_date,
-          placedAtPickupAt: order.placed_at_pickup_at
-        }))
+        (orderRows || [])
+          .map((order) => ({
+            id: order.id,
+            orderName: order.order_name || "",
+            createdAt: order.created_at,
+            orderDate: order.order_date,
+            placedAtPickupAt: order.placed_at_pickup_at
+          }))
+          .sort(
+            (a, b) =>
+              toSortableTime(b.placedAtPickupAt || b.createdAt) -
+              toSortableTime(a.placedAtPickupAt || a.createdAt)
+          )
       );
     } catch (err) {
       console.error(err);
@@ -681,9 +695,9 @@ export default function PickupPointPage({ embedded = false, locationId = "laaura
                 ) : null}
 
                 {!loadingPurchases && pickupOrderSections.length ? (
-                  <div className="pickuppoint-laaura-groups">
+                  <div className="pickuppoint-dropoff-groups">
                     {pickupOrderSections.map((section) => (
-                      <section key={section.id} className="pickuppoint-laaura-group">
+                      <section key={section.id} className="pickuppoint-dropoff-group">
                         <div className="pickuppoint-row">
                           <div>
                             <b>{section.name}</b>

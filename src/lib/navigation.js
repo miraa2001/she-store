@@ -4,7 +4,6 @@ const ROLE_LABELS = {
   rahaf: "رهف",
   reem: "ريم",
   rawand: "روند",
-  laaura: "لارا",
   maryamti: "مريمتي"
 };
 
@@ -28,8 +27,7 @@ const ORDERS_NAV_ACCESS = {
   rahaf: ["orders", "pickup-dashboard", "archive", "finance"],
   reem: ["orders", "pickup-dashboard", "homepickup"],
   rawand: ["orders", "pickup-dashboard", "homepickup"],
-  laaura: ["orders", "pickuppoint-laaura"],
-  maryamti: ["orders", "pickuppoint-maryamti"]
+  maryamti: ["orders", "pickuppoint"]
 };
 
 const PICKUP_SIDEBAR_LINKS_BY_ROLE = {
@@ -50,11 +48,10 @@ const PICKUP_SIDEBAR_LINKS_BY_ROLE = {
 };
 
 const PICKUP_TABS_BY_ROLE = {
-  rahaf: ["home", "laaura", "maryamti", "collections"],
+  rahaf: ["home", "pickup", "collections"],
   reem: ["home"],
   rawand: ["home"],
-  laaura: ["laaura"],
-  maryamti: ["maryamti"]
+  maryamti: ["pickup"]
 };
 
 export function getRoleLabel(role) {
@@ -75,7 +72,7 @@ export function getPickupSidebarLinks(role) {
 }
 
 export function getRoleLandingHref(role) {
-  if (role === "laaura" || role === "maryamti") {
+  if (role === "maryamti") {
     return getPickupRouteHashForRole(role);
   }
   return "#/orders";
