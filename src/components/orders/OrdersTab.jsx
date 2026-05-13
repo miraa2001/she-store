@@ -81,13 +81,12 @@ export default function OrdersTab({
         <div>
           <h2>{selectedOrder?.name || "اختاري طلبًا"}</h2>
           <p>
-            عدد المشتريات: {purchaseStats.count} — مجموع القطع: {purchaseStats.totalQty} — مجموع المدفوع:{" "}
-            {formatILS(purchaseStats.totalPrice)} ₪
+            عدد المشتريات: {purchaseStats.count} — مجموع القطع: {purchaseStats.totalQty} — مجموع الأسعار:{" "}
+            {formatILS(purchaseStats.totalOriginalPrice)} ₪ — مجموع المدفوع: {formatILS(purchaseStats.totalPaidPrice)} ₪
           </p>
         </div>
 
         <div className="order-detail-actions">
-
           {canEditOrderStatus && !isMobile ? (
             <div className="order-status-inline">
               <span className="order-status-inline-label">حالة الطلب</span>
@@ -288,7 +287,6 @@ export default function OrdersTab({
                       ) : (
                         <div className="purchaseVPlaceholder">لا توجد صور</div>
                       )}
-
                     </div>
 
                     <div className="purchaseVBody" dir="rtl">
@@ -301,7 +299,11 @@ export default function OrdersTab({
                         <p className="purchaseVValue">{purchase.qty || 0}</p>
                       </div>
                       <div className="purchaseVField">
-                        <p className="purchaseVLabel">المدفوع</p>
+                        <p className="purchaseVLabel">السعر الأصلي</p>
+                        <p className="purchaseVValue">{formatILS(purchase.price)} ₪</p>
+                      </div>
+                      <div className="purchaseVField">
+                        <p className="purchaseVLabel">السعر المدفوع</p>
                         <p className="purchaseVValue">{formatILS(purchase.paid_price ?? purchase.price)} ₪</p>
                       </div>
                       <div className="purchaseVField">
@@ -368,14 +370,19 @@ export default function OrdersTab({
                       )}
                     </div>
 
+                    <div className="purchase-mobile-summary">{purchase.qty || 0} قطع</div>
+
                     <div className="purchase-mobile-summary">
-                      {purchase.qty || 0} قطع • {formatILS(purchase.paid_price ?? purchase.price)} ₪
+                      السعر الأصلي: {formatILS(purchase.price)} ₪
+                    </div>
+
+                    <div className="purchase-mobile-summary">
+                      السعر المدفوع: {formatILS(purchase.paid_price ?? purchase.price)} ₪
                     </div>
 
                     <div className="purchase-mobile-summary">
                       مكان الاستلام: {formatPickupDisplayLabel(purchase.pickup_point, "-")}
                     </div>
-
 
                     {purchase.links?.length ? (
                       <div className="purchase-mobile-links">
@@ -407,9 +414,7 @@ export default function OrdersTab({
 
                   {menuNode ? (
                     <div className="purchase-mobile-actions">
-                      <div className="purchase-head-actions">
-                        {menuNode}
-                      </div>
+                      <div className="purchase-head-actions">{menuNode}</div>
                     </div>
                   ) : null}
                 </div>
