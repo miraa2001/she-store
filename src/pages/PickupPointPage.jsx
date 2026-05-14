@@ -289,7 +289,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
   }, [pickupLocation.id]);
 
   const loadAllOrdersTotal = useCallback(async () => {
-    if (!isRahaf) {
+    if (!canAccess) {
       setAllOrdersTotal(0);
       return;
     }
@@ -311,7 +311,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
       .reduce((sum, purchase) => sum + parsePrice(purchase.paid_price ?? purchase.price), 0);
 
     setAllOrdersTotal(total);
-  }, [isRahaf, pickupLocation.id]);
+  }, [canAccess, pickupLocation.id]);
 
   useEffect(() => {
     if (profile.loading || !profile.authenticated || !canAccess) return;
@@ -319,9 +319,9 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
   }, [canAccess, loadOrders, profile.authenticated, profile.loading]);
 
   useEffect(() => {
-    if (profile.loading || !profile.authenticated || !isRahaf) return;
+    if (profile.loading || !profile.authenticated || !canAccess) return;
     loadAllOrdersTotal();
-  }, [isRahaf, loadAllOrdersTotal, profile.authenticated, profile.loading]);
+  }, [canAccess, loadAllOrdersTotal, profile.authenticated, profile.loading]);
 
   useEffect(() => {
     const loadKey = selectedOrderIds.map((id) => String(id)).sort().join(",");
@@ -658,18 +658,20 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
         <div className="pickuppoint-grid pickuppoint-grid--single pickup-two-col-layout">
 
           <main className="pickuppoint-card pickup-main-pane">
-            {isRahaf ? (
+            {isRahaf || isLocationRole ? (
               <div className="pickuppoint-global-summary">
                 <div className="pickuppoint-global-collect-row">
-                  <span className="pickuppoint-pill">اجمالي المبلغ للتحصيل: {formatILS(allOrdersTotal)} ₪</span>
-                  <button
-                    className="pickuppoint-btn"
-                    type="button"
-                    disabled={collectingAll || allOrdersTotal <= 0}
-                    onClick={collectAllOrders}
-                  >
-                    {collectingAll ? "جاري التحصيل..." : "تم استلام تحصيل الكل"}
-                  </button>
+                  <span className="pickuppoint-pill">مجموع المبلغ للتحصيل: {formatILS(allOrdersTotal)} ₪</span>
+                  {isRahaf ? (
+                    <button
+                      className="pickuppoint-btn"
+                      type="button"
+                      disabled={collectingAll || allOrdersTotal <= 0}
+                      onClick={collectAllOrders}
+                    >
+                      {collectingAll ? "جاري التحصيل..." : "تم استلام تحصيل الكل"}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             ) : null}
