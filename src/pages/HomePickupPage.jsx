@@ -64,14 +64,18 @@ export default function HomePickupPage({ embedded = false }) {
   const [loadingPurchases, setLoadingPurchases] = useState(false);
   const [error, setError] = useState("");
   const [collecting, setCollecting] = useState(false);
+  const [collectingAll, setCollectingAll] = useState(false);
+  const [collectingSectionId, setCollectingSectionId] = useState("");
   const [ordersMenuOpen, setOrdersMenuOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [highlightPurchaseId, setHighlightPurchaseId] = useState("");
   const [paidEditor, setPaidEditor] = useState({ id: "", value: "", saving: false });
   const [lightbox, setLightbox] = useState({ open: false, images: [], index: 0, label: "" });
+  const [showAllOrdersMode, setShowAllOrdersMode] = useState(false);
   const location = useLocation();
   const sidebarLinks = useMemo(() => getOrdersNavItems(profile.role), [profile.role]);
   const highlightTimeoutRef = useRef(null);
+  const lastLoadedOrderKeyRef = useRef("");
   const homeSearchQueryBuilder = useCallback(
     (request) => request.eq("pickup_point", PICKUP_HOME),
     []
@@ -84,12 +88,19 @@ export default function HomePickupPage({ embedded = false }) {
 
   const isRahaf = profile.role === "rahaf";
   const isReemOrRawand = profile.role === "reem" || profile.role === "rawand";
+  const canToggleAllOrders = isRahaf || isReemOrRawand;
+  const shouldShowAllOrders = canToggleAllOrders && showAllOrdersMode;
 
   const selectedOrder = useMemo(
     () => orders.find((order) => String(order.id) === String(selectedOrderId)) || null,
     [orders, selectedOrderId]
   );
   const groupedOrders = useMemo(() => buildOrderGroups(orders), [orders]);
+  const allOrderIds = useMemo(() => orders.map((order) => order.id), [orders]);
+  const selectedOrderIds = useMemo(() => {
+    if (shouldShowAllOrders) return allOrderIds;
+    return selectedOrderId ? [selectedOrderId] : [];
+  }, [allOrderIds, selectedOrderId, shouldShowAllOrders]);
 
   const visiblePurchases = useMemo(() => purchases.filter((purchase) => !purchase.collected), [purchases]);
   const pickedTotal = useMemo(
@@ -108,6 +119,26 @@ export default function HomePickupPage({ embedded = false }) {
     () => visiblePurchases.filter((purchase) => purchase.picked_up),
     [visiblePurchases]
   );
+  const homeOrderSections = useMemo(() => {
+    return orders
+      .map((order) => {
+        const sectionPurchases = visiblePurchases.filter(
+          (purchase) => String(purchase.order_id) === String(order.id)
+        );
+        const sectionPickedTotal = sectionPurchases
+          .filter((purchase) => purchase.picked_up)
+          .reduce((sum, purchase) => sum + parsePrice(purchase.paid_price ?? purchase.price), 0);
+
+        return {
+          id: order.id,
+          orderName: order.orderName || "",
+          createdAt: order.createdAt,
+          purchases: sectionPurchases,
+          pickedTotal: sectionPickedTotal
+        };
+      })
+      .filter((section) => section.purchases.length > 0);
+  }, [orders, visiblePurchases]);
   const activeViewMode = isDesktop ? viewMode : "table";
 
   useEffect(() => {
@@ -176,6 +207,12 @@ export default function HomePickupPage({ embedded = false }) {
     setOrdersMenuOpen(false);
   }, [location.pathname, location.search, location.hash]);
 
+  useEffect(() => {
+    if (!canToggleAllOrders) {
+      setShowAllOrdersMode(false);
+    }
+  }, [canToggleAllOrders]);
+
   const loadOrders = useCallback(async () => {
     setLoadingOrders(true);
     setError("");
@@ -228,8 +265,14 @@ export default function HomePickupPage({ embedded = false }) {
     }
   }, []);
 
-  const loadPurchases = useCallback(async (orderId) => {
-    if (!orderId) {
+  const loadPurchases = useCallback(async (orderInput) => {
+    const orderIds = Array.isArray(orderInput)
+      ? orderInput.map((id) => String(id || "").trim()).filter(Boolean)
+      : String(orderInput || "").trim()
+        ? [String(orderInput).trim()]
+        : [];
+
+    if (!orderIds.length) {
       setPurchases([]);
       return;
     }
@@ -237,15 +280,21 @@ export default function HomePickupPage({ embedded = false }) {
     setLoadingPurchases(true);
     setError("");
     try {
-      const { data, error: purchasesError } = await sb
+      let purchasesQuery = sb
         .from("purchases")
         .select(
-          "id, customer_name, price, paid_price, picked_up, picked_up_at, pickup_point, collected, purchase_images(storage_path)"
+          "id, order_id, customer_name, price, paid_price, picked_up, picked_up_at, pickup_point, collected, purchase_images(storage_path)"
         )
-        .eq("order_id", orderId)
         .eq("pickup_point", PICKUP_HOME)
         .eq("collected", false)
         .order("created_at", { ascending: true });
+
+      purchasesQuery =
+        orderIds.length === 1
+          ? purchasesQuery.eq("order_id", orderIds[0])
+          : purchasesQuery.in("order_id", orderIds);
+
+      const { data, error: purchasesError } = await purchasesQuery;
 
       if (purchasesError) throw purchasesError;
 
@@ -275,9 +324,16 @@ export default function HomePickupPage({ embedded = false }) {
   }, [isRahaf, isReemOrRawand, loadOrders, profile.authenticated, profile.loading]);
 
   useEffect(() => {
-    if (!selectedOrderId || (!isRahaf && !isReemOrRawand)) return;
-    loadPurchases(selectedOrderId);
-  }, [isRahaf, isReemOrRawand, loadPurchases, selectedOrderId]);
+    const loadKey = selectedOrderIds.map((id) => String(id)).sort().join(",");
+    if ((!isRahaf && !isReemOrRawand) || !loadKey) {
+      lastLoadedOrderKeyRef.current = "";
+      if (!loadKey) setPurchases([]);
+      return;
+    }
+    if (lastLoadedOrderKeyRef.current === loadKey) return;
+    lastLoadedOrderKeyRef.current = loadKey;
+    loadPurchases(selectedOrderIds);
+  }, [isRahaf, isReemOrRawand, loadPurchases, selectedOrderIds]);
 
   async function signOut() {
     await signOutAndRedirect();
@@ -312,9 +368,8 @@ export default function HomePickupPage({ embedded = false }) {
     }
   }
 
-  async function collectHomeMoney() {
-    if (!isRahaf || !selectedOrderId) return;
-    const pending = visiblePurchases.filter((purchase) => purchase.picked_up && !purchase.collected);
+  async function collectPurchaseBatch(pendingPurchases, busySetter) {
+    const pending = (pendingPurchases || []).filter((purchase) => purchase.picked_up && !purchase.collected);
     if (!pending.length) return;
 
     const pendingTotal = pending.reduce(
@@ -325,25 +380,39 @@ export default function HomePickupPage({ embedded = false }) {
     const ok = window.confirm(`تأكيد تحصيل ${pending.length} مشتريات بمبلغ ${pendingText} ₪؟`);
     if (!ok) return;
 
-    setCollecting(true);
+    busySetter(true);
+    const ids = pending.map((purchase) => purchase.id);
     const { error: collectError } = await sb
       .from("purchases")
       .update({ collected: true, collected_at: new Date().toISOString() })
-      .eq("order_id", selectedOrderId)
-      .eq("pickup_point", PICKUP_HOME)
-      .eq("picked_up", true);
+      .in("id", ids);
 
     if (collectError) {
       console.error(collectError);
-      setCollecting(false);
+      busySetter(false);
       return;
     }
     await notifyPickupStatus(
       buildCollectedMoneyMessage({ pickupLabel: PICKUP_HOME, amountText: pendingText })
     );
-    await loadPurchases(selectedOrderId);
+    await loadPurchases(selectedOrderIds);
     await loadOrders();
-    setCollecting(false);
+    busySetter(false);
+  }
+
+  async function collectHomeMoney() {
+    if (!isRahaf || !selectedOrderId) return;
+    await collectPurchaseBatch(visiblePurchases, setCollecting);
+  }
+
+  async function collectHomeSection(section) {
+    if (!isRahaf || !section?.id) return;
+    await collectPurchaseBatch(section.purchases, (busy) => setCollectingSectionId(busy ? section.id : ""));
+  }
+
+  async function collectAllHomeMoney() {
+    if (!isRahaf || !shouldShowAllOrders) return;
+    await collectPurchaseBatch(visiblePurchases, setCollectingAll);
   }
 
   function startEditPaid(purchase) {
@@ -492,6 +561,157 @@ export default function HomePickupPage({ embedded = false }) {
     );
   }
 
+  function renderPurchasesTable(purchaseList) {
+    return (
+      <div className="homepickup-table-wrap pickup-table-wrap">
+        <table className="homepickup-table pickup-table">
+          <thead>
+            <tr>
+              <th>
+                <span className="homepickup-th-label">
+                  <img src={customerHeaderIcon} alt="" className="homepickup-th-icon" aria-hidden="true" />
+                  <span>الزبون</span>
+                </span>
+              </th>
+              <th>
+                <span className="homepickup-th-label">
+                  <img src={priceHeaderIcon} alt="" className="homepickup-th-icon" aria-hidden="true" />
+                  <span>المدفوع</span>
+                </span>
+              </th>
+              {isRahaf ? (
+                <th className="homepickup-edit-col">
+                  <span className="homepickup-th-label">
+                    <span>تعديل المدفوع</span>
+                  </span>
+                </th>
+              ) : null}
+              <th>
+                <span className="homepickup-th-label">
+                  <img src={imagesHeaderIcon} alt="" className="homepickup-th-icon" aria-hidden="true" />
+                  <span>الصور</span>
+                </span>
+              </th>
+              <th>
+                <span className="homepickup-th-label">
+                  <img src={pickedHeaderIcon} alt="" className="homepickup-th-icon" aria-hidden="true" />
+                  <span>تم الاستلام</span>
+                </span>
+              </th>
+              <th>
+                <span className="homepickup-th-label">
+                  <img src={pickupTimeHeaderIcon} alt="" className="homepickup-th-icon" aria-hidden="true" />
+                  <span>وقت الاستلام</span>
+                </span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {purchaseList.length ? (
+              purchaseList.map((purchase) => {
+                const isHighlight = highlightPurchaseId && String(highlightPurchaseId) === String(purchase.id);
+                const isEditing = String(paidEditor.id) === String(purchase.id);
+                return (
+                  <tr key={purchase.id} className={isHighlight ? "highlight" : ""}>
+                    <td>
+                      {isHighlight ? <div className="homepickup-highlight">✅ نتيجة البحث</div> : null}
+                      {purchase.customer_name || ""}
+                    </td>
+                    <td>{formatILS(purchase.paid_price ?? purchase.price)} ₪</td>
+
+                    {isRahaf ? (
+                      <td className="homepickup-edit-col">
+                        {isEditing ? (
+                          <div className="homepickup-edit-actions pickup-edit-actions">
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={paidEditor.value}
+                              onChange={(event) =>
+                                setPaidEditor((prev) => ({ ...prev, value: event.target.value }))
+                              }
+                              className="homepickup-paid-input pickup-input mini"
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") savePaidPrice();
+                                if (event.key === "Escape") cancelEditPaid();
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="homepickup-btn mini"
+                              onClick={savePaidPrice}
+                              disabled={paidEditor.saving}
+                            >
+                              حفظ
+                            </button>
+                            <button
+                              type="button"
+                              className="homepickup-btn mini"
+                              onClick={cancelEditPaid}
+                              disabled={paidEditor.saving}
+                            >
+                              إلغاء
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="homepickup-btn mini"
+                            onClick={() => startEditPaid(purchase)}
+                          >
+                            ✏️
+                          </button>
+                        )}
+                      </td>
+                    ) : null}
+
+                    <td>
+                      {purchase.images?.length ? (
+                        <div className="homepickup-thumbs">
+                          {purchase.images.map((url, index) => (
+                            <img
+                              key={`${purchase.id}-img-${index}`}
+                              src={url}
+                              alt="صورة"
+                              loading="lazy"
+                              onClick={() => openLightbox(purchase.images, index, purchase.customer_name || "")}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+
+                    <td>
+                      <div className="homepickup-pick-row pickup-checkbox-wrap">
+                        <PickupAnimatedCheckbox
+                          checked={!!purchase.picked_up}
+                          onChange={(event) => togglePicked(purchase.id, event.target.checked)}
+                          ariaLabel={purchase.picked_up ? "تم الاستلام" : "غير مستلم"}
+                        />
+                        <span>{purchase.picked_up ? "تم الاستلام" : "غير مستلم"}</span>
+                      </div>
+                    </td>
+
+                    <td>{formatDateTime(purchase.picked_up_at)}</td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={isRahaf ? 7 : 5} className="homepickup-muted">
+                  لا توجد مشتريات
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
   if (profile.loading) {
     return (
       <div className="homepickup-page homepickup-state" dir="rtl">
@@ -529,7 +749,10 @@ export default function HomePickupPage({ embedded = false }) {
   }
 
   return (
-    <div className={`homepickup-page ${embedded ? "embedded" : ""}`} dir="rtl">
+    <div
+      className={`homepickup-page ${embedded ? "embedded" : ""} ${shouldShowAllOrders ? "homepickup-page--allorders" : ""}`}
+      dir="rtl"
+    >
       {!embedded ? (
         <>
           <div
@@ -609,6 +832,29 @@ export default function HomePickupPage({ embedded = false }) {
           ) : null}
         </div>
 
+        {canToggleAllOrders ? (
+          <div className="homepickup-scope-toggle-row">
+            <div className="homepickup-scope-toggle" role="tablist" aria-label="طريقة عرض الطلبات">
+              <button
+                type="button"
+                className={`homepickup-scope-toggle-btn ${!showAllOrdersMode ? "is-active" : ""}`}
+                onClick={() => setShowAllOrdersMode(false)}
+                aria-pressed={!showAllOrdersMode}
+              >
+                حسب الطلبات
+              </button>
+              <button
+                type="button"
+                className={`homepickup-scope-toggle-btn ${showAllOrdersMode ? "is-active" : ""}`}
+                onClick={() => setShowAllOrdersMode(true)}
+                aria-pressed={showAllOrdersMode}
+              >
+                كل الطلبات
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         {search.trim().length >= 2 && searchResults.length ? (
           <div className="homepickup-search-results">
             {searchResults.map((result) => (
@@ -625,7 +871,7 @@ export default function HomePickupPage({ embedded = false }) {
         <div className="homepickup-grid homepickup-grid--single pickup-two-col-layout">
 
           <main className="homepickup-card pickup-main-pane">
-            {!selectedOrder ? (
+            {!shouldShowAllOrders && !selectedOrder ? (
               <div className="homepickup-muted homepickup-spacer">
                 لا يوجد بيانات
                 <div className="homepickup-refresh-row">
@@ -637,7 +883,7 @@ export default function HomePickupPage({ embedded = false }) {
             ) : (
               <>
                 <div className="homepickup-view-controls">
-                  {isDesktop ? (
+                  {isDesktop && !shouldShowAllOrders ? (
                     <div className="homepickup-view-toggle">
                       <button
                         type="button"
@@ -659,8 +905,72 @@ export default function HomePickupPage({ embedded = false }) {
                     <span className="homepickup-amount-label">إجمالي المبلغ للتحصيل</span>
                     <strong className="homepickup-amount-value">{formatILS(amountToCollect)} ₪</strong>
                   </div>
+                  {isRahaf && shouldShowAllOrders ? (
+                    <button
+                      type="button"
+                      className="homepickup-btn homepickup-allorders-collect-btn"
+                      onClick={collectAllHomeMoney}
+                      disabled={collectingAll || amountToCollect <= 0}
+                    >
+                      {collectingAll ? "جاري التحصيل..." : "تم استلام تحصيل الكل"}
+                    </button>
+                  ) : null}
                 </div>
+                {shouldShowAllOrders ? (
+                  <>
+                    {loadingPurchases ? (
+                      <div className="homepickup-spacer">
+                        <SessionLoader label="جاري تحميل المشتريات..." />
+                      </div>
+                    ) : null}
 
+                    {!loadingPurchases && !homeOrderSections.length ? (
+                      <div className="homepickup-muted homepickup-spacer">
+                        لا يوجد بيانات
+                        <div className="homepickup-refresh-row">
+                          <button className="homepickup-btn" type="button" onClick={loadOrders}>
+                            تحديث
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {!loadingPurchases && homeOrderSections.length ? (
+                      <div className="homepickup-allorders-list">
+                        {homeOrderSections.map((section) => (
+                          <section key={section.id} className="homepickup-allorders-section">
+                            <div className="homepickup-row pickup-main-header">
+                              <div>
+                                <b>{section.orderName || "طلبية"}</b>
+                                <div className="homepickup-muted">{getOrderDateKey(section) || "—"}</div>
+                              </div>
+                              <div className="homepickup-row pickup-main-actions">
+                                <span className="homepickup-pill">عدد المشتريات: {section.purchases.length}</span>
+                                {isRahaf ? (
+                                  <button
+                                    type="button"
+                                    className="homepickup-btn"
+                                    onClick={() => collectHomeSection(section)}
+                                    disabled={collectingSectionId === section.id}
+                                  >
+                                    {collectingSectionId === section.id ? "جاري التحصيل..." : "تم استلام تحصيل الكل"}
+                                  </button>
+                                ) : null}
+                              </div>
+                            </div>
+
+                            <div className="homepickup-section-summary">
+                              <span className="homepickup-pill">مجموع المستلم: {formatILS(section.pickedTotal)} ₪</span>
+                            </div>
+
+                            {renderPurchasesTable(section.purchases)}
+                          </section>
+                        ))}
+                      </div>
+                    ) : null}
+                  </>
+                ) : (
+                  <>
                 <div className="homepickup-row pickup-main-header">
                   <div>
                     <b>{selectedOrder.orderName}</b>
@@ -867,6 +1177,8 @@ export default function HomePickupPage({ embedded = false }) {
                     </div>
                   )
                 ) : null}
+                  </>
+                )}
               </>
             )}
           </main>
@@ -927,6 +1239,7 @@ export default function HomePickupPage({ embedded = false }) {
                             type="button"
                             className={`order-row order-row-btn ${active ? "selected" : ""}`}
                             onClick={() => {
+                              setShowAllOrdersMode(false);
                               setSelectedOrderId(order.id);
                               setOrdersMenuOpen(false);
                             }}

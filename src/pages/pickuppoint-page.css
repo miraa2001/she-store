@@ -242,6 +242,23 @@
   min-width: 0;
 }
 
+.pickuppoint-page--allorders .pickuppoint-dropoff-group {
+  content-visibility: auto;
+  contain-intrinsic-size: 520px;
+}
+
+.pickuppoint-page--allorders .pickuppoint-table-wrap-flat {
+  background: #fff;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.pickuppoint-page--allorders .pickuppoint-table th {
+  position: static;
+  background: #fff;
+  backdrop-filter: none;
+}
+
 .pickuppoint-grid--single {
   grid-template-columns: 1fr;
 }

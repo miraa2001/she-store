@@ -598,7 +598,10 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
   }
 
   return (
-    <div className={`pickuppoint-page ${embedded ? "embedded" : ""}`} dir="rtl">
+    <div
+      className={`pickuppoint-page ${embedded ? "embedded" : ""} ${shouldShowAllOrders ? "pickuppoint-page--allorders" : ""}`}
+      dir="rtl"
+    >
       {!embedded ? (
         <>
           <div
