@@ -2,6 +2,8 @@
   min-height: 100dvh;
   background: linear-gradient(135deg, #f6f2f8 0%, #ede5f1 40%, #e7dfeb 100%);
   color: #0f172a;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 .homepickup-page.embedded {
@@ -594,6 +596,7 @@
 .homepickup-allorders-list {
   display: grid;
   gap: 14px;
+  min-width: 0;
 }
 
 .homepickup-allorders-section {
@@ -601,10 +604,19 @@
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.72);
   padding: 12px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .homepickup-section-summary {
   margin-bottom: 10px;
+  min-width: 0;
+}
+
+.homepickup-allorders-section b,
+.homepickup-allorders-section td {
+  overflow-wrap: anywhere;
 }
 
 .homepickup-kanban-grid {
@@ -957,6 +969,14 @@
     border-radius: 16px;
   }
 
+  .homepickup-page--allorders .homepickup-allorders-section {
+    padding: 10px;
+  }
+
+  .homepickup-page--allorders .homepickup-table-wrap {
+    max-height: none;
+  }
+
   .homepickup-row.pickup-main-header,
   .homepickup-row.pickup-main-actions {
     display: grid;
@@ -1027,5 +1047,30 @@
     top: 12px;
     left: 12px;
     font-size: 12px;
+  }
+}
+
+@supports (-webkit-touch-callout: none) {
+  .homepickup-page--allorders .homepickup-allorders-section {
+    content-visibility: visible;
+    contain-intrinsic-size: auto;
+  }
+
+  .homepickup-page .homepickup-search-row,
+  .homepickup-page .homepickup-search-results,
+  .homepickup-page .homepickup-card,
+  .homepickup-page .homepickup-table-wrap,
+  .homepickup-page .pickup-orders-menu-panel,
+  .homepickup-page .order-row,
+  .homepickup-page .month-chip {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .homepickup-page .homepickup-table th {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    position: static;
+    background: #fff;
   }
 }
