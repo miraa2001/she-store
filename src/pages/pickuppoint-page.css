@@ -199,6 +199,41 @@
   background: #f6faf8;
 }
 
+.pickuppoint-view-toggle-row {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 12px;
+}
+
+.pickuppoint-view-toggle {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  border: 1px solid rgba(109, 63, 107, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 4px;
+  box-shadow: 0 8px 20px rgba(109, 63, 107, 0.08);
+}
+
+.pickuppoint-view-toggle-btn {
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  min-height: 40px;
+  padding: 0 14px;
+  color: #475467;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.pickuppoint-view-toggle-btn.is-active {
+  background: #47143f;
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(71, 20, 63, 0.24);
+}
+
 .pickuppoint-grid {
   display: grid;
   grid-template-columns: 330px 1fr;
@@ -605,6 +640,10 @@
     justify-self: start;
   }
 
+  .pickuppoint-view-toggle-row {
+    margin-top: -4px;
+  }
+
   .pickuppoint-grid {
     grid-template-columns: 1fr;
   }
@@ -681,6 +720,11 @@
     min-width: 0;
     min-height: 40px;
     justify-content: center;
+  }
+
+  .pickuppoint-view-toggle-row,
+  .pickuppoint-view-toggle {
+    width: 100%;
   }
 
   .pickuppoint-pill {

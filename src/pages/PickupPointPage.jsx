@@ -81,10 +81,12 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
   const [ordersMenuOpen, setOrdersMenuOpen] = useState(false);
   const [collecting, setCollecting] = useState(false);
   const [collectingAll, setCollectingAll] = useState(false);
+  const [collectingSectionId, setCollectingSectionId] = useState("");
   const [allOrdersTotal, setAllOrdersTotal] = useState(0);
   const [search, setSearch] = useState("");
   const [highlightPurchaseId, setHighlightPurchaseId] = useState("");
   const [paidEditor, setPaidEditor] = useState({ id: "", value: "", saving: false });
+  const [showAllOrdersMode, setShowAllOrdersMode] = useState(false);
   const location = useLocation();
   const highlightTimeoutRef = useRef(null);
   const lastLoadedOrderKeyRef = useRef("");
@@ -93,6 +95,8 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
   const isRahaf = profile.role === "rahaf";
   const isLocationRole = profile.role === pickupLocation.role;
   const canAccess = isRahaf || isLocationRole;
+  const canToggleAllOrders = isRahaf && pickupLocation.id === "maryamti";
+  const shouldShowAllOrders = isLocationRole || (canToggleAllOrders && showAllOrdersMode);
   const sidebarLinks = useMemo(
     () => (isRahaf ? getOrdersNavItems(profile.role) : []),
     [isRahaf, profile.role]
@@ -116,10 +120,10 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
   }, [mergedOrders, selectedItemId]);
 
   const selectedOrderIds = useMemo(() => {
-    if (isLocationRole) return allOrderIds;
+    if (shouldShowAllOrders) return allOrderIds;
     if (!selectedOrder) return [];
     return selectedOrder.orderIds || [];
-  }, [allOrderIds, isLocationRole, selectedOrder]);
+  }, [allOrderIds, selectedOrder, shouldShowAllOrders]);
 
   const visiblePurchases = useMemo(() => purchases.filter((purchase) => !purchase.collected), [purchases]);
   const pickedTotal = useMemo(
@@ -187,7 +191,13 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
   }, [location.pathname, location.search, location.hash]);
 
   useEffect(() => {
-    if (isLocationRole) {
+    if (!canToggleAllOrders) {
+      setShowAllOrdersMode(false);
+    }
+  }, [canToggleAllOrders]);
+
+  useEffect(() => {
+    if (shouldShowAllOrders) {
       setSelectedItemId("");
       if (!orders.length) setPurchases([]);
       return;
@@ -199,7 +209,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
     });
 
     if (!mergedOrders.length) setPurchases([]);
-  }, [isLocationRole, mergedOrders, orders.length]);
+  }, [mergedOrders, orders.length, shouldShowAllOrders]);
 
   const loadOrders = useCallback(async () => {
     setLoadingOrders(true);
@@ -402,6 +412,40 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
     setCollecting(false);
   }
 
+  async function collectSection(section) {
+    if (!isRahaf || !section?.id) return;
+    const pending = (section.purchases || []).filter((purchase) => purchase.picked_up && !purchase.collected);
+    if (!pending.length) return;
+
+    const pendingTotal = pending.reduce(
+      (sum, purchase) => sum + parsePrice(purchase.paid_price ?? purchase.price),
+      0
+    );
+    const pendingText = formatILS(pendingTotal);
+    const ok = window.confirm(`تأكيد تحصيل ${pending.length} مشتريات بمبلغ ${pendingText} ₪؟`);
+    if (!ok) return;
+
+    setCollectingSectionId(section.id);
+    const ids = pending.map((purchase) => purchase.id);
+    const { error: collectError } = await sb
+      .from("purchases")
+      .update({ collected: true, collected_at: new Date().toISOString() })
+      .in("id", ids);
+
+    if (collectError) {
+      console.error(collectError);
+      setCollectingSectionId("");
+      return;
+    }
+
+    await notifyPickupStatus(
+      buildCollectedMoneyMessage({ pickupLabel: pickupLocation.pickupLabel, amountText: pendingText })
+    );
+    await loadOrders();
+    await loadAllOrdersTotal();
+    setCollectingSectionId("");
+  }
+
   async function collectAllOrders() {
     if (!isRahaf) return;
 
@@ -494,7 +538,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
       (order.orderIds || []).some((id) => String(id) === String(result.order_id))
     );
     if (!targetOrder) return;
-    if (!isLocationRole) {
+    if (!shouldShowAllOrders) {
       setSelectedItemId(targetOrder.id);
     }
 
@@ -636,6 +680,29 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
           ) : null}
         </div>
 
+        {canToggleAllOrders ? (
+          <div className="pickuppoint-view-toggle-row">
+            <div className="pickuppoint-view-toggle" role="tablist" aria-label="طريقة عرض الطلبات">
+              <button
+                type="button"
+                className={`pickuppoint-view-toggle-btn ${!showAllOrdersMode ? "is-active" : ""}`}
+                onClick={() => setShowAllOrdersMode(false)}
+                aria-pressed={!showAllOrdersMode}
+              >
+                حسب الطلبات
+              </button>
+              <button
+                type="button"
+                className={`pickuppoint-view-toggle-btn ${showAllOrdersMode ? "is-active" : ""}`}
+                onClick={() => setShowAllOrdersMode(true)}
+                aria-pressed={showAllOrdersMode}
+              >
+                كل الطلبات
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         {search.trim().length >= 2 && searchResults.length ? (
           <div className="pickuppoint-search-results">
             {searchResults.map((result) => {
@@ -676,7 +743,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
               </div>
             ) : null}
 
-            {isLocationRole ? (
+            {shouldShowAllOrders ? (
               <>
                 {loadingPurchases ? (
                   <div className="pickuppoint-spacer">
@@ -714,6 +781,16 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                               {"\u0645\u062C\u0645\u0648\u0639 \u0627\u0644\u0645\u0633\u062A\u0644\u0645"}: {formatILS(section.pickedTotal)} ₪
                             </span>
                           </div>
+                          {isRahaf ? (
+                            <button
+                              type="button"
+                              className="pickuppoint-btn pickuppoint-order-collect-btn"
+                              onClick={() => collectSection(section)}
+                              disabled={collectingSectionId === section.id}
+                            >
+                              {collectingSectionId === section.id ? "جاري التحصيل..." : "تم استلام تحصيل المستلمين"}
+                            </button>
+                          ) : null}
                         </div>
 
                         <div className="pickuppoint-table-wrap pickuppoint-table-wrap-flat pickup-table-wrap">
@@ -733,17 +810,33 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                     <span>{"\u0627\u0644\u0645\u062F\u0641\u0648\u0639"}</span>
                                   </span>
                                 </th>
+                                {isRahaf ? (
+                                  <th className="pickuppoint-edit-col">
+                                    <span className="pickuppoint-th-label">
+                                      <span>تعديل المدفوع</span>
+                                    </span>
+                                  </th>
+                                ) : null}
                                 <th>
                                   <span className="pickuppoint-th-label">
                                     <img src={pickedUpHeaderIcon} alt="" className="pickuppoint-th-icon" aria-hidden="true" />
                                     <span>{"\u062A\u0645 \u0627\u0644\u0627\u0633\u062A\u0644\u0627\u0645"}</span>
                                   </span>
                                 </th>
+                                {isRahaf ? (
+                                  <th>
+                                    <span className="pickuppoint-th-label">
+                                      <img src={pickupTimeHeaderIcon} alt="" className="pickuppoint-th-icon" aria-hidden="true" />
+                                      <span>تاريخ الاستلام</span>
+                                    </span>
+                                  </th>
+                                ) : null}
                               </tr>
                             </thead>
                             <tbody>
                               {section.purchases.map((purchase, index) => {
                                 const isHighlight = highlightPurchaseId && String(highlightPurchaseId) === String(purchase.id);
+                                const isEditing = String(paidEditor.id) === String(purchase.id);
                                 return (
                                   <tr
                                     key={purchase.id}
@@ -753,6 +846,52 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                     <td>{index + 1}</td>
                                     <td>{purchase.customer_name || ""}</td>
                                     <td>{formatILS(purchase.paid_price ?? purchase.price)}</td>
+                                    {isRahaf ? (
+                                      <td className="pickuppoint-edit-col">
+                                        {isEditing ? (
+                                          <div className="pickuppoint-edit-actions pickup-edit-actions">
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              step="0.01"
+                                              value={paidEditor.value}
+                                              onChange={(event) =>
+                                                setPaidEditor((prev) => ({ ...prev, value: event.target.value }))
+                                              }
+                                              className="pickuppoint-paid-input pickup-input mini"
+                                              onKeyDown={(event) => {
+                                                if (event.key === "Enter") savePaidPrice();
+                                                if (event.key === "Escape") cancelEditPaid();
+                                              }}
+                                            />
+                                            <button
+                                              type="button"
+                                              className="pickuppoint-btn mini"
+                                              onClick={savePaidPrice}
+                                              disabled={paidEditor.saving}
+                                            >
+                                              ✅
+                                            </button>
+                                            <button
+                                              type="button"
+                                              className="pickuppoint-btn mini"
+                                              onClick={cancelEditPaid}
+                                              disabled={paidEditor.saving}
+                                            >
+                                              ✖
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            className="pickuppoint-btn mini"
+                                            onClick={() => startEditPaid(purchase)}
+                                          >
+                                            ✏️
+                                          </button>
+                                        )}
+                                      </td>
+                                    ) : null}
                                     <td>
                                       <div className="pickuppoint-pick-row pickup-checkbox-wrap">
                                         <PickupAnimatedCheckbox
@@ -771,6 +910,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                         </span>
                                       </div>
                                     </td>
+                                    {isRahaf ? <td>{formatDateTime(purchase.picked_up_at)}</td> : null}
                                   </tr>
                                 );
                               })}
@@ -1015,6 +1155,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                 String(`dropoff-${group.dateKey}`) === String(selectedItemId) ? "selected" : ""
                               }`}
                               onClick={() => {
+                                if (canToggleAllOrders) setShowAllOrdersMode(false);
                                 setSelectedItemId(`dropoff-${group.dateKey}`);
                                 setOrdersMenuOpen(false);
                               }}
