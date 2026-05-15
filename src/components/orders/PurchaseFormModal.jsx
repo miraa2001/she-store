@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Stepper, { Step } from "../common/Stepper";
 import FileUploadDropzone from "../common/FileUploadDropzone";
 import ImageAnnotatorModal from "../common/ImageAnnotatorModal";
+import LightboxModal from "./LightboxModal";
 
 export default function PurchaseFormModal({
   open,
@@ -35,13 +36,15 @@ export default function PurchaseFormModal({
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerPicked, setCustomerPicked] = useState(false);
   const [imageEditor, setImageEditor] = useState({ open: false, index: -1, file: null });
-  const [previewImage, setPreviewImage] = useState(null);
+  const [previewLightbox, setPreviewLightbox] = useState({ open: false, images: [], index: 0, title: "" });
+  const previewImage = null;
+  const setPreviewImage = () => {};
 
   useEffect(() => {
     if (!open) return;
     setCustomerSearch(formState.customerName || "");
     setCustomerPicked(Boolean(formState.customerId && formState.customerName));
-    setPreviewImage(null);
+    setPreviewLightbox({ open: false, images: [], index: 0, title: "" });
   }, [open, formState.customerId, formState.customerName]);
 
   const filteredCustomers = useMemo(() => {
@@ -79,10 +82,15 @@ export default function PurchaseFormModal({
     closeImageEditor();
   };
 
-  const openImagePreview = (index) => {
-    const item = newFilePreviews?.[index];
-    if (!item?.url) return;
-    setPreviewImage({ url: item.url, key: item.key || String(index) });
+  const openImagePreview = (images, index, title = "معاينة الصورة") => {
+    const previewItems = Array.isArray(images) ? images : [];
+    if (!previewItems.length) return;
+    setPreviewLightbox({
+      open: true,
+      images: previewItems,
+      index,
+      title
+    });
   };
 
   const detailsFields = (
@@ -309,19 +317,29 @@ export default function PurchaseFormModal({
 
       {formMode === "edit" && formState.existingImages.length ? (
         <div className="modal-existing-images">
-          {formState.existingImages.map((img) => {
+          {formState.existingImages.map((img, index) => {
             const removed = formState.removeImageIds.includes(img.id);
             return (
-              <button
-                key={img.id}
-                type="button"
-                className={`modal-existing-image ${removed ? "removed" : ""}`}
-                onClick={() => onToggleExistingImageRemoval(img.id)}
-                disabled={formSaving || formAiRunning}
-              >
+              <div key={img.id} className={`modal-existing-image ${removed ? "removed" : ""}`}>
+                <button
+                  type="button"
+                  className="modal-image-preview-btn"
+                  onClick={() => openImagePreview(formState.existingImages, index, "الصور الحالية")}
+                  disabled={formSaving || formAiRunning}
+                  aria-label="فتح الصورة"
+                >
                 <img src={img.url} alt="صورة موجودة" />
                 <span>{removed ? "سيتم الحذف" : "موجودة"}</span>
               </button>
+              <button
+                type="button"
+                className={`modal-existing-image-toggle ${removed ? "is-danger" : ""}`}
+                onClick={() => onToggleExistingImageRemoval(img.id)}
+                disabled={formSaving || formAiRunning}
+              >
+                {removed ? "تراجع" : "حذف"}
+              </button>
+            </div>
             );
           })}
         </div>
@@ -334,7 +352,7 @@ export default function PurchaseFormModal({
               <button
                 type="button"
                 className="modal-image-preview-btn"
-                onClick={() => openImagePreview(index)}
+                onClick={() => openImagePreview(newFilePreviews, index, "الصور الجديدة")}
                 disabled={formSaving || formAiRunning}
                 aria-label="فتح معاينة الصورة"
               >
@@ -449,6 +467,14 @@ export default function PurchaseFormModal({
           </div>
         </div>
       ) : null}
+
+      <LightboxModal
+        lightbox={previewLightbox}
+        onClose={() => setPreviewLightbox({ open: false, images: [], index: 0, title: "" })}
+        onPrev={() => setPreviewLightbox((prev) => ({ ...prev, index: prev.index - 1 }))}
+        onNext={() => setPreviewLightbox((prev) => ({ ...prev, index: prev.index + 1 }))}
+        Icon={Icon}
+      />
 
       <ImageAnnotatorModal
         open={imageEditor.open}

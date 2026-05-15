@@ -2055,7 +2055,6 @@
 
 .modal-existing-image {
   padding: 0;
-  cursor: pointer;
 }
 
 .modal-existing-image img,
@@ -2080,6 +2079,20 @@
   font-size: 10px;
   padding: 4px;
   color: #334155;
+}
+
+.modal-existing-image-toggle {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid rgba(229, 231, 235, 0.9);
+  background: #fff;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 4px 0;
+}
+
+.modal-existing-image-toggle.is-danger {
+  color: #b42318;
 }
 
 .modal-existing-image.removed {
@@ -2307,6 +2320,33 @@
   gap: 8px;
 }
 
+.lightbox-zoom-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lightbox-zoom-btn {
+  min-width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.14);
+  color: #f8fafc;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lightbox-zoom-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.lightbox-zoom-btn-reset {
+  min-width: 62px;
+  padding: 0 10px;
+}
+
 .lightbox-count-badge {
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.24);
@@ -2323,15 +2363,23 @@
   display: grid;
   place-items: center;
   padding: 8px;
-  overflow: hidden;
+  overflow: auto;
   min-height: 0;
+  overscroll-behavior: contain;
+}
+
+.lightbox-zoom-stage {
+  min-width: 100%;
+  min-height: 100%;
+  display: grid;
+  place-items: center;
 }
 
 .lightbox-body img {
   width: auto;
   height: auto;
-  max-height: calc(100svh - 84px);
-  max-width: calc(100vw - 96px);
+  max-height: calc((100svh - 84px) * var(--lightbox-zoom, 1));
+  max-width: calc((100vw - 96px) * var(--lightbox-zoom, 1));
   border-radius: 10px;
   background: #000;
   object-fit: contain;
@@ -2339,6 +2387,7 @@
 
 .lightbox-image {
   will-change: transform, opacity;
+  transform: translateZ(0);
 }
 
 .lightbox-nav {
@@ -2374,6 +2423,25 @@
     font-size: 13px;
   }
 
+  .lightbox-head-meta {
+    gap: 6px;
+  }
+
+  .lightbox-zoom-controls {
+    gap: 4px;
+  }
+
+  .lightbox-zoom-btn {
+    min-width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+
+  .lightbox-zoom-btn-reset {
+    min-width: 54px;
+    padding: 0 8px;
+  }
+
   .lightbox-nav {
     width: 38px;
     height: 38px;
@@ -2388,8 +2456,8 @@
   }
 
   .lightbox-body img {
-    max-height: calc(100svh - 72px);
-    max-width: calc(100vw - 24px);
+    max-height: calc((100svh - 72px) * var(--lightbox-zoom, 1));
+    max-width: calc((100vw - 24px) * var(--lightbox-zoom, 1));
   }
 
   .lightbox-image.swipe-left {
