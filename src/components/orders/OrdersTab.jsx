@@ -53,6 +53,7 @@ export default function OrdersTab({
   const canMovePurchases = isRahaf && editMode && !!selectedOrder;
   const moveDisabled = !filteredPurchases.length;
   const canShowPurchaseNotes = isRahaf || isReem;
+  const shouldShowOriginalPrice = !isReem;
   const pdfExportIcon = useMemo(() => {
     if (typeof navigator === "undefined") return pdfExportIconWeb;
     const ua = String(navigator.userAgent || "").toLowerCase();
@@ -81,8 +82,13 @@ export default function OrdersTab({
         <div>
           <h2>{selectedOrder?.name || "اختاري طلبًا"}</h2>
           <p>
-            عدد المشتريات: {purchaseStats.count} — مجموع القطع: {purchaseStats.totalQty} — مجموع الأسعار:{" "}
-            {formatILS(purchaseStats.totalOriginalPrice)} ₪ — مجموع المدفوع: {formatILS(purchaseStats.totalPaidPrice)} ₪
+            عدد المشتريات: {purchaseStats.count} — مجموع القطع: {purchaseStats.totalQty}
+            {shouldShowOriginalPrice ? (
+              <>
+                {" "}— مجموع الأسعار: {formatILS(purchaseStats.totalOriginalPrice)} ₪
+              </>
+            ) : null}{" "}
+            — مجموع المدفوع: {formatILS(purchaseStats.totalPaidPrice)} ₪
           </p>
         </div>
 
@@ -298,10 +304,12 @@ export default function OrdersTab({
                         <p className="purchaseVLabel">عدد القطع</p>
                         <p className="purchaseVValue">{purchase.qty || 0}</p>
                       </div>
-                      <div className="purchaseVField">
-                        <p className="purchaseVLabel">السعر الأصلي</p>
-                        <p className="purchaseVValue">{formatILS(purchase.price)} ₪</p>
-                      </div>
+                      {shouldShowOriginalPrice ? (
+                        <div className="purchaseVField">
+                          <p className="purchaseVLabel">السعر الأصلي</p>
+                          <p className="purchaseVValue">{formatILS(purchase.price)} ₪</p>
+                        </div>
+                      ) : null}
                       <div className="purchaseVField">
                         <p className="purchaseVLabel">السعر المدفوع</p>
                         <p className="purchaseVValue">{formatILS(purchase.paid_price ?? purchase.price)} ₪</p>
@@ -372,9 +380,11 @@ export default function OrdersTab({
 
                     <div className="purchase-mobile-summary">{purchase.qty || 0} قطع</div>
 
-                    <div className="purchase-mobile-summary">
-                      السعر الأصلي: {formatILS(purchase.price)} ₪
-                    </div>
+                    {shouldShowOriginalPrice ? (
+                      <div className="purchase-mobile-summary">
+                        السعر الأصلي: {formatILS(purchase.price)} ₪
+                      </div>
+                    ) : null}
 
                     <div className="purchase-mobile-summary">
                       السعر المدفوع: {formatILS(purchase.paid_price ?? purchase.price)} ₪
