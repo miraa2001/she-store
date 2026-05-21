@@ -363,7 +363,8 @@ export default function OrdersPage() {
         setHeaderSearchLoading(true);
         const rows = await searchPurchasesByCustomerName(needle, 100);
         if (cancelled) return;
-        setHeaderSearchResults(rows || []);
+        const visibleOrderIds = new Set(orders.map((order) => String(order.id)));
+        setHeaderSearchResults((rows || []).filter((row) => visibleOrderIds.has(String(row.order_id))));
       } catch (error) {
         console.error(error);
         if (!cancelled) setHeaderSearchResults([]);
@@ -376,7 +377,7 @@ export default function OrdersPage() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [search]);
+  }, [orders, search]);
 
   const groupedOrders = useMemo(() => groupOrdersByMonth(orders), [orders]);
   const searchCount = useMemo(() => headerSearchResults.length, [headerSearchResults]);
@@ -501,7 +502,7 @@ export default function OrdersPage() {
       const data = await fetchOrdersWithSummary();
       const allOrders = data || [];
       const visibleOrders = isReem
-        ? allOrders.filter((order) => !!order.arrived && !order.placedAtPickup)
+        ? allOrders.filter((order) => !!order.arrived && !order.placedAtPickup && !order.allCollected)
         : allOrders;
       setOrders(visibleOrders);
       setSelectedOrderId((prev) => {
