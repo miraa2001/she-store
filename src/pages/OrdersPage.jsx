@@ -52,9 +52,13 @@ import { hasGeminiKey, resolveTotalFromGemini, runGeminiCartAnalysis } from "../
 import { getOrdersNavItems, getRoleLandingHref, isNavHrefActive } from "../lib/navigation";
 import {
   DEFAULT_PICKUP_OPTION,
+  PICKUP_POINT_NABLUS,
+  getDefaultPickupForCity,
+  getPreferredPickupForCustomer,
   formatPickupDisplayLabel,
   formatPickupFormValue,
   getPickupOptionsWithCurrentValue,
+  isNablusCity,
   isPickupPointRole
 } from "../lib/pickup";
 import { signOutAndRedirect } from "../lib/session";
@@ -99,6 +103,18 @@ function createEmptyForm(orderId, customers) {
     existingImages: [],
     removeImageIds: []
   };
+}
+
+function syncPickupWithCityChange(nextCity, currentPickup) {
+  if (isNablusCity(nextCity)) {
+    return getDefaultPickupForCity(nextCity, DEFAULT_PICKUP_OPTION);
+  }
+
+  if (formatPickupFormValue(currentPickup, "") === PICKUP_POINT_NABLUS) {
+    return DEFAULT_PICKUP_OPTION;
+  }
+
+  return currentPickup;
 }
 
 
@@ -340,6 +356,29 @@ export default function OrdersPage() {
   const isMobile = viewportWidth < 768;
   const isTablet = viewportWidth >= 768 && viewportWidth < 1024;
   const isDesktop = viewportWidth >= 1024;
+
+  const setCreateCustomerForm = useCallback((updater) => {
+    setCustomerForm((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      if (!next || typeof next !== "object") return prev;
+      if (String(next.city || "").trim() === String(prev.city || "").trim()) return next;
+      return {
+        ...next,
+        pickup: syncPickupWithCityChange(next.city, next.pickup)
+      };
+    });
+  }, []);
+
+  const updateQuickCustomerForm = useCallback((patch) => {
+    setQuickCustomerForm((prev) => {
+      const next = { ...prev, ...(patch || {}) };
+      if (String(next.city || "").trim() === String(prev.city || "").trim()) return next;
+      return {
+        ...next,
+        pickup: syncPickupWithCityChange(next.city, next.pickup)
+      };
+    });
+  }, []);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -807,7 +846,7 @@ export default function OrdersPage() {
           ...prev,
           customerId: createdCustomer.id,
           customerName: createdCustomer.name || prev.customerName,
-          pickupPoint: formatPickupFormValue(createdCustomer.usual_pickup_point, prev.pickupPoint)
+          pickupPoint: getPreferredPickupForCustomer(createdCustomer, prev.pickupPoint)
         }));
       }
 
@@ -1019,7 +1058,7 @@ export default function OrdersPage() {
       ...prev,
       customerId,
       customerName: customer?.name || "",
-      pickupPoint: formatPickupFormValue(customer?.usual_pickup_point, prev.pickupPoint)
+      pickupPoint: getPreferredPickupForCustomer(customer, prev.pickupPoint)
     }));
   };
 
@@ -1974,7 +2013,7 @@ export default function OrdersPage() {
               customersError={customersError}
               filteredCustomers={filteredCustomers}
               customerForm={customerForm}
-              setCustomerForm={setCustomerForm}
+              setCustomerForm={setCreateCustomerForm}
               customerFormMessage={customerFormMessage}
               customerFormSaving={customerFormSaving}
               handleCreateCustomer={handleCreateCustomer}
@@ -2037,7 +2076,7 @@ export default function OrdersPage() {
         pickupOptions={quickCustomerPickupOptions}
         onClose={closeQuickCustomerModal}
         onSubmit={handleQuickCustomerSubmit}
-        onChange={(patch) => setQuickCustomerForm((prev) => ({ ...prev, ...patch }))}
+        onChange={updateQuickCustomerForm}
         Icon={Icon}
       />
 

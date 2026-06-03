@@ -3,9 +3,11 @@
 export const PICKUP_HOME = "من البيت";
 export const PICKUP_DELIVERY = "توصيل";
 export const PICKUP_POINT = "من نقطة الاستلام";
+export const PICKUP_POINT_NABLUS = "نقطة استلام نابلس";
 export const PICKUP_POINT_LAAURA = `${PICKUP_POINT} - La Aura`;
 export const PICKUP_POINT_MARYAMTI = `${PICKUP_POINT} - مريمتي`;
 export const DEFAULT_PICKUP_OPTION = PICKUP_POINT;
+export const NABLUS_CITY = "نابلس";
 
 const LEGACY_LAAURA_ALIASES = [
   PICKUP_POINT_LAAURA,
@@ -46,7 +48,7 @@ const PICKUP_LOCATION_CONFIGS = {
 
 export const PICKUP_POINT_LOCATIONS = Object.values(PICKUP_LOCATION_CONFIGS);
 export const PICKUP_POINT_ROLE_IDS = PICKUP_POINT_LOCATIONS.map((location) => location.role);
-export const CUSTOMER_PICKUP_OPTIONS = [PICKUP_HOME, PICKUP_POINT];
+export const CUSTOMER_PICKUP_OPTIONS = [PICKUP_HOME, PICKUP_POINT, PICKUP_POINT_NABLUS];
 
 export function normalizePickup(value) {
   return String(value || "")
@@ -103,6 +105,15 @@ export function getPickupRoutePathForRole(role) {
   return getPickupLocationByRole(role)?.routePath || "/orders";
 }
 
+export function isNablusCity(value) {
+  return normalizePickup(value) === normalizePickup(NABLUS_CITY);
+}
+
+export function getDefaultPickupForCity(city, fallback = DEFAULT_PICKUP_OPTION) {
+  if (isNablusCity(city)) return PICKUP_POINT_NABLUS;
+  return fallback;
+}
+
 export function formatPickupDisplayLabel(value, fallback = "—") {
   const text = String(value || "").trim();
   if (!text) return fallback;
@@ -118,6 +129,12 @@ export function formatPickupFormValue(value, fallback = DEFAULT_PICKUP_OPTION) {
   if (normalizePickup(text) === normalizePickup(PICKUP_HOME)) return PICKUP_HOME;
   if (normalizePickup(text) === normalizePickup(PICKUP_DELIVERY)) return PICKUP_DELIVERY;
   return text;
+}
+
+export function getPreferredPickupForCustomer(customer, fallback = DEFAULT_PICKUP_OPTION) {
+  const explicitPickup = formatPickupFormValue(customer?.usual_pickup_point, "");
+  if (explicitPickup) return explicitPickup;
+  return getDefaultPickupForCity(customer?.city, fallback);
 }
 
 export function getPickupOptionsWithCurrentValue(currentValue) {
