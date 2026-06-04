@@ -95,7 +95,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
   const isRahaf = profile.role === "rahaf";
   const isLocationRole = profile.role === pickupLocation.role;
   const canAccess = isRahaf || isLocationRole;
-  const canToggleAllOrders = isRahaf && pickupLocation.id === "maryamti";
+  const canToggleAllOrders = isRahaf && (pickupLocation.id === "maryamti" || pickupLocation.id === "nablus");
   const shouldShowAllOrders = isLocationRole || (canToggleAllOrders && showAllOrdersMode);
   const sidebarLinks = useMemo(
     () => (isRahaf ? getOrdersNavItems(profile.role) : []),

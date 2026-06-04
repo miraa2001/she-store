@@ -9,7 +9,8 @@ const EMAIL_ROLE_FALLBACK = {
   "reem@she-store.com": "reem",
   "rawand@she-store.com": "rawand",
   "laaura@she-store.com": BLOCKED_LAAURA_ROLE,
-  "maryamti@she-store.com": "maryamti"
+  "maryamti@she-store.com": "maryamti",
+  "nablus@she-store.com": "nablus"
 };
 
 export function isBlockedRole(role) {
@@ -22,12 +23,14 @@ function normalizeRole(rawRole, email = "") {
   const isLaauraEmail =
     normalizedEmail.includes("laaura") || normalizedEmail.includes("la.aura") || normalizedEmail.includes("aura");
   const isMaryamtiEmail = normalizedEmail.includes("maryamti");
+  const isNablusEmail = normalizedEmail.includes("nablus");
 
   if (!role) {
     if (normalizedEmail.includes("rahaf")) return "rahaf";
     if (normalizedEmail.includes("rawand")) return "rawand";
     if (normalizedEmail.includes("reem")) return "reem";
     if (isMaryamtiEmail) return "maryamti";
+    if (isNablusEmail) return "nablus";
     if (isLaauraEmail) return BLOCKED_LAAURA_ROLE;
     return "viewer";
   }
@@ -38,8 +41,13 @@ function normalizeRole(rawRole, email = "") {
     return "maryamti";
   }
 
+  if (role === "nablus" || role === "nabls" || role === "نابلس") {
+    return "nablus";
+  }
+
   if (role === "pickup" || role === "pickuppoint" || role === "pickup point") {
     if (isMaryamtiEmail) return "maryamti";
+    if (isNablusEmail) return "nablus";
     if (isLaauraEmail) return BLOCKED_LAAURA_ROLE;
   }
 
@@ -56,6 +64,7 @@ function normalizeRole(rawRole, email = "") {
   }
 
   if (isMaryamtiEmail) return "maryamti";
+  if (isNablusEmail) return "nablus";
   if (isLaauraEmail) return BLOCKED_LAAURA_ROLE;
 
   return role;

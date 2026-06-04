@@ -18,7 +18,8 @@ import moneyCollectionsIcon from "../assets/icons/pickup-dashboard/money-collect
 
 const TAB_CONFIG = {
   home: { id: "home", label: "مستلمو البيت", icon: homePickupsIcon },
-  pickup: { id: "pickup", label: "نقطة الاستلام", icon: pickupPointIcon },
+  pickup: { id: "pickup", label: "مريمتي", icon: pickupPointIcon },
+  nablus: { id: "nablus", label: "الشخشير للأدوات المنزلية", icon: pickupPointIcon },
   collections: { id: "collections", label: "تحصيل المبالغ", icon: moneyCollectionsIcon }
 };
 
@@ -64,6 +65,7 @@ export default function PickupDashboardPage() {
   function renderPanel(tabId) {
     if (tabId === "home") return <HomePickupPage embedded />;
     if (tabId === "pickup") return <PickupPointPage key="pickup" embedded locationId="maryamti" />;
+    if (tabId === "nablus") return <PickupPointPage key="nablus" embedded locationId="nablus" />;
     if (tabId === "collections") return <CollectionsPage embedded />;
     return null;
   }

@@ -27,12 +27,12 @@ const PICKUP_LOCATION_CONFIGS = {
     routePath: "/pickuppoint",
     routeHash: "#/pickuppoint",
     navId: "pickuppoint",
-    navLabel: "نقطة الاستلام",
-    dashboardLabel: "نقطة الاستلام",
-    pageTitle: "نقطة الاستلام",
-    pageSubtitle: "طلبات الاستلام من نقطة الاستلام",
+    navLabel: "مريمتي",
+    dashboardLabel: "مريمتي",
+    pageTitle: "مريمتي",
+    pageSubtitle: "طلبات الاستلام في مريمتي",
     pickupValue: PICKUP_POINT,
-    pickupLabel: PICKUP_POINT,
+    pickupLabel: "مريمتي",
     whatsappLocationLine: "مريمتي - مجمع ابو طريف والزغل الطابق الثاني",
     whatsappHoursLine: "",
     aliases: [
@@ -43,6 +43,23 @@ const PICKUP_LOCATION_CONFIGS = {
       "مريمتي",
       ...LEGACY_LAAURA_ALIASES
     ]
+  },
+  nablus: {
+    id: "nablus",
+    role: "nablus",
+    tabId: "nablus",
+    routePath: "/pickuppoint-nablus",
+    routeHash: "#/pickuppoint-nablus",
+    navId: "pickuppoint-nablus",
+    navLabel: "الشخشير للأدوات المنزلية",
+    dashboardLabel: "الشخشير للأدوات المنزلية",
+    pageTitle: "الشخشير للأدوات المنزلية",
+    pageSubtitle: "طلبات الاستلام في الشخشير للأدوات المنزلية",
+    pickupValue: PICKUP_POINT_NABLUS,
+    pickupLabel: "الشخشير للأدوات المنزلية",
+    whatsappLocationLine: "الشخشير للأدوات المنزلية - وسط البلد - شارع غرناطة مقابل ال KFC بجانب عالم اللحوم - نابلس",
+    whatsappHoursLine: "[ساعات الدوام]  : 9 صباحا - 6 مساءً",
+    aliases: [PICKUP_POINT_NABLUS, "نابلس", "nablus", "الشخشير", "الشخشير للأدوات المنزلية"]
   }
 };
 
@@ -87,10 +104,7 @@ export function getPickupLocationByTabId(tabId) {
 }
 
 export function getPickupLocationByPickupPoint(value) {
-  if (matchesLocationPickup(value, PICKUP_LOCATION_CONFIGS.maryamti)) {
-    return PICKUP_LOCATION_CONFIGS.maryamti;
-  }
-  return null;
+  return PICKUP_POINT_LOCATIONS.find((location) => matchesLocationPickup(value, location)) || null;
 }
 
 export function isPickupPointRole(role) {
@@ -117,7 +131,8 @@ export function getDefaultPickupForCity(city, fallback = DEFAULT_PICKUP_OPTION) 
 export function formatPickupDisplayLabel(value, fallback = "—") {
   const text = String(value || "").trim();
   if (!text) return fallback;
-  if (isPickupPointPickup(text)) return PICKUP_POINT;
+  const pickupLocation = getPickupLocationByPickupPoint(text);
+  if (pickupLocation) return pickupLocation.pickupValue;
   if (normalizePickup(text) === normalizePickup(PICKUP_HOME)) return PICKUP_HOME;
   return text;
 }
@@ -125,7 +140,8 @@ export function formatPickupDisplayLabel(value, fallback = "—") {
 export function formatPickupFormValue(value, fallback = DEFAULT_PICKUP_OPTION) {
   const text = String(value || "").trim();
   if (!text) return fallback;
-  if (isPickupPointPickup(text)) return PICKUP_POINT;
+  const pickupLocation = getPickupLocationByPickupPoint(text);
+  if (pickupLocation) return pickupLocation.pickupValue;
   if (normalizePickup(text) === normalizePickup(PICKUP_HOME)) return PICKUP_HOME;
   if (normalizePickup(text) === normalizePickup(PICKUP_DELIVERY)) return PICKUP_DELIVERY;
   return text;
@@ -153,6 +169,10 @@ export function isLaauraPickup(value) {
 
 export function isMaryamtiPickup(value) {
   return matchesLocationPickup(value, PICKUP_LOCATION_CONFIGS.maryamti);
+}
+
+export function isNablusPickup(value) {
+  return matchesLocationPickup(value, PICKUP_LOCATION_CONFIGS.nablus);
 }
 
 export function isPickupPointPickup(value) {

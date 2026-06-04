@@ -125,6 +125,7 @@ export default function App() {
         <Route path="/homepickup" element={<HomePickupPage />} />
         <Route path="/pickuppoint" element={<PickupPointPage locationId="maryamti" />} />
         <Route path="/pickuppoint-maryamti" element={<Navigate to="/pickuppoint" replace />} />
+        <Route path="/pickuppoint-nablus" element={<PickupPointPage locationId="nablus" />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/legacy/:page" element={<LegacyFrame />} />
         <Route path="*" element={<Navigate to="/" replace />} />

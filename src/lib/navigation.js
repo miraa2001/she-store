@@ -1,10 +1,11 @@
-import { PICKUP_POINT_LOCATIONS, getPickupRouteHashForRole } from "./pickup";
+import { PICKUP_POINT_LOCATIONS, getPickupRouteHashForRole, isPickupPointRole } from "./pickup";
 
 const ROLE_LABELS = {
   rahaf: "رهف",
   reem: "ريم",
   rawand: "روند",
-  maryamti: "مريمتي"
+  maryamti: "مريمتي",
+  nablus: "الشخشير للأدوات المنزلية"
 };
 
 const PICKUP_NAV_ITEMS = PICKUP_POINT_LOCATIONS.map((location) => ({
@@ -27,7 +28,8 @@ const ORDERS_NAV_ACCESS = {
   rahaf: ["orders", "pickup-dashboard", "archive", "finance"],
   reem: ["orders", "pickup-dashboard", "homepickup"],
   rawand: ["orders", "pickup-dashboard", "homepickup"],
-  maryamti: ["orders", "pickuppoint"]
+  maryamti: ["orders", "pickuppoint"],
+  nablus: ["orders", "pickuppoint-nablus"]
 };
 
 const PICKUP_SIDEBAR_LINKS_BY_ROLE = {
@@ -48,10 +50,11 @@ const PICKUP_SIDEBAR_LINKS_BY_ROLE = {
 };
 
 const PICKUP_TABS_BY_ROLE = {
-  rahaf: ["home", "pickup", "collections"],
+  rahaf: ["home", "pickup", "nablus", "collections"],
   reem: ["home"],
   rawand: ["home"],
-  maryamti: ["pickup"]
+  maryamti: ["pickup"],
+  nablus: ["nablus"]
 };
 
 export function getRoleLabel(role) {
@@ -72,7 +75,7 @@ export function getPickupSidebarLinks(role) {
 }
 
 export function getRoleLandingHref(role) {
-  if (role === "maryamti") {
+  if (isPickupPointRole(role)) {
     return getPickupRouteHashForRole(role);
   }
   return "#/orders";
