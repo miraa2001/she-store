@@ -14,6 +14,7 @@ import {
   groupOrdersByMonth,
   isOrderFullyCollected,
   parsePrice,
+  updateOrderProfitSettings,
   updateOrderName,
   updateOrderWorkflowStatus
 } from "../lib/orders";
@@ -58,6 +59,7 @@ import {
   formatPickupDisplayLabel,
   formatPickupFormValue,
   getPickupOptionsWithCurrentValue,
+  isNablusPickup,
   isNablusCity,
   isPickupPointRole
 } from "../lib/pickup";
@@ -346,6 +348,8 @@ export default function OrdersPage() {
   const [movePurchasesDialogBusy, setMovePurchasesDialogBusy] = useState(false);
   const [orderDialog, setOrderDialog] = useState(null);
   const [orderDialogBusy, setOrderDialogBusy] = useState(false);
+  const [orderSettingsDialog, setOrderSettingsDialog] = useState(null);
+  const [orderSettingsDialogBusy, setOrderSettingsDialogBusy] = useState(false);
   const [lightbox, setLightbox] = useState({ open: false, images: [], index: 0, title: "" });
   const [highlightPurchaseId, setHighlightPurchaseId] = useState("");
   const hasInitializedUrlState = useRef(false);
@@ -386,6 +390,37 @@ export default function OrdersPage() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  const groupedOrders = useMemo(() => groupOrdersByMonth(orders), [orders]);
+  const searchCount = useMemo(() => headerSearchResults.length, [headerSearchResults]);
+
+  const totalOrders = orders.length;
+  const isRahaf = profile.role === "rahaf";
+  const isReem = profile.role === "reem";
+  const isViewOnlyRole = profile.role === "reem" || profile.role === "rawand";
+  const isPickupOnlyRole = isPickupPointRole(profile.role);
+  const canUseOrdersWorkbench = isRahaf || isViewOnlyRole;
+  const allowedTabs = useMemo(
+    () => (isReem ? ["orders"] : isRahaf || isViewOnlyRole ? ["orders", "customers"] : ["orders"]),
+    [isRahaf, isReem, isViewOnlyRole]
+  );
+
+  const visibleNavItems = useMemo(() => getOrdersNavItems(profile.role), [profile.role]);
+  const isPurchaseVisibleToCurrentRole = useCallback(
+    (purchase) => !(isReem && isNablusPickup(purchase?.pickup_point)),
+    [isReem]
+  );
+  const isSidebarItemActive = useCallback(
+    (href) => {
+      const customersTabActive = isNavHrefActive("#/orders?tab=customers", location);
+      const isRootOrdersItem = href === "#/orders";
+      if (isRootOrdersItem) {
+        return isNavHrefActive(href, location) && !customersTabActive;
+      }
+      return isNavHrefActive(href, location);
+    },
+    [location]
+  );
+
   useEffect(() => {
     let cancelled = false;
     const needle = String(search || "").trim();
@@ -403,7 +438,11 @@ export default function OrdersPage() {
         const rows = await searchPurchasesByCustomerName(needle, 100);
         if (cancelled) return;
         const visibleOrderIds = new Set(orders.map((order) => String(order.id)));
-        setHeaderSearchResults((rows || []).filter((row) => visibleOrderIds.has(String(row.order_id))));
+        setHeaderSearchResults(
+          (rows || []).filter(
+            (row) => visibleOrderIds.has(String(row.order_id)) && isPurchaseVisibleToCurrentRole(row)
+          )
+        );
       } catch (error) {
         console.error(error);
         if (!cancelled) setHeaderSearchResults([]);
@@ -416,34 +455,7 @@ export default function OrdersPage() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [orders, search]);
-
-  const groupedOrders = useMemo(() => groupOrdersByMonth(orders), [orders]);
-  const searchCount = useMemo(() => headerSearchResults.length, [headerSearchResults]);
-
-  const totalOrders = orders.length;
-  const isRahaf = profile.role === "rahaf";
-  const isReem = profile.role === "reem";
-  const isViewOnlyRole = profile.role === "reem" || profile.role === "rawand";
-  const isPickupOnlyRole = isPickupPointRole(profile.role);
-  const canUseOrdersWorkbench = isRahaf || isViewOnlyRole;
-  const allowedTabs = useMemo(
-    () => (isReem ? ["orders"] : isRahaf || isViewOnlyRole ? ["orders", "customers"] : ["orders"]),
-    [isRahaf, isReem, isViewOnlyRole]
-  );
-
-  const visibleNavItems = useMemo(() => getOrdersNavItems(profile.role), [profile.role]);
-  const isSidebarItemActive = useCallback(
-    (href) => {
-      const customersTabActive = isNavHrefActive("#/orders?tab=customers", location);
-      const isRootOrdersItem = href === "#/orders";
-      if (isRootOrdersItem) {
-        return isNavHrefActive(href, location) && !customersTabActive;
-      }
-      return isNavHrefActive(href, location);
-    },
-    [location]
-  );
+  }, [isPurchaseVisibleToCurrentRole, orders, search]);
 
   const selectedOrder = useMemo(
     () => orders.find((order) => String(order.id) === String(selectedOrderId)) || null,
@@ -541,7 +553,20 @@ export default function OrdersPage() {
       const data = await fetchOrdersWithSummary();
       const allOrders = data || [];
       const visibleOrders = isReem
-        ? allOrders.filter((order) => !!order.arrived && !order.placedAtPickup && !order.allCollected)
+        ? allOrders
+            .filter(
+              (order) =>
+                !!order.arrived &&
+                !order.placedAtPickup &&
+                !order.allCollected &&
+                Number(order.reemVisiblePurchaseCount || 0) > 0
+            )
+            .map((order) => ({
+              ...order,
+              amountRaw: Number(order.reemVisibleAmountRaw || 0),
+              amountLabel: `${formatILS(Number(order.reemVisibleAmountRaw || 0))} ₪`,
+              purchaseCount: Number(order.reemVisiblePurchaseCount || 0)
+            }))
         : allOrders;
       setOrders(visibleOrders);
       setSelectedOrderId((prev) => {
@@ -591,14 +616,14 @@ export default function OrdersPage() {
 
     try {
       const list = await fetchPurchasesByOrder(orderId);
-      setPurchases(list || []);
+      setPurchases((list || []).filter(isPurchaseVisibleToCurrentRole));
     } catch (error) {
       console.error(error);
       setPurchasesError("فشل تحميل المشتريات.");
     } finally {
       setPurchasesLoading(false);
     }
-  }, []);
+  }, [isPurchaseVisibleToCurrentRole]);
 
   useEffect(() => {
     if (!profile.authenticated) {
@@ -1282,6 +1307,22 @@ export default function OrdersPage() {
     setOrderDialog(null);
   };
 
+  const openOrderSettingsDialog = (order = selectedOrder) => {
+    if (!isRahaf || !order) return;
+    setOrderSettingsDialog({
+      orderId: order.id,
+      name: String(order.name || ""),
+      totalProfit: order.totalProfit ?? "",
+      miraProfit: order.miraProfit ?? "",
+      rahafProfit: order.rahafProfit ?? ""
+    });
+  };
+
+  const closeOrderSettingsDialog = () => {
+    if (orderSettingsDialogBusy) return;
+    setOrderSettingsDialog(null);
+  };
+
   const submitRenameOrder = async () => {
     if (!orderDialog || orderDialog.kind !== "rename" || orderDialogBusy) return;
     const nextName = String(orderDialog.name || "").trim();
@@ -1323,6 +1364,40 @@ export default function OrdersPage() {
       }
     } finally {
       setOrderDialogBusy(false);
+    }
+  };
+
+  const submitOrderSettingsDialog = async () => {
+    if (!orderSettingsDialog || orderSettingsDialogBusy) return;
+
+    setOrderSettingsDialogBusy(true);
+    try {
+      const nextValues = await updateOrderProfitSettings(orderSettingsDialog.orderId, {
+        totalProfit: orderSettingsDialog.totalProfit,
+        miraProfit: orderSettingsDialog.miraProfit,
+        rahafProfit: orderSettingsDialog.rahafProfit
+      });
+
+      setOrders((prev) =>
+        prev.map((order) =>
+          String(order.id) === String(orderSettingsDialog.orderId)
+            ? {
+                ...order,
+                totalProfit: nextValues.totalProfit,
+                miraProfit: nextValues.miraProfit,
+                rahafProfit: nextValues.rahafProfit
+              }
+            : order
+        )
+      );
+
+      setToast({ type: "success", text: "تم حفظ إعدادات الطلب." });
+      setOrderSettingsDialog(null);
+    } catch (error) {
+      console.error(error);
+      setToast({ type: "danger", text: error?.message || "فشل حفظ إعدادات الطلب." });
+    } finally {
+      setOrderSettingsDialogBusy(false);
     }
   };
 
@@ -1974,6 +2049,7 @@ export default function OrdersPage() {
                 onUpdateOrderStatus={handleUpdateOrderStatus}
                 onOpenAddModal={openAddModal}
                 onOpenMoveDialog={openMovePurchasesDialog}
+                onOpenOrderSettings={openOrderSettingsDialog}
                 onExportPdf={exportPdfNative}
                 canExportPdf={!isReem}
                 pdfExporting={pdfExporting}
@@ -2270,6 +2346,101 @@ export default function OrdersPage() {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {orderSettingsDialog ? (
+        <div className="purchase-modal-backdrop" onClick={closeOrderSettingsDialog}>
+          <div
+            className="purchase-modal-card purchase-modal-card-customer purchase-modal-card-delete"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="purchase-modal-head">
+              <h3>إعدادات الطلب</h3>
+              <button
+                type="button"
+                className="icon-btn tiny"
+                onClick={closeOrderSettingsDialog}
+                disabled={orderSettingsDialogBusy}
+              >
+                <Icon name="close" className="icon" />
+              </button>
+            </div>
+
+            <div className="purchase-modal-body delete-confirm-body">
+              {orderSettingsDialog.name ? (
+                <div className="delete-confirm-target">{orderSettingsDialog.name}</div>
+              ) : null}
+
+              <label>
+                <span>الربح الكلي</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={orderSettingsDialog.totalProfit}
+                  onChange={(event) =>
+                    setOrderSettingsDialog((prev) =>
+                      prev ? { ...prev, totalProfit: event.target.value } : prev
+                    )
+                  }
+                  disabled={orderSettingsDialogBusy}
+                  autoFocus
+                />
+              </label>
+
+              <label>
+                <span>ربح ميرا</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={orderSettingsDialog.miraProfit}
+                  onChange={(event) =>
+                    setOrderSettingsDialog((prev) =>
+                      prev ? { ...prev, miraProfit: event.target.value } : prev
+                    )
+                  }
+                  disabled={orderSettingsDialogBusy}
+                />
+              </label>
+
+              <label>
+                <span>ربح رهف</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={orderSettingsDialog.rahafProfit}
+                  onChange={(event) =>
+                    setOrderSettingsDialog((prev) =>
+                      prev ? { ...prev, rahafProfit: event.target.value } : prev
+                    )
+                  }
+                  disabled={orderSettingsDialogBusy}
+                />
+              </label>
+
+              <div className="purchase-modal-foot">
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={submitOrderSettingsDialog}
+                  disabled={orderSettingsDialogBusy}
+                >
+                  {orderSettingsDialogBusy ? "جاري الحفظ..." : "حفظ"}
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost-light"
+                  onClick={closeOrderSettingsDialog}
+                  disabled={orderSettingsDialogBusy}
+                >
+                  إلغاء
+                </button>
+              </div>
             </div>
           </div>
         </div>

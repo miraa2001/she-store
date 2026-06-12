@@ -1,3 +1,4 @@
+import { isNablusPickup } from "./pickup";
 import { sb } from "./supabaseClient";
 
 export const IMAGE_BUCKET = "purchase-images";
@@ -44,6 +45,39 @@ export function formatILS(value) {
   if (!Number.isFinite(number)) return "0";
   const fixed = number.toFixed(2);
   return fixed.endsWith(".00") ? String(Math.round(number)) : fixed;
+}
+
+export function parseOptionalPrice(value) {
+  if (value === null || value === undefined || value === "") return null;
+  return parsePrice(value);
+}
+
+export function getOrderProfitFields(order = {}) {
+  return {
+    totalProfit: parseOptionalPrice(order.total_profit),
+    miraProfit: parseOptionalPrice(order.mira_profit),
+    rahafProfit: parseOptionalPrice(order.rahaf_profit)
+  };
+}
+
+export async function selectOrdersWithOptionalProfitFields(selectClause) {
+  const baseSelect = String(selectClause || "").trim();
+  const profitSelect = "total_profit, mira_profit, rahaf_profit";
+  const fullSelect = `${baseSelect}, ${profitSelect}`;
+
+  let result = await sb
+    .from("orders")
+    .select(fullSelect)
+    .order("created_at", { ascending: false });
+
+  if (result.error?.code === "42703") {
+    result = await sb
+      .from("orders")
+      .select(baseSelect)
+      .order("created_at", { ascending: false });
+  }
+
+  return result;
 }
 
 function normalizeOrderType(value) {
@@ -104,10 +138,9 @@ function shortOrderNo(id) {
 }
 
 export async function fetchOrdersWithSummary() {
-  const { data: orders, error } = await sb
-    .from("orders")
-    .select("id, order_name, created_at, arrived, placed_at_pickup")
-    .order("created_at", { ascending: false });
+  const { data: orders, error } = await selectOrdersWithOptionalProfitFields(
+    "id, order_name, created_at, arrived, placed_at_pickup"
+  );
 
   if (error) throw error;
 
@@ -117,7 +150,8 @@ export async function fetchOrdersWithSummary() {
     createdAt: order.created_at,
     arrived: !!order.arrived,
     placedAtPickup: !!order.placed_at_pickup,
-    orderNo: shortOrderNo(order.id)
+    orderNo: shortOrderNo(order.id),
+    ...getOrderProfitFields(order)
   }));
 
   if (!normalizedOrders.length) {
@@ -128,7 +162,7 @@ export async function fetchOrdersWithSummary() {
 
   const { data: purchases, error: purchasesError } = await sb
     .from("purchases")
-    .select("order_id, price, paid_price, collected")
+    .select("order_id, price, paid_price, collected, pickup_point")
     .in("order_id", ids);
 
   if (purchasesError) throw purchasesError;
@@ -136,6 +170,9 @@ export async function fetchOrdersWithSummary() {
   const totals = new Map();
   const purchaseCounts = new Map();
   const fullyCollectedByOrder = new Map();
+  const hasNablusPickupByOrder = new Map();
+  const reemVisibleTotalsByOrder = new Map();
+  const reemVisiblePurchaseCountByOrder = new Map();
 
   (purchases || []).forEach((purchase) => {
     const id = purchase.order_id;
@@ -147,6 +184,12 @@ export async function fetchOrdersWithSummary() {
 
     const currentAllCollected = fullyCollectedByOrder.has(id) ? fullyCollectedByOrder.get(id) : true;
     fullyCollectedByOrder.set(id, currentAllCollected && isPurchaseFullyCollected(purchase));
+    const isNablusPurchase = isNablusPickup(purchase.pickup_point);
+    hasNablusPickupByOrder.set(id, (hasNablusPickupByOrder.get(id) || false) || isNablusPurchase);
+    if (!isNablusPurchase) {
+      reemVisibleTotalsByOrder.set(id, (reemVisibleTotalsByOrder.get(id) || 0) + parsePrice(purchase.paid_price ?? purchase.price));
+      reemVisiblePurchaseCountByOrder.set(id, (reemVisiblePurchaseCountByOrder.get(id) || 0) + 1);
+    }
   });
 
   return normalizedOrders.map((order) => {
@@ -159,6 +202,9 @@ export async function fetchOrdersWithSummary() {
       amountRaw: total,
       amountLabel: `${formatILS(total)} \u20AA`,
       purchaseCount,
+      hasNablusPickup: hasNablusPickupByOrder.get(order.id) === true,
+      reemVisibleAmountRaw: reemVisibleTotalsByOrder.get(order.id) || 0,
+      reemVisiblePurchaseCount: reemVisiblePurchaseCountByOrder.get(order.id) || 0,
       allCollected,
       status: deriveOrderStatus({
         arrived: order.arrived,
@@ -289,6 +335,47 @@ export async function updateOrderName(orderId, orderName) {
 
   if (error) throw error;
   return { id: orderId, name };
+}
+
+function toNullableProfitNumber(value, label) {
+  if (value === null || value === undefined) return null;
+
+  const text = String(value).trim();
+  if (!text) return null;
+
+  const number = Number(text);
+  if (!Number.isFinite(number) || number < 0) {
+    throw new Error(`${label} غير صحيح.`);
+  }
+
+  return number;
+}
+
+export async function updateOrderProfitSettings(orderId, input = {}) {
+  const payload = {
+    total_profit: toNullableProfitNumber(input.totalProfit, "الربح الكلي"),
+    mira_profit: toNullableProfitNumber(input.miraProfit, "ربح ميرا"),
+    rahaf_profit: toNullableProfitNumber(input.rahafProfit, "ربح رهف")
+  };
+
+  const { error } = await sb
+    .from("orders")
+    .update(payload)
+    .eq("id", orderId);
+
+  if (error) {
+    if (error.code === "42703") {
+      throw new Error("يلزم إضافة أعمدة الأرباح إلى جدول الطلبات أولاً.");
+    }
+
+    throw error;
+  }
+
+  return {
+    totalProfit: payload.total_profit,
+    miraProfit: payload.mira_profit,
+    rahafProfit: payload.rahaf_profit
+  };
 }
 
 export async function deleteOrderById(orderId) {

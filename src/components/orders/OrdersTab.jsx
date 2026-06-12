@@ -16,6 +16,15 @@ function normalizeSlideIndex(index, total) {
   return ((Number(index) || 0) % total + total) % total;
 }
 
+function SettingsIcon() {
+  return (
+    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8.92 4.6H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.18.31.67 1 1.51 1H21a2 2 0 1 1 0 4h-.09c-.84 0-1.33.69-1.51 1Z" />
+    </svg>
+  );
+}
+
 export default function OrdersTab({
   selectedOrder,
   selectedOrderStatus = "pending",
@@ -29,6 +38,7 @@ export default function OrdersTab({
   onUpdateOrderStatus,
   onOpenAddModal,
   onOpenMoveDialog,
+  onOpenOrderSettings,
   onExportPdf,
   canExportPdf = true,
   pdfExporting,
@@ -51,6 +61,7 @@ export default function OrdersTab({
   const highlightRef = useRef(null);
   const canEditOrderStatus = isRahaf && editMode && !!selectedOrder;
   const canMovePurchases = isRahaf && editMode && !!selectedOrder;
+  const canOpenOrderSettings = isRahaf && editMode && !!selectedOrder;
   const moveDisabled = !filteredPurchases.length;
   const canShowPurchaseNotes = isRahaf || isReem;
   const shouldShowOriginalPrice = !isReem;
@@ -93,6 +104,18 @@ export default function OrdersTab({
         </div>
 
         <div className="order-detail-actions">
+          {canOpenOrderSettings ? (
+            <button
+              type="button"
+              className="icon-btn order-settings-btn"
+              onClick={onOpenOrderSettings}
+              aria-label="إعدادات الطلب"
+              title="إعدادات الطلب"
+            >
+              <SettingsIcon />
+            </button>
+          ) : null}
+
           {canEditOrderStatus && !isMobile ? (
             <div className="order-status-inline">
               <span className="order-status-inline-label">حالة الطلب</span>

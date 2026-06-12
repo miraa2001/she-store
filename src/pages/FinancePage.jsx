@@ -4,7 +4,7 @@ import { useAuthProfile } from "../hooks/useAuthProfile";
 import { formatDMY } from "../lib/dateFormat";
 import { getOrdersNavItems, isNavHrefActive } from "../lib/navigation";
 import { setBodyScrollLock } from "../lib/bodyScrollLock";
-import { formatILS, parsePrice } from "../lib/orders";
+import { formatILS, getOrderProfitFields, parsePrice, selectOrdersWithOptionalProfitFields } from "../lib/orders";
 import { formatPickupDisplayLabel } from "../lib/pickup";
 import { signOutAndRedirect } from "../lib/session";
 import { sb } from "../lib/supabaseClient";
@@ -73,6 +73,10 @@ function topPickupPoint(map) {
   return top;
 }
 
+function formatOptionalMoney(value) {
+  return value === null || value === undefined ? "—" : formatILS(value);
+}
+
 export default function FinancePage({ embedded = false }) {
   const { profile } = useAuthProfile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -99,10 +103,7 @@ export default function FinancePage({ embedded = false }) {
 
     try {
       const [ordersRes, purchasesRes] = await Promise.all([
-        sb
-          .from("orders")
-          .select("id, order_name, order_date, created_at, spent_amount")
-          .order("created_at", { ascending: false }),
+        selectOrdersWithOptionalProfitFields("id, order_name, order_date, created_at, spent_amount"),
         sb
           .from("purchases")
           .select("order_id, price, paid_price, pickup_point, collected, picked_up")
@@ -113,7 +114,8 @@ export default function FinancePage({ embedded = false }) {
 
       const orderRows = (ordersRes.data || []).map((order) => ({
         ...order,
-        spent_amount: parsePrice(order.spent_amount)
+        spent_amount: parsePrice(order.spent_amount),
+        ...getOrderProfitFields(order)
       }));
 
       const stats = new Map();
@@ -208,6 +210,9 @@ export default function FinancePage({ embedded = false }) {
         createdAt: order.created_at,
         orderDate: order.order_date,
         spent,
+        totalProfit: order.totalProfit ?? null,
+        miraProfit: order.miraProfit ?? null,
+        rahafProfit: order.rahafProfit ?? null,
         collected: stats.collected,
         expected: stats.expected,
         pending,
@@ -619,6 +624,27 @@ export default function FinancePage({ embedded = false }) {
                       <div className="finance-kpi">
                         <div className="label">المصروف</div>
                         <div className="value">{formatILS(selectedOrder.spent)}</div>
+                      </div>
+                    </div>
+
+                    <div className="finance-kpi-grid compact">
+                      <div className="finance-kpi">
+                        <div className="label">الربح الكلي</div>
+                        <div className={`value ${selectedOrder.totalProfit < 0 ? "neg" : ""}`}>
+                          {formatOptionalMoney(selectedOrder.totalProfit)}
+                        </div>
+                      </div>
+                      <div className="finance-kpi">
+                        <div className="label">ربح ميرا</div>
+                        <div className={`value ${selectedOrder.miraProfit < 0 ? "neg" : ""}`}>
+                          {formatOptionalMoney(selectedOrder.miraProfit)}
+                        </div>
+                      </div>
+                      <div className="finance-kpi">
+                        <div className="label">ربح رهف</div>
+                        <div className={`value ${selectedOrder.rahafProfit < 0 ? "neg" : ""}`}>
+                          {formatOptionalMoney(selectedOrder.rahafProfit)}
+                        </div>
                       </div>
                     </div>
 

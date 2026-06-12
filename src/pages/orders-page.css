@@ -944,6 +944,17 @@
   gap: 8px;
 }
 
+.order-settings-btn {
+  color: #47143F;
+  border-color: rgba(109, 63, 107, 0.24);
+  background: rgba(109, 63, 107, 0.08);
+}
+
+.order-settings-btn:hover {
+  background: rgba(109, 63, 107, 0.16);
+  border-color: rgba(109, 63, 107, 0.4);
+}
+
 .purchase-search {
   min-height: 40px;
   min-width: min(280px, 100%);
