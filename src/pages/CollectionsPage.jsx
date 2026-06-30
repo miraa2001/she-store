@@ -135,7 +135,7 @@ export default function CollectionsPage({ embedded = false }) {
       const { data, error: ordersError } = await sb
         .from("orders")
         .select(
-          "id, order_name, created_at, purchases!inner(id, pickup_point, collected, paid_price, price)"
+          "id, order_name, created_at, purchases!inner(id, pickup_point, assigned_pickup_point, ready_for_pickup, collected, paid_price, price)"
         )
         .order("created_at", { ascending: false });
 
@@ -143,14 +143,19 @@ export default function CollectionsPage({ embedded = false }) {
 
       const filtered = (data || [])
         .filter((order) => {
-          const list = order.purchases || [];
+          const list = (order.purchases || []).filter((purchase) => !!purchase.ready_for_pickup);
           if (!list.length) return false;
 
-          return list.some((p) => p.pickup_point === PICKUP_HOME || isPickupPointPickup(p.pickup_point));
+          return list.some((p) => p.assigned_pickup_point === PICKUP_HOME || isPickupPointPickup(p.assigned_pickup_point));
         })
         .map((order) => {
-          const allCollected = (order.purchases || []).every((purchase) => !!purchase.collected);
-          const collectedTotal = (order.purchases || []).reduce((sum, purchase) => {
+          const list = (order.purchases || []).filter(
+            (purchase) =>
+              !!purchase.ready_for_pickup &&
+              (purchase.assigned_pickup_point === PICKUP_HOME || isPickupPointPickup(purchase.assigned_pickup_point))
+          );
+          const allCollected = list.every((purchase) => !!purchase.collected);
+          const collectedTotal = list.reduce((sum, purchase) => {
             if (!purchase.collected) return sum;
             return sum + parsePrice(purchase.paid_price);
           }, 0);
@@ -190,15 +195,16 @@ export default function CollectionsPage({ embedded = false }) {
     try {
       const { data, error: purchasesError } = await sb
         .from("purchases")
-        .select("id, customer_name, price, paid_price, pickup_point, collected, picked_up")
+        .select("id, customer_name, price, paid_price, pickup_point, assigned_pickup_point, ready_for_pickup, collected, picked_up")
         .eq("order_id", orderId)
+        .eq("ready_for_pickup", true)
         .order("created_at", { ascending: true });
 
       if (purchasesError) throw purchasesError;
 
       const list = data || [];
-      setHomeList(list.filter((purchase) => purchase.pickup_point === PICKUP_HOME));
-      setPickupList(list.filter((purchase) => isPickupPointPickup(purchase.pickup_point)));
+      setHomeList(list.filter((purchase) => purchase.assigned_pickup_point === PICKUP_HOME));
+      setPickupList(list.filter((purchase) => isPickupPointPickup(purchase.assigned_pickup_point)));
     } catch (err) {
       console.error(err);
       setError("تعذر تحميل بيانات التحصيل.");

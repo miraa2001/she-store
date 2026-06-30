@@ -1752,6 +1752,10 @@
   width: min(720px, calc(100vw - 24px));
 }
 
+.purchase-modal-card-placement {
+  width: min(780px, calc(100vw - 24px));
+}
+
 .move-purchases-steps {
   display: flex;
   flex-wrap: wrap;
@@ -1866,6 +1870,174 @@
   word-break: break-word;
 }
 
+.pickup-placement-list {
+  display: grid;
+  gap: 10px;
+  max-height: min(46dvh, 420px);
+  overflow: auto;
+  padding-inline: 2px;
+}
+
+.pickup-placement-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(229, 231, 235, 0.9);
+  background: #fff;
+  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.pickup-placement-item.is-selected {
+  border-color: rgba(109, 63, 107, 0.42);
+  background: rgba(109, 63, 107, 0.06);
+}
+
+.pickup-placement-item-select {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+}
+
+.pickup-placement-check {
+  display: flex !important;
+  grid-template-columns: none !important;
+  align-items: center;
+  gap: 10px !important;
+  min-width: 0;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pickup-placement-check input,
+.pickup-placement-option input {
+  width: 18px;
+  min-width: 18px;
+  height: 18px;
+  min-height: 18px;
+  margin: 0;
+  padding: 0;
+  box-shadow: none;
+}
+
+.pickup-placement-check span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pickup-placement-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pickup-placement-meta span {
+  border-radius: 999px;
+  border: 1px solid rgba(229, 231, 235, 0.95);
+  background: #f8fafc;
+  color: #64748b;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.pickup-placement-options {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid rgba(229, 231, 235, 0.9);
+  background: #fff;
+}
+
+.pickup-placement-option {
+  display: inline-flex !important;
+  grid-template-columns: none !important;
+  align-items: center;
+  gap: 6px !important;
+  min-height: 34px;
+  border-radius: 9px;
+  padding: 0 9px;
+  color: #475467;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.pickup-placement-option.active {
+  background: #47143F;
+  color: #fff;
+}
+
+.pickup-placement-option.disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
+}
+
+.pickup-placement-option input {
+  accent-color: #6D3F6B;
+}
+
+.pickup-placement-destinations {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pickup-placement-destination {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px 10px !important;
+  min-height: 86px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(229, 231, 235, 0.9);
+  background: #fff;
+  color: #111827;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.pickup-placement-destination:hover {
+  border-color: rgba(109, 63, 107, 0.32);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+}
+
+.pickup-placement-destination.is-selected {
+  border-color: rgba(109, 63, 107, 0.46);
+  background: rgba(109, 63, 107, 0.08);
+}
+
+.pickup-placement-destination input {
+  width: 18px;
+  min-width: 18px;
+  height: 18px;
+  min-height: 18px;
+  margin: 0;
+  padding: 0;
+  accent-color: #6D3F6B;
+}
+
+.pickup-placement-destination span {
+  font-size: 15px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.pickup-placement-destination small {
+  grid-column: 2;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .move-purchases-picked {
   display: flex;
   flex-wrap: wrap;
@@ -1892,8 +2064,28 @@
   }
 
   .move-purchases-list,
-  .move-target-orders {
+  .move-target-orders,
+  .pickup-placement-list {
     max-height: min(40dvh, 320px);
+  }
+
+  .pickup-placement-item {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .pickup-placement-destinations {
+    grid-template-columns: 1fr;
+  }
+
+  .pickup-placement-options {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .pickup-placement-option {
+    flex: 1;
+    justify-content: center;
   }
 }
 

@@ -103,12 +103,17 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
   );
   const ordersMenuPortalTarget = typeof document !== "undefined" ? document.body : null;
   const pickupSearchPostFilter = useCallback(
-    (purchase) => isPickupPointForLocation(purchase.pickup_point, pickupLocation.id),
+    (purchase) => isPickupPointForLocation(purchase.assigned_pickup_point, pickupLocation.id),
     [pickupLocation.id]
+  );
+  const pickupSearchQueryBuilder = useCallback(
+    (request) => request.eq("ready_for_pickup", true),
+    []
   );
   const { searchResults, searchLoading, clearSearchResults } = usePurchaseCustomerSearch({
     search,
     orders,
+    queryBuilder: pickupSearchQueryBuilder,
     postFilter: pickupSearchPostFilter
   });
 
@@ -217,13 +222,14 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
     try {
       const { data: purchaseRows, error: purchasesError } = await sb
         .from("purchases")
-        .select("order_id, pickup_point, collected")
+        .select("order_id, pickup_point, assigned_pickup_point, collected, ready_for_pickup")
+        .eq("ready_for_pickup", true)
         .eq("collected", false);
 
       if (purchasesError) throw purchasesError;
 
       const pendingPickupRows = (purchaseRows || []).filter((purchase) =>
-        isPickupPointForLocation(purchase.pickup_point, pickupLocation.id)
+        isPickupPointForLocation(purchase.assigned_pickup_point, pickupLocation.id)
       );
       const orderIds = Array.from(new Set(pendingPickupRows.map((purchase) => purchase.order_id)));
 
@@ -278,15 +284,16 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
     try {
       const { data, error: purchasesError } = await sb
         .from("purchases")
-        .select("id, order_id, customer_name, price, paid_price, picked_up, picked_up_at, pickup_point, collected")
+        .select("id, order_id, customer_name, price, paid_price, picked_up, picked_up_at, pickup_point, assigned_pickup_point, assigned_pickup_at, ready_for_pickup, ready_for_pickup_at, collected")
         .in("order_id", orderIds)
+        .eq("ready_for_pickup", true)
         .eq("collected", false)
         .order("created_at", { ascending: true });
 
       if (purchasesError) throw purchasesError;
 
       setPurchases(
-        (data || []).filter((purchase) => isPickupPointForLocation(purchase.pickup_point, pickupLocation.id))
+        (data || []).filter((purchase) => isPickupPointForLocation(purchase.assigned_pickup_point, pickupLocation.id))
       );
       setPaidEditor({ id: "", value: "", saving: false });
     } catch (err) {
@@ -306,7 +313,8 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
 
     const { data, error: totalError } = await sb
       .from("purchases")
-      .select("paid_price, price, pickup_point")
+      .select("paid_price, price, pickup_point, assigned_pickup_point, ready_for_pickup")
+      .eq("ready_for_pickup", true)
       .eq("picked_up", true)
       .eq("collected", false);
 
@@ -317,7 +325,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
     }
 
     const total = (data || [])
-      .filter((purchase) => isPickupPointForLocation(purchase.pickup_point, pickupLocation.id))
+      .filter((purchase) => isPickupPointForLocation(purchase.assigned_pickup_point, pickupLocation.id))
       .reduce((sum, purchase) => sum + parsePrice(purchase.paid_price ?? purchase.price), 0);
 
     setAllOrdersTotal(total);
@@ -451,7 +459,8 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
 
     const { data, error: totalError } = await sb
       .from("purchases")
-      .select("id, paid_price, price, pickup_point")
+      .select("id, paid_price, price, pickup_point, assigned_pickup_point, ready_for_pickup")
+      .eq("ready_for_pickup", true)
       .eq("picked_up", true)
       .eq("collected", false);
 
@@ -461,7 +470,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
     }
 
     const pickupList = (data || []).filter((purchase) =>
-      isPickupPointForLocation(purchase.pickup_point, pickupLocation.id)
+      isPickupPointForLocation(purchase.assigned_pickup_point, pickupLocation.id)
     );
     const total = pickupList.reduce((sum, purchase) => sum + parsePrice(purchase.paid_price ?? purchase.price), 0);
     if (total <= 0) return;

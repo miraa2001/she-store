@@ -37,6 +37,7 @@ export default function OrdersTab({
   editMode,
   onUpdateOrderStatus,
   onOpenAddModal,
+  onOpenPickupPlacementDialog,
   onOpenMoveDialog,
   onOpenOrderSettings,
   onExportPdf,
@@ -61,8 +62,9 @@ export default function OrdersTab({
   const highlightRef = useRef(null);
   const canEditOrderStatus = isRahaf && editMode && !!selectedOrder;
   const canMovePurchases = isRahaf && editMode && !!selectedOrder;
+  const canPlacePurchases = isRahaf && editMode && !!selectedOrder;
   const canOpenOrderSettings = isRahaf && editMode && !!selectedOrder;
-  const moveDisabled = !filteredPurchases.length;
+  const purchaseActionDisabled = !filteredPurchases.length;
   const canShowPurchaseNotes = isRahaf || isReem;
   const shouldShowOriginalPrice = !isReem;
   const pdfExportIcon = useMemo(() => {
@@ -135,7 +137,18 @@ export default function OrdersTab({
           ) : null}
 
           {!isMobile && canMovePurchases ? (
-            <button className="btn-ghost-light" type="button" onClick={onOpenMoveDialog} disabled={moveDisabled}>
+            <button
+              className="btn-ghost-light"
+              type="button"
+              onClick={onOpenPickupPlacementDialog}
+              disabled={purchaseActionDisabled}
+            >
+              وضع مشتريات للاستلام
+            </button>
+          ) : null}
+
+          {!isMobile && canMovePurchases ? (
+            <button className="btn-ghost-light" type="button" onClick={onOpenMoveDialog} disabled={purchaseActionDisabled}>
               نقل مشتريات
             </button>
           ) : null}
@@ -173,12 +186,22 @@ export default function OrdersTab({
           <button className="btn-primary mobile-add-purchase-btn" type="button" onClick={onOpenAddModal}>
             + إضافة مشترى
           </button>
+          {canPlacePurchases ? (
+            <button
+              className="btn-ghost-light mobile-add-purchase-btn"
+              type="button"
+              onClick={onOpenPickupPlacementDialog}
+              disabled={purchaseActionDisabled}
+            >
+              وضع مشتريات للاستلام
+            </button>
+          ) : null}
           {canMovePurchases ? (
             <button
               className="btn-ghost-light mobile-add-purchase-btn"
               type="button"
               onClick={onOpenMoveDialog}
-              disabled={moveDisabled}
+              disabled={purchaseActionDisabled}
             >
               نقل مشتريات
             </button>
