@@ -186,10 +186,8 @@ export async function fetchOrdersWithSummary() {
     fullyCollectedByOrder.set(id, currentAllCollected && isPurchaseFullyCollected(purchase));
     const isNablusPurchase = isNablusPickup(purchase.pickup_point);
     hasNablusPickupByOrder.set(id, (hasNablusPickupByOrder.get(id) || false) || isNablusPurchase);
-    if (!isNablusPurchase) {
-      reemVisibleTotalsByOrder.set(id, (reemVisibleTotalsByOrder.get(id) || 0) + parsePrice(purchase.paid_price ?? purchase.price));
-      reemVisiblePurchaseCountByOrder.set(id, (reemVisiblePurchaseCountByOrder.get(id) || 0) + 1);
-    }
+    reemVisibleTotalsByOrder.set(id, (reemVisibleTotalsByOrder.get(id) || 0) + parsePrice(purchase.paid_price ?? purchase.price));
+    reemVisiblePurchaseCountByOrder.set(id, (reemVisiblePurchaseCountByOrder.get(id) || 0) + 1);
   });
 
   return normalizedOrders.map((order) => {
@@ -394,6 +392,9 @@ function toNullableProfitNumber(value, label) {
 }
 
 export async function updateOrderProfitSettings(orderId, input = {}) {
+  const id = String(orderId || "").trim();
+  if (!id) throw new Error("تعذر تحديد الطلب لحفظ الأرباح.");
+
   const payload = {
     total_profit: toNullableProfitNumber(input.totalProfit, "الربح الكلي"),
     mira_profit: toNullableProfitNumber(input.miraProfit, "ربح ميرا"),
@@ -403,7 +404,7 @@ export async function updateOrderProfitSettings(orderId, input = {}) {
   const { error } = await sb
     .from("orders")
     .update(payload)
-    .eq("id", orderId);
+    .eq("id", id);
 
   if (error) {
     if (error.code === "42703") {

@@ -107,17 +107,24 @@ export default function ArchivePage() {
     setOrdersMenuOpen(false);
   }, [location.pathname, location.search, location.hash]);
 
-  const cleanupArchiveImages = useCallback(async (collectedOrders) => {
-    const allPaths = [];
-    collectedOrders.forEach((order) => {
-      (order.purchases || []).forEach((purchase) => {
-        (purchase.purchase_images || []).forEach((img) => {
-          if (img?.storage_path) allPaths.push(img.storage_path);
-        });
+  const cleanupArchiveImages = useCallback(async (collectedPurchases) => {
+    const imageIdSet = new Set();
+    const pathSet = new Set();
+
+    collectedPurchases.forEach((purchase) => {
+      (purchase.purchase_images || []).forEach((img) => {
+        const path = String(img?.storage_path || "").trim();
+        if (!path) return;
+
+        pathSet.add(path);
+        if (img?.id) {
+          imageIdSet.add(String(img.id));
+        }
       });
     });
 
-    const uniquePaths = Array.from(new Set(allPaths));
+    const uniquePaths = Array.from(pathSet);
+    const imageIds = Array.from(imageIdSet);
     if (!uniquePaths.length) {
       setCleanupMsg(cleanupMessage("none"));
       return;
@@ -136,10 +143,10 @@ export default function ArchivePage() {
       }
     }
 
-    const dbChunk = 500;
-    for (let index = 0; index < uniquePaths.length; index += dbChunk) {
-      const chunk = uniquePaths.slice(index, index + dbChunk);
-      const { error: dbError } = await sb.from("purchase_images").delete().in("storage_path", chunk);
+    const dbChunk = 100;
+    for (let index = 0; index < imageIds.length; index += dbChunk) {
+      const chunk = imageIds.slice(index, index + dbChunk);
+      const { error: dbError } = await sb.from("purchase_images").delete().in("id", chunk);
       if (dbError) {
         console.error(dbError);
         setCleanupMsg(cleanupMessage("db-error"));
@@ -164,6 +171,7 @@ export default function ArchivePage() {
         .order("created_at", { ascending: false });
 
       if (purchaseError) throw purchaseError;
+      const collectedPurchases = (purchaseRows || []).filter((purchase) => !!purchase.collected);
 
       const purchasesByOrder = new Map();
       (purchaseRows || []).forEach((purchase) => {
@@ -209,10 +217,10 @@ export default function ArchivePage() {
         return nextOrders[0]?.id || "";
       });
 
-      if (!nextOrders.length) {
+      if (!collectedPurchases.length) {
         setCleanupMsg("لا توجد طلبات مكتملة التحصيل في الأرشيف.");
       } else {
-        await cleanupArchiveImages(nextOrders);
+        await cleanupArchiveImages(collectedPurchases);
       }
     } catch (err) {
       console.error(err);

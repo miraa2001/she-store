@@ -110,7 +110,7 @@ export default function OrdersTab({
             <button
               type="button"
               className="icon-btn order-settings-btn"
-              onClick={onOpenOrderSettings}
+              onClick={() => onOpenOrderSettings?.()}
               aria-label="إعدادات الطلب"
               title="إعدادات الطلب"
             >

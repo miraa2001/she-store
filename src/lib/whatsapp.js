@@ -1,6 +1,6 @@
 import { sb } from "./supabaseClient";
 import { formatILS } from "./orders";
-import { PICKUP_HOME, PICKUP_POINT_LOCATIONS, getPickupLocationByPickupPoint } from "./pickup";
+import { PICKUP_HOME, getPickupLocationByPickupPoint } from "./pickup";
 
 const EMOJI = {
   sparkleHeart: "\u{1F496}",
@@ -9,8 +9,7 @@ const EMOJI = {
   alarm: "\u23F0",
   kiss: "\u{1F48C}",
   heart: "\u2764\uFE0F",
-  bell: "\u{1F514}",
-  question: "\u2753"
+  bell: "\u{1F514}"
 };
 
 
@@ -108,20 +107,13 @@ export function buildArrivalNotifyMessage({ pickupPoint, price, customerName }) 
 }
 
 export function buildPickupInquiryMessage() {
-  const pickupLines = PICKUP_POINT_LOCATIONS.flatMap((location, index) => {
-    const lines = [];
-    if (index > 0) lines.push("أو");
-    const suffix = index === PICKUP_POINT_LOCATIONS.length - 1 ? ` ${EMOJI.question}` : "";
-    lines.push(`${EMOJI.pin} نقطة الاستلام ${location.whatsappLocationLine}${suffix}`);
-    return lines;
-  });
-
   return [
     `مرحباً حبيبتي، طلبك وصل ${EMOJI.package}`,
     "بتحبي تستلمي من:",
     `${EMOJI.pin} بيتي في الحي الجنوبي`,
     "أو",
-    ...pickupLines,
+    `${EMOJI.pin} نقطة الاستلام مريمتي - مجمع ابو طريف والزغل الطابق الثاني`,
+    "",
     `خبريني لو سمحتي ${EMOJI.heart}`
   ].join("\n");
 }

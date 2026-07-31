@@ -93,13 +93,16 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
   const purchaseRowRefs = useRef(new Map());
 
   const isRahaf = profile.role === "rahaf";
+  const isReem = profile.role === "reem";
   const isLocationRole = profile.role === pickupLocation.role;
-  const canAccess = isRahaf || isLocationRole;
-  const canToggleAllOrders = isRahaf && (pickupLocation.id === "maryamti" || pickupLocation.id === "nablus");
+  const canAccessNablusForReem = isReem && pickupLocation.id === "nablus";
+  const canAccess = isRahaf || isLocationRole || canAccessNablusForReem;
+  const canToggleAllOrders =
+    (isRahaf || canAccessNablusForReem) && (pickupLocation.id === "maryamti" || pickupLocation.id === "nablus");
   const shouldShowAllOrders = isLocationRole || (canToggleAllOrders && showAllOrdersMode);
   const sidebarLinks = useMemo(
-    () => (isRahaf ? getOrdersNavItems(profile.role) : []),
-    [isRahaf, profile.role]
+    () => (isRahaf || canAccessNablusForReem ? getOrdersNavItems(profile.role) : []),
+    [canAccessNablusForReem, isRahaf, profile.role]
   );
   const ordersMenuPortalTarget = typeof document !== "undefined" ? document.body : null;
   const pickupSearchPostFilter = useCallback(

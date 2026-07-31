@@ -51,7 +51,7 @@ const PICKUP_SIDEBAR_LINKS_BY_ROLE = {
 
 const PICKUP_TABS_BY_ROLE = {
   rahaf: ["home", "pickup", "nablus", "collections"],
-  reem: ["home"],
+  reem: ["home", "nablus"],
   rawand: ["home"],
   maryamti: ["pickup"],
   nablus: ["nablus"]
