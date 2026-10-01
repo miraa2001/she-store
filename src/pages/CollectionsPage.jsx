@@ -5,12 +5,14 @@ import { useAuthProfile } from "../hooks/useAuthProfile";
 import { formatDMY } from "../lib/dateFormat";
 import { getOrdersNavItems, isNavHrefActive } from "../lib/navigation";
 import { formatILS, parsePrice } from "../lib/orders";
+import { movePurchaseToPickupLocation } from "../lib/purchases";
 import { PICKUP_HOME, isPickupPointPickup } from "../lib/pickup";
 import { setBodyScrollLock } from "../lib/bodyScrollLock";
 import { signOutAndRedirect } from "../lib/session";
 import { sb } from "../lib/supabaseClient";
 import SessionLoader from "../components/common/SessionLoader";
 import AppNavIcon from "../components/common/AppNavIcon";
+import PickupTransferDialog from "../components/pickup/PickupTransferDialog";
 import SheStoreLogo from "../components/common/SheStoreLogo";
 import customerHeaderIcon from "../assets/icons/pickup/customer.png";
 import priceHeaderIcon from "../assets/icons/pickup/price-ils.png";
@@ -55,6 +57,8 @@ export default function CollectionsPage({ embedded = false }) {
   const [error, setError] = useState("");
   const [homeList, setHomeList] = useState([]);
   const [pickupList, setPickupList] = useState([]);
+  const [transferDialog, setTransferDialog] = useState(null);
+  const [transferBusy, setTransferBusy] = useState(false);
   const location = useLocation();
   const sidebarLinks = useMemo(() => getOrdersNavItems(profile.role), [profile.role]);
   const ordersMenuPortalTarget = typeof document !== "undefined" ? document.body : null;
@@ -135,8 +139,9 @@ export default function CollectionsPage({ embedded = false }) {
       const { data, error: ordersError } = await sb
         .from("orders")
         .select(
-          "id, order_name, created_at, purchases!inner(id, pickup_point, assigned_pickup_point, ready_for_pickup, collected, paid_price, price)"
+          "id, order_name, created_at, purchases!inner(id, pickup_point, ready_for_pickup, collected, paid_price, price)"
         )
+        .eq("placed_at_pickup", true)
         .order("created_at", { ascending: false });
 
       if (ordersError) throw ordersError;
@@ -146,13 +151,13 @@ export default function CollectionsPage({ embedded = false }) {
           const list = (order.purchases || []).filter((purchase) => !!purchase.ready_for_pickup);
           if (!list.length) return false;
 
-          return list.some((p) => p.assigned_pickup_point === PICKUP_HOME || isPickupPointPickup(p.assigned_pickup_point));
+          return list.some((p) => p.pickup_point === PICKUP_HOME || isPickupPointPickup(p.pickup_point));
         })
         .map((order) => {
           const list = (order.purchases || []).filter(
             (purchase) =>
               !!purchase.ready_for_pickup &&
-              (purchase.assigned_pickup_point === PICKUP_HOME || isPickupPointPickup(purchase.assigned_pickup_point))
+              (purchase.pickup_point === PICKUP_HOME || isPickupPointPickup(purchase.pickup_point))
           );
           const allCollected = list.every((purchase) => !!purchase.collected);
           const collectedTotal = list.reduce((sum, purchase) => {
@@ -195,7 +200,7 @@ export default function CollectionsPage({ embedded = false }) {
     try {
       const { data, error: purchasesError } = await sb
         .from("purchases")
-        .select("id, customer_name, price, paid_price, pickup_point, assigned_pickup_point, ready_for_pickup, collected, picked_up")
+        .select("id, customer_name, price, paid_price, pickup_point, ready_for_pickup, collected, picked_up")
         .eq("order_id", orderId)
         .eq("ready_for_pickup", true)
         .order("created_at", { ascending: true });
@@ -203,8 +208,8 @@ export default function CollectionsPage({ embedded = false }) {
       if (purchasesError) throw purchasesError;
 
       const list = data || [];
-      setHomeList(list.filter((purchase) => purchase.assigned_pickup_point === PICKUP_HOME));
-      setPickupList(list.filter((purchase) => isPickupPointPickup(purchase.assigned_pickup_point)));
+      setHomeList(list.filter((purchase) => purchase.pickup_point === PICKUP_HOME));
+      setPickupList(list.filter((purchase) => isPickupPointPickup(purchase.pickup_point)));
     } catch (err) {
       console.error(err);
       setError("تعذر تحميل بيانات التحصيل.");
@@ -225,6 +230,32 @@ export default function CollectionsPage({ embedded = false }) {
     if (!selectedOrderId || profile.role !== "rahaf") return;
     loadOrderCollections(selectedOrderId);
   }, [loadOrderCollections, profile.role, selectedOrderId]);
+
+  function openTransferDialog(purchase) {
+    if (profile.role !== "rahaf" || !purchase) return;
+    if (purchase.collected) {
+      window.alert("لا يمكن نقل مشترى تم تحصيله.");
+      return;
+    }
+    setTransferDialog(purchase);
+  }
+
+  async function transferPickupLocation(nextPickupPoint) {
+    if (profile.role !== "rahaf" || !transferDialog || transferBusy) return;
+
+    setTransferBusy(true);
+    try {
+      await movePurchaseToPickupLocation(transferDialog.id, nextPickupPoint);
+      setTransferDialog(null);
+      await loadOrders();
+      await loadOrderCollections(selectedOrderId);
+    } catch (error) {
+      console.error(error);
+      window.alert(error?.message || "فشل نقل المشترى.");
+    } finally {
+      setTransferBusy(false);
+    }
+  }
 
   async function signOut() {
     await signOutAndRedirect();
@@ -420,6 +451,9 @@ export default function CollectionsPage({ embedded = false }) {
                                   حالة التحصيل
                                 </span>
                               </th>
+                              <th>
+                                <span className="collections-th-label">نقل</span>
+                              </th>
                             </tr>
                           </thead>
                           <tbody>
@@ -429,11 +463,22 @@ export default function CollectionsPage({ embedded = false }) {
                                   <td>{purchase.customer_name || ""}</td>
                                   <td>{formatILS(parsePrice(purchase.paid_price ?? purchase.price))}</td>
                                   <td>{purchase.collected ? "محصّل" : "بانتظار التحصيل"}</td>
+                                  <td>
+                                    <button
+                                      type="button"
+                                      className="collections-btn pickup-transfer-trigger"
+                                      onClick={() => openTransferDialog(purchase)}
+                                      disabled={!!purchase.collected}
+                                      title={purchase.collected ? "لا يمكن نقل مشترى تم تحصيله" : ""}
+                                    >
+                                      نقل
+                                    </button>
+                                  </td>
                                 </tr>
                               ))
                             ) : (
                               <tr>
-                                <td colSpan={3} className="collections-muted">
+                                <td colSpan={4} className="collections-muted">
                                   لا يوجد مشتريات مستلمة
                                 </td>
                               </tr>
@@ -489,6 +534,9 @@ export default function CollectionsPage({ embedded = false }) {
                                   حالة التحصيل
                                 </span>
                               </th>
+                              <th>
+                                <span className="collections-th-label">نقل</span>
+                              </th>
                             </tr>
                           </thead>
                           <tbody>
@@ -498,11 +546,22 @@ export default function CollectionsPage({ embedded = false }) {
                                   <td>{purchase.customer_name || ""}</td>
                                   <td>{formatILS(parsePrice(purchase.paid_price ?? purchase.price))}</td>
                                   <td>{purchase.collected ? "محصّل" : "بانتظار التحصيل"}</td>
+                                  <td>
+                                    <button
+                                      type="button"
+                                      className="collections-btn pickup-transfer-trigger"
+                                      onClick={() => openTransferDialog(purchase)}
+                                      disabled={!!purchase.collected}
+                                      title={purchase.collected ? "لا يمكن نقل مشترى تم تحصيله" : ""}
+                                    >
+                                      نقل
+                                    </button>
+                                  </td>
                                 </tr>
                               ))
                             ) : (
                               <tr>
-                                <td colSpan={3} className="collections-muted">
+                                <td colSpan={4} className="collections-muted">
                                   لا يوجد مشتريات مستلمة
                                 </td>
                               </tr>
@@ -603,6 +662,17 @@ export default function CollectionsPage({ embedded = false }) {
             ordersMenuPortalTarget
           )
         : null}
+
+      {transferDialog ? (
+        <PickupTransferDialog
+          purchase={transferDialog}
+          saving={transferBusy}
+          onClose={() => {
+            if (!transferBusy) setTransferDialog(null);
+          }}
+          onTransfer={transferPickupLocation}
+        />
+      ) : null}
 
     </div>
   );

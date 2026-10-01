@@ -1,4 +1,10 @@
-import { isNablusPickup } from "./pickup";
+import {
+  PICKUP_DELIVERY,
+  PICKUP_HOME,
+  formatPickupFormValue,
+  getPreferredPickupForCustomer,
+  isNablusPickup
+} from "./pickup";
 import { sb } from "./supabaseClient";
 
 export const IMAGE_BUCKET = "purchase-images";
@@ -137,6 +143,80 @@ function shortOrderNo(id) {
   return text.slice(-4);
 }
 
+function normalizeReadyPickupPoint(value) {
+  const normalized = formatPickupFormValue(value, PICKUP_HOME);
+  if (!normalized || normalized === PICKUP_DELIVERY) return PICKUP_HOME;
+  return normalized;
+}
+
+async function prepareOrderPurchasesForPickup(orderId, readyAt = new Date().toISOString()) {
+  const { data: purchaseRows, error: purchasesError } = await sb
+    .from("purchases")
+    .select("id, customer_id, pickup_point")
+    .eq("order_id", orderId)
+    .eq("collected", false);
+
+  if (purchasesError) throw purchasesError;
+  if (!purchaseRows?.length) return 0;
+
+  const customerIds = Array.from(
+    new Set(purchaseRows.map((purchase) => String(purchase.customer_id || "").trim()).filter(Boolean))
+  );
+  const customersById = new Map();
+
+  if (customerIds.length) {
+    const { data: customerRows, error: customersError } = await sb
+      .from("customers")
+      .select("id, city, usual_pickup_point")
+      .in("id", customerIds);
+
+    if (customersError) throw customersError;
+    (customerRows || []).forEach((customer) => {
+      customersById.set(String(customer.id), customer);
+    });
+  }
+
+  const groupedByPickup = new Map();
+  purchaseRows.forEach((purchase) => {
+    const customer = customersById.get(String(purchase.customer_id || ""));
+    const preferred = customer
+      ? getPreferredPickupForCustomer(customer, purchase.pickup_point || PICKUP_HOME)
+      : purchase.pickup_point;
+    const pickupPoint = normalizeReadyPickupPoint(preferred);
+
+    if (!groupedByPickup.has(pickupPoint)) groupedByPickup.set(pickupPoint, []);
+    groupedByPickup.get(pickupPoint).push(purchase.id);
+  });
+
+  for (const [pickupPoint, ids] of groupedByPickup.entries()) {
+    const { error } = await sb
+      .from("purchases")
+      .update({
+        pickup_point: pickupPoint,
+        ready_for_pickup: true,
+        ready_for_pickup_at: readyAt
+      })
+      .in("id", ids);
+
+    if (error) throw error;
+  }
+
+  return purchaseRows.length;
+}
+
+async function resetOrderPurchasesPickupReadiness(orderId) {
+  const { error } = await sb
+    .from("purchases")
+    .update({
+      ready_for_pickup: false,
+      ready_for_pickup_at: null
+    })
+    .eq("order_id", orderId)
+    .eq("collected", false);
+
+  if (error) throw error;
+}
+
 export async function fetchOrdersWithSummary() {
   const { data: orders, error } = await selectOrdersWithOptionalProfitFields(
     "id, order_name, created_at, arrived, placed_at_pickup"
@@ -246,26 +326,18 @@ export async function fetchArrivedOrders() {
 }
 
 export async function updateOrderPlacedAtPickup(orderId, enabled) {
+  const readyAt = new Date().toISOString();
   const payload = enabled
-    ? { placed_at_pickup: true, placed_at_pickup_at: new Date().toISOString() }
+    ? { placed_at_pickup: true, placed_at_pickup_at: readyAt }
     : { placed_at_pickup: false, placed_at_pickup_at: null };
 
   const { error } = await sb.from("orders").update(payload).eq("id", orderId);
   if (error) throw error;
 
-  if (!enabled) {
-    const { error: resetError } = await sb
-      .from("purchases")
-      .update({
-        assigned_pickup_point: null,
-        assigned_pickup_at: null,
-        ready_for_pickup: false,
-        ready_for_pickup_at: null
-      })
-      .eq("order_id", orderId)
-      .eq("collected", false);
-
-    if (resetError) throw resetError;
+  if (enabled) {
+    await prepareOrderPurchasesForPickup(orderId, readyAt);
+  } else {
+    await resetOrderPurchasesPickupReadiness(orderId);
   }
 
   return payload;
@@ -288,35 +360,15 @@ export async function updateOrderWorkflowStatus(orderId, nextStatus) {
   if (error) throw error;
 
   if (status === ORDER_STATUS.PENDING || status === ORDER_STATUS.ARRIVED) {
-    const { error: resetError } = await sb
-      .from("purchases")
-      .update({
-        assigned_pickup_point: null,
-        assigned_pickup_at: null,
-        ready_for_pickup: false,
-        ready_for_pickup_at: null
-      })
-      .eq("order_id", orderId)
-      .eq("collected", false);
-
-    if (resetError) throw resetError;
+    await resetOrderPurchasesPickupReadiness(orderId);
+  } else if (status === ORDER_STATUS.AT_PICKUP) {
+    await prepareOrderPurchasesForPickup(orderId, nowIso);
   }
 
   return {
     status,
     payload
   };
-}
-
-export async function updateOrderAfterPurchasePlacement(orderId, { placedAtPickup = false } = {}) {
-  const payload = placedAtPickup
-    ? { arrived: true, placed_at_pickup: true, placed_at_pickup_at: new Date().toISOString() }
-    : { arrived: true };
-
-  const { error } = await sb.from("orders").update(payload).eq("id", orderId);
-  if (error) throw error;
-
-  return payload;
 }
 
 export async function createOrder(input) {

@@ -1,5 +1,12 @@
 import { sb } from "./supabaseClient";
 import { IMAGE_BUCKET } from "./orders";
+import {
+  PICKUP_DELIVERY,
+  PICKUP_HOME,
+  PICKUP_POINT,
+  PICKUP_POINT_NABLUS,
+  formatPickupFormValue
+} from "./pickup";
 
 const IMAGE_UPLOAD_CONCURRENCY = 3;
 const DEFAULT_BAG_SIZE = "كيس صغير";
@@ -44,7 +51,7 @@ export async function fetchPurchasesByOrder(orderId) {
   const { data, error } = await sb
     .from("purchases")
     .select(
-      "id, order_id, customer_id, customer_name, qty, price, paid_price, bag_size, pickup_point, assigned_pickup_point, assigned_pickup_at, ready_for_pickup, ready_for_pickup_at, note, created_at, collected, picked_up, purchase_links(url), purchase_images(id,storage_path)"
+      "id, order_id, customer_id, customer_name, qty, price, paid_price, bag_size, pickup_point, ready_for_pickup, ready_for_pickup_at, note, created_at, collected, picked_up, purchase_links(url), purchase_images(id,storage_path)"
     )
     .eq("order_id", orderId)
     .order("created_at", { ascending: false });
@@ -265,52 +272,59 @@ export async function markPurchasePaidPrice(purchaseId, paidPrice) {
   if (error) throw error;
 }
 
-export async function placePurchasesForPickup(assignments = {}) {
-  const grouped = new Map();
-  const readyAt = new Date().toISOString();
-
-  Object.entries(assignments || {}).forEach(([purchaseId, pickupPoint]) => {
-    const id = String(purchaseId || "").trim();
-    const point = String(pickupPoint || "").trim();
-    if (!id || !point) return;
-
-    if (!grouped.has(point)) grouped.set(point, []);
-    grouped.get(point).push(id);
-  });
-
-  for (const [pickupPoint, ids] of grouped.entries()) {
-    const { error } = await sb
-      .from("purchases")
-      .update({
-        assigned_pickup_point: pickupPoint,
-        assigned_pickup_at: readyAt,
-        ready_for_pickup: true,
-        ready_for_pickup_at: readyAt
-      })
-      .in("id", ids);
-
-    if (error) throw error;
-  }
-
-  return Array.from(grouped.values()).reduce((sum, ids) => sum + ids.length, 0);
+export function normalizeOperationalPickupPoint(value) {
+  const normalized = formatPickupFormValue(value, PICKUP_HOME);
+  if (!normalized || normalized === PICKUP_DELIVERY) return PICKUP_HOME;
+  return normalized;
 }
 
-export async function movePurchasesToOrder(purchaseIds, targetOrderId) {
-  const ids = Array.isArray(purchaseIds)
-    ? purchaseIds.map((id) => String(id || "").trim()).filter(Boolean)
-    : [];
-  const orderId = String(targetOrderId || "").trim();
-
-  if (!ids.length) {
-    throw new Error("يجب اختيار مشتريات للنقل.");
+export function getTransferPickupOptions(currentValue) {
+  const options = [
+    { value: PICKUP_HOME, label: "البيت" },
+    { value: PICKUP_POINT, label: "مريمتي" },
+    { value: PICKUP_POINT_NABLUS, label: "نابلس" }
+  ];
+  const normalizedCurrent = normalizeOperationalPickupPoint(currentValue);
+  if (normalizedCurrent && !options.some((option) => option.value === normalizedCurrent)) {
+    options.push({
+      value: normalizedCurrent,
+      label: formatPickupFormValue(normalizedCurrent, PICKUP_HOME)
+    });
   }
 
-  if (!orderId) {
-    throw new Error("يجب اختيار الطلب الهدف.");
+  return options;
+}
+
+export async function movePurchaseToPickupLocation(purchaseId, pickupPoint) {
+  const id = String(purchaseId || "").trim();
+  const nextPickupPoint = normalizeOperationalPickupPoint(pickupPoint);
+
+  if (!id) {
+    throw new Error("تعذر تحديد المشترى للنقل.");
   }
 
-  const { error } = await sb.from("purchases").update({ order_id: orderId }).in("id", ids);
+  if (!nextPickupPoint) {
+    throw new Error("اختاري مكان الاستلام الجديد.");
+  }
+
+  const { data, error } = await sb
+    .from("purchases")
+    .update({
+      pickup_point: nextPickupPoint,
+      ready_for_pickup: true,
+      ready_for_pickup_at: new Date().toISOString()
+    })
+    .eq("id", id)
+    .eq("collected", false)
+    .select("id, pickup_point")
+    .maybeSingle();
+
   if (error) throw error;
+  if (!data?.id) {
+    throw new Error("لا يمكن نقل مشترى تم تحصيله.");
+  }
+
+  return data;
 }
 
 export async function searchPurchasesByCustomerName(query, limit = 50) {

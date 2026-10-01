@@ -971,6 +971,82 @@
 }
 
 /* ===================================
+   Pickup Transfer
+   =================================== */
+
+.pickup-transfer-trigger {
+  white-space: nowrap;
+}
+
+.pickup-transfer-modal {
+  max-width: 440px;
+}
+
+.pickup-transfer-summary {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--pickup-border);
+  border-radius: var(--pickup-radius-2);
+  background: #fff8fa;
+  color: #334155;
+}
+
+.pickup-transfer-summary strong {
+  color: #1f2937;
+}
+
+.pickup-transfer-summary span {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.pickup-transfer-options {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.pickup-transfer-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  border: 1px solid var(--pickup-border);
+  border-radius: var(--pickup-radius-2);
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  font-weight: 600;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pickup-transfer-option:hover {
+  border-color: #e3c3cd;
+  background: #fff8fa;
+}
+
+.pickup-transfer-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.pickup-transfer-option.is-current {
+  border-color: rgba(109, 63, 107, 0.35);
+  background: rgba(109, 63, 107, 0.08);
+  color: var(--pickup-primary);
+}
+
+.pickup-transfer-option small {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ===================================
    Responsive Adjustments
    =================================== */
 

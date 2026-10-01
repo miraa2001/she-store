@@ -6,6 +6,7 @@ import { useAuthProfile } from "../hooks/useAuthProfile";
 import { usePurchaseCustomerSearch } from "../hooks/usePurchaseCustomerSearch";
 import { getOrdersNavItems, getRoleLabel, isNavHrefActive } from "../lib/navigation";
 import { formatILS, parsePrice } from "../lib/orders";
+import { movePurchaseToPickupLocation } from "../lib/purchases";
 import { buildCollectedMoneyMessage, buildPickupStatusMessage, notifyPickupStatus } from "../lib/pickupNotifications";
 import { getPickupLocationById, isPickupPointForLocation } from "../lib/pickup";
 import { setBodyScrollLock } from "../lib/bodyScrollLock";
@@ -14,6 +15,7 @@ import { sb } from "../lib/supabaseClient";
 import SessionLoader from "../components/common/SessionLoader";
 import AppNavIcon from "../components/common/AppNavIcon";
 import PickupAnimatedCheckbox from "../components/common/PickupAnimatedCheckbox";
+import PickupTransferDialog from "../components/pickup/PickupTransferDialog";
 import SheStoreLogo from "../components/common/SheStoreLogo";
 import customerHeaderIcon from "../assets/icons/pickup/customer.png";
 import priceHeaderIcon from "../assets/icons/pickup/price-ils.png";
@@ -87,6 +89,8 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
   const [highlightPurchaseId, setHighlightPurchaseId] = useState("");
   const [paidEditor, setPaidEditor] = useState({ id: "", value: "", saving: false });
   const [showAllOrdersMode, setShowAllOrdersMode] = useState(false);
+  const [transferDialog, setTransferDialog] = useState(null);
+  const [transferBusy, setTransferBusy] = useState(false);
   const location = useLocation();
   const highlightTimeoutRef = useRef(null);
   const lastLoadedOrderKeyRef = useRef("");
@@ -106,7 +110,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
   );
   const ordersMenuPortalTarget = typeof document !== "undefined" ? document.body : null;
   const pickupSearchPostFilter = useCallback(
-    (purchase) => isPickupPointForLocation(purchase.assigned_pickup_point, pickupLocation.id),
+    (purchase) => isPickupPointForLocation(purchase.pickup_point, pickupLocation.id),
     [pickupLocation.id]
   );
   const pickupSearchQueryBuilder = useCallback(
@@ -225,14 +229,14 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
     try {
       const { data: purchaseRows, error: purchasesError } = await sb
         .from("purchases")
-        .select("order_id, pickup_point, assigned_pickup_point, collected, ready_for_pickup")
+        .select("order_id, pickup_point, collected, ready_for_pickup")
         .eq("ready_for_pickup", true)
         .eq("collected", false);
 
       if (purchasesError) throw purchasesError;
 
       const pendingPickupRows = (purchaseRows || []).filter((purchase) =>
-        isPickupPointForLocation(purchase.assigned_pickup_point, pickupLocation.id)
+        isPickupPointForLocation(purchase.pickup_point, pickupLocation.id)
       );
       const orderIds = Array.from(new Set(pendingPickupRows.map((purchase) => purchase.order_id)));
 
@@ -287,7 +291,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
     try {
       const { data, error: purchasesError } = await sb
         .from("purchases")
-        .select("id, order_id, customer_name, price, paid_price, picked_up, picked_up_at, pickup_point, assigned_pickup_point, assigned_pickup_at, ready_for_pickup, ready_for_pickup_at, collected")
+        .select("id, order_id, customer_name, price, paid_price, picked_up, picked_up_at, pickup_point, ready_for_pickup, ready_for_pickup_at, collected")
         .in("order_id", orderIds)
         .eq("ready_for_pickup", true)
         .eq("collected", false)
@@ -296,7 +300,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
       if (purchasesError) throw purchasesError;
 
       setPurchases(
-        (data || []).filter((purchase) => isPickupPointForLocation(purchase.assigned_pickup_point, pickupLocation.id))
+        (data || []).filter((purchase) => isPickupPointForLocation(purchase.pickup_point, pickupLocation.id))
       );
       setPaidEditor({ id: "", value: "", saving: false });
     } catch (err) {
@@ -316,7 +320,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
 
     const { data, error: totalError } = await sb
       .from("purchases")
-      .select("paid_price, price, pickup_point, assigned_pickup_point, ready_for_pickup")
+      .select("paid_price, price, pickup_point, ready_for_pickup")
       .eq("ready_for_pickup", true)
       .eq("picked_up", true)
       .eq("collected", false);
@@ -328,7 +332,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
     }
 
     const total = (data || [])
-      .filter((purchase) => isPickupPointForLocation(purchase.assigned_pickup_point, pickupLocation.id))
+      .filter((purchase) => isPickupPointForLocation(purchase.pickup_point, pickupLocation.id))
       .reduce((sum, purchase) => sum + parsePrice(purchase.paid_price ?? purchase.price), 0);
 
     setAllOrdersTotal(total);
@@ -462,7 +466,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
 
     const { data, error: totalError } = await sb
       .from("purchases")
-      .select("id, paid_price, price, pickup_point, assigned_pickup_point, ready_for_pickup")
+      .select("id, paid_price, price, pickup_point, ready_for_pickup")
       .eq("ready_for_pickup", true)
       .eq("picked_up", true)
       .eq("collected", false);
@@ -473,7 +477,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
     }
 
     const pickupList = (data || []).filter((purchase) =>
-      isPickupPointForLocation(purchase.assigned_pickup_point, pickupLocation.id)
+      isPickupPointForLocation(purchase.pickup_point, pickupLocation.id)
     );
     const total = pickupList.reduce((sum, purchase) => sum + parsePrice(purchase.paid_price ?? purchase.price), 0);
     if (total <= 0) return;
@@ -543,6 +547,33 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
     );
     await loadAllOrdersTotal();
     cancelEditPaid();
+  }
+
+  function openTransferDialog(purchase) {
+    if (!isRahaf || !purchase) return;
+    if (purchase.collected) {
+      window.alert("لا يمكن نقل مشترى تم تحصيله.");
+      return;
+    }
+    setTransferDialog(purchase);
+  }
+
+  async function transferPickupLocation(nextPickupPoint) {
+    if (!isRahaf || !transferDialog || transferBusy) return;
+
+    setTransferBusy(true);
+    try {
+      await movePurchaseToPickupLocation(transferDialog.id, nextPickupPoint);
+      setTransferDialog(null);
+      await loadOrders();
+      await loadAllOrdersTotal();
+      await loadPurchases(selectedOrderIds);
+    } catch (error) {
+      console.error(error);
+      window.alert(error?.message || "فشل نقل المشترى.");
+    } finally {
+      setTransferBusy(false);
+    }
   }
 
   function openSearchResult(result) {
@@ -846,6 +877,13 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                     </span>
                                   </th>
                                 ) : null}
+                                {isRahaf ? (
+                                  <th>
+                                    <span className="pickuppoint-th-label">
+                                      <span>نقل</span>
+                                    </span>
+                                  </th>
+                                ) : null}
                               </tr>
                             </thead>
                             <tbody>
@@ -926,6 +964,18 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                       </div>
                                     </td>
                                     {isRahaf ? <td>{formatDateTime(purchase.picked_up_at)}</td> : null}
+                                    {isRahaf ? (
+                                      <td>
+                                        <button
+                                          type="button"
+                                          className="pickuppoint-btn mini pickup-transfer-trigger"
+                                          onClick={() => openTransferDialog(purchase)}
+                                          disabled={!!purchase.collected}
+                                        >
+                                          نقل
+                                        </button>
+                                      </td>
+                                    ) : null}
                                   </tr>
                                 );
                               })}
@@ -1016,6 +1066,13 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                               </span>
                             </th>
                           ) : null}
+                          {isRahaf ? (
+                            <th>
+                              <span className="pickuppoint-th-label">
+                                <span>نقل</span>
+                              </span>
+                            </th>
+                          ) : null}
                         </tr>
                       </thead>
                       <tbody>
@@ -1091,12 +1148,24 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                   </div>
                                 </td>
                                 {isRahaf ? <td>{formatDateTime(purchase.picked_up_at)}</td> : null}
+                                {isRahaf ? (
+                                  <td>
+                                    <button
+                                      type="button"
+                                      className="pickuppoint-btn mini pickup-transfer-trigger"
+                                      onClick={() => openTransferDialog(purchase)}
+                                      disabled={!!purchase.collected}
+                                    >
+                                      نقل
+                                    </button>
+                                  </td>
+                                ) : null}
                               </tr>
                             );
                           })
                         ) : (
                           <tr>
-                            <td colSpan={isRahaf ? 6 : 4} className="pickuppoint-muted">
+                            <td colSpan={isRahaf ? 7 : 4} className="pickuppoint-muted">
                               لا يوجد مشتريات
                             </td>
                           </tr>
@@ -1195,6 +1264,17 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
             ordersMenuPortalTarget
           )
         : null}
+
+      {transferDialog ? (
+        <PickupTransferDialog
+          purchase={transferDialog}
+          saving={transferBusy}
+          onClose={() => {
+            if (!transferBusy) setTransferDialog(null);
+          }}
+          onTransfer={transferPickupLocation}
+        />
+      ) : null}
 
     </div>
   );

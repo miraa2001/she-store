@@ -5,6 +5,7 @@ import { useAuthProfile } from "../hooks/useAuthProfile";
 import { usePurchaseCustomerSearch } from "../hooks/usePurchaseCustomerSearch";
 import { getOrdersNavItems, isNavHrefActive } from "../lib/navigation";
 import { formatILS, parsePrice } from "../lib/orders";
+import { movePurchaseToPickupLocation } from "../lib/purchases";
 import { buildCollectedMoneyMessage, buildPickupStatusMessage, notifyPickupStatus } from "../lib/pickupNotifications";
 import { PICKUP_HOME } from "../lib/pickup";
 import { setBodyScrollLock } from "../lib/bodyScrollLock";
@@ -13,6 +14,7 @@ import { sb } from "../lib/supabaseClient";
 import SessionLoader from "../components/common/SessionLoader";
 import AppNavIcon from "../components/common/AppNavIcon";
 import PickupAnimatedCheckbox from "../components/common/PickupAnimatedCheckbox";
+import PickupTransferDialog from "../components/pickup/PickupTransferDialog";
 import SheStoreLogo from "../components/common/SheStoreLogo";
 import imagesHeaderIcon from "../assets/icons/pickup/images.png";
 import customerHeaderIcon from "../assets/icons/pickup/customer.png";
@@ -72,12 +74,14 @@ export default function HomePickupPage({ embedded = false }) {
   const [paidEditor, setPaidEditor] = useState({ id: "", value: "", saving: false });
   const [lightbox, setLightbox] = useState({ open: false, images: [], index: 0, label: "" });
   const [showAllOrdersMode, setShowAllOrdersMode] = useState(false);
+  const [transferDialog, setTransferDialog] = useState(null);
+  const [transferBusy, setTransferBusy] = useState(false);
   const location = useLocation();
   const sidebarLinks = useMemo(() => getOrdersNavItems(profile.role), [profile.role]);
   const highlightTimeoutRef = useRef(null);
   const lastLoadedOrderKeyRef = useRef("");
   const homeSearchQueryBuilder = useCallback(
-    (request) => request.eq("assigned_pickup_point", PICKUP_HOME).eq("ready_for_pickup", true),
+    (request) => request.eq("pickup_point", PICKUP_HOME).eq("ready_for_pickup", true),
     []
   );
   const { searchResults, searchLoading, clearSearchResults } = usePurchaseCustomerSearch({
@@ -220,8 +224,8 @@ export default function HomePickupPage({ embedded = false }) {
     try {
       const { data: pickupRows, error: pickupError } = await sb
         .from("purchases")
-        .select("order_id, pickup_point, assigned_pickup_point, collected, ready_for_pickup")
-        .eq("assigned_pickup_point", PICKUP_HOME)
+        .select("order_id, pickup_point, collected, ready_for_pickup")
+        .eq("pickup_point", PICKUP_HOME)
         .eq("ready_for_pickup", true)
         .eq("collected", false);
 
@@ -240,6 +244,7 @@ export default function HomePickupPage({ embedded = false }) {
         .select("id, order_name, created_at")
         .in("id", orderIds)
         .eq("arrived", true)
+        .eq("placed_at_pickup", true)
         .order("created_at", { ascending: false });
 
       if (orderError) throw orderError;
@@ -284,9 +289,9 @@ export default function HomePickupPage({ embedded = false }) {
       let purchasesQuery = sb
         .from("purchases")
         .select(
-          "id, order_id, customer_name, price, paid_price, picked_up, picked_up_at, pickup_point, assigned_pickup_point, assigned_pickup_at, ready_for_pickup, ready_for_pickup_at, collected, purchase_images(storage_path)"
+          "id, order_id, customer_name, price, paid_price, picked_up, picked_up_at, pickup_point, ready_for_pickup, ready_for_pickup_at, collected, purchase_images(storage_path)"
         )
-        .eq("assigned_pickup_point", PICKUP_HOME)
+        .eq("pickup_point", PICKUP_HOME)
         .eq("ready_for_pickup", true)
         .eq("collected", false)
         .order("created_at", { ascending: true });
@@ -460,6 +465,32 @@ export default function HomePickupPage({ embedded = false }) {
     cancelEditPaid();
   }
 
+  function openTransferDialog(purchase) {
+    if (!isRahaf || !purchase) return;
+    if (purchase.collected) {
+      window.alert("لا يمكن نقل مشترى تم تحصيله.");
+      return;
+    }
+    setTransferDialog(purchase);
+  }
+
+  async function transferPickupLocation(nextPickupPoint) {
+    if (!isRahaf || !transferDialog || transferBusy) return;
+
+    setTransferBusy(true);
+    try {
+      await movePurchaseToPickupLocation(transferDialog.id, nextPickupPoint);
+      setTransferDialog(null);
+      await loadPurchases(selectedOrderIds);
+      await loadOrders();
+    } catch (error) {
+      console.error(error);
+      window.alert(error?.message || "فشل نقل المشترى.");
+    } finally {
+      setTransferBusy(false);
+    }
+  }
+
   function openSearchResult(result) {
     clearSearchResults();
     setSelectedOrderId(result.order_id);
@@ -557,6 +588,16 @@ export default function HomePickupPage({ embedded = false }) {
               />
               <span>{purchase.picked_up ? "تم الاستلام" : "غير مستلم"}</span>
             </div>
+          {isRahaf ? (
+            <button
+              type="button"
+              className="homepickup-btn mini pickup-transfer-trigger"
+              onClick={() => openTransferDialog(purchase)}
+              disabled={!!purchase.collected}
+            >
+              نقل
+            </button>
+          ) : null}
           <small>{formatDateTime(purchase.picked_up_at)}</small>
         </footer>
       </article>
@@ -606,6 +647,13 @@ export default function HomePickupPage({ embedded = false }) {
                   <span>وقت الاستلام</span>
                 </span>
               </th>
+              {isRahaf ? (
+                <th>
+                  <span className="homepickup-th-label">
+                    <span>نقل</span>
+                  </span>
+                </th>
+              ) : null}
             </tr>
           </thead>
           <tbody>
@@ -698,6 +746,18 @@ export default function HomePickupPage({ embedded = false }) {
                     </td>
 
                     <td>{formatDateTime(purchase.picked_up_at)}</td>
+                    {isRahaf ? (
+                      <td>
+                        <button
+                          type="button"
+                          className="homepickup-btn mini pickup-transfer-trigger"
+                          onClick={() => openTransferDialog(purchase)}
+                          disabled={!!purchase.collected}
+                        >
+                          نقل
+                        </button>
+                      </td>
+                    ) : null}
                   </tr>
                 );
               })
@@ -1071,6 +1131,13 @@ export default function HomePickupPage({ embedded = false }) {
                                 <span>وقت الاستلام</span>
                               </span>
                             </th>
+                            {isRahaf ? (
+                              <th>
+                                <span className="homepickup-th-label">
+                                  <span>نقل</span>
+                                </span>
+                              </th>
+                            ) : null}
                           </tr>
                         </thead>
                         <tbody>
@@ -1164,6 +1231,18 @@ export default function HomePickupPage({ embedded = false }) {
                                   </td>
 
                                   <td>{formatDateTime(purchase.picked_up_at)}</td>
+                                  {isRahaf ? (
+                                    <td>
+                                      <button
+                                        type="button"
+                                        className="homepickup-btn mini pickup-transfer-trigger"
+                                        onClick={() => openTransferDialog(purchase)}
+                                        disabled={!!purchase.collected}
+                                      >
+                                        نقل
+                                      </button>
+                                    </td>
+                                  ) : null}
                                 </tr>
                               );
                             })
@@ -1260,6 +1339,17 @@ export default function HomePickupPage({ embedded = false }) {
           </div>
         </aside>
       </div>
+
+      {transferDialog ? (
+        <PickupTransferDialog
+          purchase={transferDialog}
+          saving={transferBusy}
+          onClose={() => {
+            if (!transferBusy) setTransferDialog(null);
+          }}
+          onTransfer={transferPickupLocation}
+        />
+      ) : null}
 
       {lightbox.open ? (
         <div className="homepickup-lightbox" onClick={() => setLightbox((prev) => ({ ...prev, open: false }))}>

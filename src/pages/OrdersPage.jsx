@@ -14,7 +14,6 @@ import {
   groupOrdersByMonth,
   isOrderFullyCollected,
   parsePrice,
-  updateOrderAfterPurchasePlacement,
   updateOrderProfitSettings,
   updateOrderName,
   updateOrderWorkflowStatus
@@ -26,8 +25,6 @@ import {
   deletePurchaseById,
   fetchPurchasesByOrder,
   markPurchasePaidPrice,
-  movePurchasesToOrder,
-  placePurchasesForPickup,
   restoreDeletedPurchase,
   sanitizeLinks,
   searchPurchasesByCustomerName,
@@ -55,7 +52,6 @@ import { hasGeminiKey, resolveTotalFromGemini, runGeminiCartAnalysis } from "../
 import { getOrdersNavItems, getRoleLandingHref, isNavHrefActive } from "../lib/navigation";
 import {
   DEFAULT_PICKUP_OPTION,
-  PICKUP_HOME,
   PICKUP_POINT_NABLUS,
   getDefaultPickupForCity,
   getPreferredPickupForCustomer,
@@ -63,7 +59,6 @@ import {
   formatPickupFormValue,
   getPickupOptionsWithCurrentValue,
   isNablusCity,
-  isPickupPointPickup,
   isPickupPointRole
 } from "../lib/pickup";
 import { signOutAndRedirect } from "../lib/session";
@@ -91,12 +86,6 @@ const SHEIN_TYPE_OPTIONS = [
   { value: SHEIN_ORDER_TYPES.MAKEUP, label: "Makeup" },
   { value: SHEIN_ORDER_TYPES.ELECTRONICS, label: "Electronics" }
 ];
-const PICKUP_PLACEMENT_OPTIONS = [
-  { value: DEFAULT_PICKUP_OPTION, label: "مريمتي" },
-  { value: PICKUP_HOME, label: "البيت" },
-  { value: PICKUP_POINT_NABLUS, label: "نابلس" }
-];
-
 function createEmptyForm(orderId, customers) {
   return {
     purchaseId: "",
@@ -352,10 +341,6 @@ export default function OrdersPage() {
   const [confirmDeleteBusy, setConfirmDeleteBusy] = useState(false);
   const [paidPriceDialog, setPaidPriceDialog] = useState(null);
   const [paidPriceDialogBusy, setPaidPriceDialogBusy] = useState(false);
-  const [movePurchasesDialog, setMovePurchasesDialog] = useState(null);
-  const [movePurchasesDialogBusy, setMovePurchasesDialogBusy] = useState(false);
-  const [pickupPlacementDialog, setPickupPlacementDialog] = useState(null);
-  const [pickupPlacementDialogBusy, setPickupPlacementDialogBusy] = useState(false);
   const [orderDialog, setOrderDialog] = useState(null);
   const [orderDialogBusy, setOrderDialogBusy] = useState(false);
   const [orderSettingsDialog, setOrderSettingsDialog] = useState(null);
@@ -469,28 +454,6 @@ export default function OrdersPage() {
     [orders, selectedOrderId]
   );
 
-  const moveTargetOrders = useMemo(() => {
-    if (!selectedOrder?.id) return [];
-    return orders.filter((order) => !order.arrived && String(order.id) !== String(selectedOrder.id));
-  }, [orders, selectedOrder]);
-
-  const moveSelectedPurchases = useMemo(() => {
-    if (!movePurchasesDialog?.purchaseIds?.length) return [];
-    const selectedIds = new Set(movePurchasesDialog.purchaseIds.map((id) => String(id)));
-    return purchases.filter((purchase) => selectedIds.has(String(purchase.id)));
-  }, [movePurchasesDialog, purchases]);
-
-  const moveTargetOrder = useMemo(() => {
-    if (!movePurchasesDialog?.targetOrderId) return null;
-    return moveTargetOrders.find((order) => String(order.id) === String(movePurchasesDialog.targetOrderId)) || null;
-  }, [movePurchasesDialog, moveTargetOrders]);
-
-  const pickupPlacementSelectedPurchases = useMemo(() => {
-    if (!pickupPlacementDialog?.purchaseIds?.length) return [];
-    const selectedIds = new Set(pickupPlacementDialog.purchaseIds.map((id) => String(id)));
-    return purchases.filter((purchase) => selectedIds.has(String(purchase.id)));
-  }, [pickupPlacementDialog, purchases]);
-
   const selectedOrderIsFullyCollected = useMemo(
     () => isOrderFullyCollected(purchases),
     [purchases]
@@ -549,22 +512,6 @@ export default function OrdersPage() {
     () => getPickupOptionsWithCurrentValue(formState.pickupPoint),
     [formState.pickupPoint]
   );
-
-  useEffect(() => {
-    setMovePurchasesDialog((prev) => {
-      if (!prev) return prev;
-      if (!selectedOrder?.id) return null;
-      return String(prev.sourceOrderId) === String(selectedOrder.id) ? prev : null;
-    });
-  }, [selectedOrder?.id]);
-
-  useEffect(() => {
-    setPickupPlacementDialog((prev) => {
-      if (!prev) return prev;
-      if (!selectedOrder?.id) return null;
-      return String(prev.orderId) === String(selectedOrder.id) ? prev : null;
-    });
-  }, [selectedOrder?.id]);
 
   const refreshOrders = useCallback(async (preferredId = "") => {
     setOrdersLoading(true);
@@ -1264,8 +1211,6 @@ export default function OrdersPage() {
             paid_price: target.paid_price,
             bag_size: target.bag_size,
             pickup_point: target.pickup_point,
-            assigned_pickup_point: target.assigned_pickup_point,
-            assigned_pickup_at: target.assigned_pickup_at,
             ready_for_pickup: target.ready_for_pickup,
             ready_for_pickup_at: target.ready_for_pickup_at,
             note: target.note,
@@ -1491,271 +1436,6 @@ export default function OrdersPage() {
     }
   };
 
-  const openMovePurchasesDialog = () => {
-    if (!isRahaf || !selectedOrder) return;
-    setMenuPurchaseId("");
-    setMovePurchasesDialog({
-      step: "select-purchases",
-      sourceOrderId: selectedOrder.id,
-      sourceOrderName: selectedOrder.name || "",
-      purchaseIds: [],
-      targetOrderId: ""
-    });
-  };
-
-  const closeMovePurchasesDialog = () => {
-    if (movePurchasesDialogBusy) return;
-    setMovePurchasesDialog(null);
-  };
-
-  const toggleMovePurchaseSelection = (purchaseId) => {
-    if (!purchaseId || movePurchasesDialogBusy) return;
-    setMovePurchasesDialog((prev) => {
-      if (!prev) return prev;
-      const currentIds = new Set((prev.purchaseIds || []).map((id) => String(id)));
-      const normalizedId = String(purchaseId);
-      if (currentIds.has(normalizedId)) {
-        currentIds.delete(normalizedId);
-      } else {
-        currentIds.add(normalizedId);
-      }
-      return {
-        ...prev,
-        purchaseIds: Array.from(currentIds)
-      };
-    });
-  };
-
-  const toggleMovePurchaseSelectionAll = () => {
-    if (movePurchasesDialogBusy) return;
-    const allIds = purchases.map((purchase) => String(purchase.id));
-    setMovePurchasesDialog((prev) => {
-      if (!prev) return prev;
-      const hasAllSelected = allIds.length > 0 && allIds.every((id) => prev.purchaseIds.includes(id));
-      return {
-        ...prev,
-        purchaseIds: hasAllSelected ? [] : allIds
-      };
-    });
-  };
-
-  const goToMovePurchaseTargetsStep = () => {
-    if (!movePurchasesDialog) return;
-    if (!movePurchasesDialog.purchaseIds?.length) {
-      setToast({ type: "warn", text: "اختاري مشتريات للنقل أولًا." });
-      return;
-    }
-    setMovePurchasesDialog((prev) => (prev ? { ...prev, step: "select-target", targetOrderId: "" } : prev));
-  };
-
-  const goBackMovePurchasesStep = () => {
-    if (movePurchasesDialogBusy) return;
-    setMovePurchasesDialog((prev) => (prev ? { ...prev, step: "select-purchases", targetOrderId: "" } : prev));
-  };
-
-  const submitMovePurchasesDialog = async () => {
-    if (!movePurchasesDialog || movePurchasesDialogBusy) return;
-    if (!moveSelectedPurchases.length) {
-      setToast({ type: "warn", text: "اختاري مشتريات للنقل." });
-      return;
-    }
-    if (!moveTargetOrder) {
-      setToast({ type: "warn", text: "اختاري الطلب الذي تريدين النقل إليه." });
-      return;
-    }
-
-    const purchaseCount = moveSelectedPurchases.length;
-    const confirmText = `تأكيد نقل ${purchaseCount} مشتريات من "${movePurchasesDialog.sourceOrderName}" إلى "${moveTargetOrder.name}"؟`;
-    if (!window.confirm(confirmText)) return;
-
-    setMovePurchasesDialogBusy(true);
-    try {
-      await movePurchasesToOrder(
-        moveSelectedPurchases.map((purchase) => purchase.id),
-        moveTargetOrder.id
-      );
-      setToast({
-        type: "success",
-        text: `تم نقل ${purchaseCount} مشتريات إلى ${moveTargetOrder.name}.`
-      });
-      setMovePurchasesDialog(null);
-      if (selectedOrder?.id) {
-        await refreshPurchases(selectedOrder.id);
-        await refreshOrders(selectedOrder.id);
-      }
-    } catch (error) {
-      console.error(error);
-      setToast({ type: "danger", text: error?.message || "فشل نقل المشتريات." });
-    } finally {
-      setMovePurchasesDialogBusy(false);
-    }
-  };
-
-  const openPickupPlacementDialog = () => {
-    if (!selectedOrder || !isRahaf || !editMode) return;
-
-    setMenuPurchaseId("");
-    setPickupPlacementDialog({
-      step: "select-purchases",
-      orderId: selectedOrder.id,
-      orderName: selectedOrder.name || "",
-      purchaseIds: [],
-      destination: DEFAULT_PICKUP_OPTION
-    });
-  };
-
-  const closePickupPlacementDialog = () => {
-    if (pickupPlacementDialogBusy) return;
-    setPickupPlacementDialog(null);
-  };
-
-  const togglePickupPlacementSelection = (purchaseId) => {
-    if (!purchaseId || pickupPlacementDialogBusy) return;
-
-    setPickupPlacementDialog((prev) => {
-      if (!prev) return prev;
-      const currentIds = new Set((prev.purchaseIds || []).map((id) => String(id)));
-      const id = String(purchaseId);
-
-      if (currentIds.has(id)) {
-        currentIds.delete(id);
-      } else {
-        currentIds.add(id);
-      }
-
-      return {
-        ...prev,
-        purchaseIds: Array.from(currentIds)
-      };
-    });
-  };
-
-  const togglePickupPlacementSelectionAll = () => {
-    if (pickupPlacementDialogBusy) return;
-
-    setPickupPlacementDialog((prev) => {
-      if (!prev) return prev;
-      const allIds = purchases.map((purchase) => String(purchase.id));
-      const selectedIds = new Set((prev.purchaseIds || []).map((id) => String(id)));
-      const allSelected = allIds.length > 0 && allIds.every((id) => selectedIds.has(id));
-
-      return {
-        ...prev,
-        purchaseIds: allSelected ? [] : allIds
-      };
-    });
-  };
-
-  const goToPickupPlacementDestinationStep = () => {
-    if (!pickupPlacementDialog || pickupPlacementDialogBusy) return;
-    if (!pickupPlacementDialog.purchaseIds?.length) {
-      setToast({ type: "warn", text: "اختاري مشتريات أولًا." });
-      return;
-    }
-
-    setPickupPlacementDialog((prev) =>
-      prev ? { ...prev, step: "select-destination", destination: prev.destination || DEFAULT_PICKUP_OPTION } : prev
-    );
-  };
-
-  const goBackPickupPlacementStep = () => {
-    if (pickupPlacementDialogBusy) return;
-    setPickupPlacementDialog((prev) => (prev ? { ...prev, step: "select-purchases" } : prev));
-  };
-
-  const setPickupPlacementDestination = (pickupPoint) => {
-    if (pickupPlacementDialogBusy) return;
-    const valid = PICKUP_PLACEMENT_OPTIONS.some((option) => option.value === pickupPoint);
-    if (!valid) return;
-
-    setPickupPlacementDialog((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        destination: pickupPoint
-      };
-    });
-  };
-
-  const submitPickupPlacementDialog = async () => {
-    if (!pickupPlacementDialog || pickupPlacementDialogBusy) return;
-    if (!pickupPlacementSelectedPurchases.length) {
-      setToast({ type: "warn", text: "اختاري مشتريات لوضعها للاستلام." });
-      return;
-    }
-
-    const selectedIds = pickupPlacementSelectedPurchases.map((purchase) => String(purchase.id));
-    const destination = pickupPlacementDialog.destination || DEFAULT_PICKUP_OPTION;
-    const assignments = {};
-
-    selectedIds.forEach((id) => {
-      assignments[id] = destination;
-    });
-
-    setPickupPlacementDialogBusy(true);
-    setOrderStatusSaving(true);
-
-    try {
-      await placePurchasesForPickup(assignments);
-      const isPickupDestination = isPickupPointPickup(destination);
-      const payload = await updateOrderAfterPurchasePlacement(pickupPlacementDialog.orderId, {
-        placedAtPickup: isPickupDestination
-      });
-
-      setOrders((prev) =>
-        prev.map((order) =>
-          String(order.id) === String(pickupPlacementDialog.orderId)
-            ? (() => {
-                const nextPlacedAtPickup =
-                  payload.placed_at_pickup === undefined ? order.placedAtPickup : !!payload.placed_at_pickup;
-                return {
-                  ...order,
-                  arrived: true,
-                  placedAtPickup: nextPlacedAtPickup,
-                  placedAtPickupAt: payload.placed_at_pickup_at || order.placedAtPickupAt,
-                  status: deriveOrderStatus({
-                    arrived: true,
-                    placedAtPickup: nextPlacedAtPickup,
-                    purchaseCount: order.purchaseCount,
-                    allCollected: order.allCollected
-                  })
-                };
-              })()
-            : order
-        )
-      );
-
-      setPurchases((prev) =>
-        prev.map((purchase) => {
-          const nextPickup = assignments[String(purchase.id)];
-          return nextPickup
-            ? {
-                ...purchase,
-                assigned_pickup_point: nextPickup,
-                assigned_pickup_at: new Date().toISOString(),
-                ready_for_pickup: true,
-                ready_for_pickup_at: new Date().toISOString()
-              }
-            : purchase;
-        })
-      );
-
-      setToast({
-        type: "success",
-        text: `تم وضع ${selectedIds.length} مشتريات في ${formatPickupDisplayLabel(destination, "الاستلام")}.`
-      });
-      setPickupPlacementDialog(null);
-      await refreshPurchases(pickupPlacementDialog.orderId);
-      await refreshOrders(pickupPlacementDialog.orderId);
-    } catch (error) {
-      console.error(error);
-      setToast({ type: "danger", text: error?.message || "فشل حفظ نقاط الاستلام." });
-    } finally {
-      setPickupPlacementDialogBusy(false);
-      setOrderStatusSaving(false);
-    }
-  };
-
   const handleUpdateOrderStatus = async (nextStatus) => {
     if (!selectedOrder || !isRahaf || !editMode) return;
     if (!nextStatus) return;
@@ -1792,18 +1472,9 @@ export default function OrdersPage() {
             : order
         )
       );
-      if (status === ORDER_STATUS.PENDING || status === ORDER_STATUS.ARRIVED) {
-        setPurchases((prev) =>
-          prev.map((purchase) => ({
-            ...purchase,
-            assigned_pickup_point: null,
-            assigned_pickup_at: null,
-            ready_for_pickup: false,
-            ready_for_pickup_at: null
-          }))
-        );
-      }
       setToast({ type: "success", text: "تم تحديث حالة الطلب." });
+      await refreshPurchases(selectedOrder.id);
+      await refreshOrders(selectedOrder.id);
     } catch (error) {
       console.error(error);
       setToast({ type: "danger", text: "فشل تحديث حالة الطلب." });
@@ -1821,7 +1492,7 @@ export default function OrdersPage() {
     try {
       const target = await resolvePurchaseWhatsappTarget(purchase);
       const message = buildArrivalNotifyMessage({
-        pickupPoint: purchase.assigned_pickup_point || purchase.pickup_point,
+        pickupPoint: purchase.pickup_point,
         price: purchase.paid_price ?? purchase.price,
         customerName: target.customerName
       });
@@ -2259,8 +1930,6 @@ export default function OrdersPage() {
                 editMode={editMode}
                 onUpdateOrderStatus={handleUpdateOrderStatus}
                 onOpenAddModal={openAddModal}
-                onOpenPickupPlacementDialog={openPickupPlacementDialog}
-                onOpenMoveDialog={openMovePurchasesDialog}
                 onOpenOrderSettings={openOrderSettingsDialog}
                 onExportPdf={exportPdfNative}
                 canExportPdf={!isReem}
@@ -2724,374 +2393,6 @@ export default function OrdersPage() {
                   إلغاء
                 </button>
               </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {movePurchasesDialog ? (
-        <div className="purchase-modal-backdrop" onClick={closeMovePurchasesDialog}>
-          <div
-            className="purchase-modal-card purchase-modal-card-move"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="purchase-modal-head">
-              <h3>نقل مشتريات</h3>
-              <button
-                type="button"
-                className="icon-btn tiny"
-                onClick={closeMovePurchasesDialog}
-                disabled={movePurchasesDialogBusy}
-              >
-                <Icon name="close" className="icon" />
-              </button>
-            </div>
-
-            <div className="purchase-modal-body">
-              <div className="move-purchases-steps">
-                <span className={movePurchasesDialog.step === "select-purchases" ? "active" : ""}>1. اختيار المشتريات</span>
-                <span className={movePurchasesDialog.step === "select-target" ? "active" : ""}>2. اختيار الطلب</span>
-              </div>
-
-              <div className="move-purchases-summary">
-                <div>
-                  <strong>الطلب الحالي:</strong> {movePurchasesDialog.sourceOrderName || selectedOrder?.name || "طلب"}
-                </div>
-                <div>
-                  <strong>المحدد:</strong> {moveSelectedPurchases.length}
-                </div>
-              </div>
-
-              {movePurchasesDialog.step === "select-purchases" ? (
-                <>
-                  <div className="move-purchases-toolbar">
-                    <div className="modal-help">اختاري المشتريات التي تريدين نقلها، ثم اضغطي التالي.</div>
-                    {purchases.length ? (
-                      <button
-                        type="button"
-                        className="btn-ghost-light"
-                        onClick={toggleMovePurchaseSelectionAll}
-                        disabled={movePurchasesDialogBusy}
-                      >
-                        {purchases.length > 0 &&
-                        purchases.every((purchase) =>
-                          (movePurchasesDialog.purchaseIds || []).includes(String(purchase.id))
-                        )
-                          ? "إلغاء تحديد الكل"
-                          : "تحديد الكل"}
-                      </button>
-                    ) : null}
-                  </div>
-
-                  {purchases.length ? (
-                    <div className="move-purchases-list">
-                      {purchases.map((purchase) => {
-                        const checked = (movePurchasesDialog.purchaseIds || []).includes(String(purchase.id));
-                        return (
-                          <label
-                            key={purchase.id}
-                            className={`move-purchase-item ${checked ? "is-selected" : ""}`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggleMovePurchaseSelection(purchase.id)}
-                              disabled={movePurchasesDialogBusy}
-                            />
-                            <div className="move-purchase-item-body">
-                              <strong>{purchase.customer_name || "بدون اسم"}</strong>
-                              <span>
-                                {purchase.qty || 0} قطع • المدفوع: {formatILS(purchase.paid_price ?? purchase.price)} ₪
-                              </span>
-                              <span>{formatPickupDisplayLabel(purchase.pickup_point, "بدون مكان استلام")}</span>
-                            </div>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="workspace-empty">لا توجد مشتريات في هذا الطلب.</div>
-                  )}
-
-                  <div className="purchase-modal-foot">
-                    <button
-                      type="button"
-                      className="btn-primary"
-                      onClick={goToMovePurchaseTargetsStep}
-                      disabled={movePurchasesDialogBusy || !movePurchasesDialog.purchaseIds?.length}
-                    >
-                      التالي
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-ghost-light"
-                      onClick={closeMovePurchasesDialog}
-                      disabled={movePurchasesDialogBusy}
-                    >
-                      إلغاء
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="move-purchases-picked">
-                    {moveSelectedPurchases.map((purchase) => (
-                      <span key={purchase.id} className="move-purchase-chip">
-                        {purchase.customer_name || "بدون اسم"}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="modal-help">اختاري الطلب الهدف من الطلبات غير الواصلة فقط.</div>
-
-                  {moveTargetOrders.length ? (
-                    <div className="move-target-orders">
-                      {moveTargetOrders.map((order) => {
-                        const checked = String(movePurchasesDialog.targetOrderId || "") === String(order.id);
-                        return (
-                          <label
-                            key={order.id}
-                            className={`move-target-order ${checked ? "is-selected" : ""}`}
-                          >
-                            <input
-                              type="radio"
-                              name="move-target-order"
-                              checked={checked}
-                              onChange={() =>
-                                setMovePurchasesDialog((prev) =>
-                                  prev ? { ...prev, targetOrderId: order.id } : prev
-                                )
-                              }
-                              disabled={movePurchasesDialogBusy}
-                            />
-                            <div className="move-target-order-body">
-                              <strong>{order.name || "طلب بدون اسم"}</strong>
-                              <span>
-                                {order.purchaseCount || 0} مشتريات • {order.amountLabel || `${formatILS(order.amountRaw || 0)} ₪`}
-                              </span>
-                            </div>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="workspace-empty">لا توجد طلبات غير واصلة متاحة للنقل إليها.</div>
-                  )}
-
-                  <div className="purchase-modal-foot">
-                    <button
-                      type="button"
-                      className="btn-primary"
-                      onClick={submitMovePurchasesDialog}
-                      disabled={
-                        movePurchasesDialogBusy ||
-                        !moveTargetOrders.length ||
-                        !movePurchasesDialog.targetOrderId
-                      }
-                    >
-                      {movePurchasesDialogBusy ? "جاري النقل..." : "تأكيد النقل"}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-ghost-light"
-                      onClick={goBackMovePurchasesStep}
-                      disabled={movePurchasesDialogBusy}
-                    >
-                      رجوع
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-ghost-light"
-                      onClick={closeMovePurchasesDialog}
-                      disabled={movePurchasesDialogBusy}
-                    >
-                      إلغاء
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {pickupPlacementDialog ? (
-        <div className="purchase-modal-backdrop" onClick={closePickupPlacementDialog}>
-          <div
-            className="purchase-modal-card purchase-modal-card-placement"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="purchase-modal-head">
-              <h3>وضع مشتريات للاستلام</h3>
-              <button
-                type="button"
-                className="icon-btn tiny"
-                onClick={closePickupPlacementDialog}
-                disabled={pickupPlacementDialogBusy}
-              >
-                <Icon name="close" className="icon" />
-              </button>
-            </div>
-
-            <div className="purchase-modal-body">
-              <div className="move-purchases-steps">
-                <span className={pickupPlacementDialog.step === "select-purchases" ? "active" : ""}>
-                  1. اختيار المشتريات
-                </span>
-                <span className={pickupPlacementDialog.step === "select-destination" ? "active" : ""}>
-                  2. اختيار مكان الاستلام
-                </span>
-              </div>
-
-              <div className="move-purchases-summary">
-                <div>
-                  <strong>الطلب:</strong> {pickupPlacementDialog.orderName || selectedOrder?.name || "طلب"}
-                </div>
-                <div>
-                  <strong>المحدد:</strong> {pickupPlacementSelectedPurchases.length}
-                </div>
-              </div>
-
-              {pickupPlacementDialog.step === "select-purchases" ? (
-                <>
-                  <div className="move-purchases-toolbar">
-                    <div className="modal-help">
-                      اختاري مشتريات الدفعة التي وصلت الآن، ثم اضغطي التالي.
-                    </div>
-                    {purchases.length ? (
-                      <button
-                        type="button"
-                        className="btn-ghost-light"
-                        onClick={togglePickupPlacementSelectionAll}
-                        disabled={pickupPlacementDialogBusy}
-                      >
-                        {purchases.every((purchase) =>
-                          (pickupPlacementDialog.purchaseIds || []).includes(String(purchase.id))
-                        )
-                          ? "إلغاء تحديد الكل"
-                          : "تحديد الكل"}
-                      </button>
-                    ) : null}
-                  </div>
-
-                  {purchases.length ? (
-                    <div className="pickup-placement-list">
-                      {purchases.map((purchase) => {
-                        const purchaseId = String(purchase.id);
-                        const checked = (pickupPlacementDialog.purchaseIds || []).includes(purchaseId);
-
-                        return (
-                          <article
-                            key={purchase.id}
-                            className={`pickup-placement-item pickup-placement-item-select ${checked ? "is-selected" : ""}`}
-                          >
-                            <label className="pickup-placement-check">
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={() => togglePickupPlacementSelection(purchase.id)}
-                                disabled={pickupPlacementDialogBusy}
-                              />
-                              <span>{purchase.customer_name || "بدون اسم"}</span>
-                            </label>
-
-                            <div className="pickup-placement-meta">
-                              <span>{purchase.qty || 0} قطع</span>
-                              <span>المدفوع: {formatILS(purchase.paid_price ?? purchase.price)} ₪</span>
-                              <span>اختيار الزبون: {formatPickupDisplayLabel(purchase.pickup_point, "بدون مكان استلام")}</span>
-                              <span>المكان الفعلي: {formatPickupDisplayLabel(purchase.assigned_pickup_point, "غير موضوع بعد")}</span>
-                              <span>{purchase.ready_for_pickup ? "جاهز سابقًا" : "غير موضوع بعد"}</span>
-                            </div>
-                          </article>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="workspace-empty">لا توجد مشتريات في هذا الطلب.</div>
-                  )}
-
-                  <div className="purchase-modal-foot">
-                    <button
-                      type="button"
-                      className="btn-primary"
-                      onClick={goToPickupPlacementDestinationStep}
-                      disabled={pickupPlacementDialogBusy || !pickupPlacementDialog.purchaseIds?.length}
-                    >
-                      التالي
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-ghost-light"
-                      onClick={closePickupPlacementDialog}
-                      disabled={pickupPlacementDialogBusy}
-                    >
-                      إلغاء
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="move-purchases-picked">
-                    {pickupPlacementSelectedPurchases.map((purchase) => (
-                      <span key={purchase.id} className="move-purchase-chip">
-                        {purchase.customer_name || "بدون اسم"}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="modal-help">اختاري مكان وصول هذه الدفعة.</div>
-
-                  <div className="pickup-placement-destinations" role="radiogroup" aria-label="مكان وصول الدفعة">
-                    {PICKUP_PLACEMENT_OPTIONS.map((option) => {
-                      const checked = (pickupPlacementDialog.destination || DEFAULT_PICKUP_OPTION) === option.value;
-                      return (
-                        <label
-                          key={option.value}
-                          className={`pickup-placement-destination ${checked ? "is-selected" : ""}`}
-                        >
-                          <input
-                            type="radio"
-                            name="pickup-placement-destination"
-                            value={option.value}
-                            checked={checked}
-                            onChange={() => setPickupPlacementDestination(option.value)}
-                            disabled={pickupPlacementDialogBusy}
-                          />
-                          <span>{option.label}</span>
-                          <small>{formatPickupDisplayLabel(option.value, option.label)}</small>
-                        </label>
-                      );
-                    })}
-                  </div>
-
-                  <div className="purchase-modal-foot">
-                    <button
-                      type="button"
-                      className="btn-primary"
-                      onClick={submitPickupPlacementDialog}
-                      disabled={pickupPlacementDialogBusy || !pickupPlacementDialog.purchaseIds?.length}
-                    >
-                      {pickupPlacementDialogBusy ? "جاري الحفظ..." : "حفظ الدفعة"}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-ghost-light"
-                      onClick={goBackPickupPlacementStep}
-                      disabled={pickupPlacementDialogBusy}
-                    >
-                      رجوع
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-ghost-light"
-                      onClick={closePickupPlacementDialog}
-                      disabled={pickupPlacementDialogBusy}
-                    >
-                      إلغاء
-                    </button>
-                  </div>
-                </>
-              )}
             </div>
           </div>
         </div>
