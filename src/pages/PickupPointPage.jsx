@@ -16,6 +16,7 @@ import SessionLoader from "../components/common/SessionLoader";
 import AppNavIcon from "../components/common/AppNavIcon";
 import PickupAnimatedCheckbox from "../components/common/PickupAnimatedCheckbox";
 import PickupTransferDialog from "../components/pickup/PickupTransferDialog";
+import InstantPickupSection from "../components/pickup/InstantPickupSection";
 import SheStoreLogo from "../components/common/SheStoreLogo";
 import customerHeaderIcon from "../assets/icons/pickup/customer.png";
 import priceHeaderIcon from "../assets/icons/pickup/price-ils.png";
@@ -700,8 +701,31 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
           </div>
         ) : null}
 
+        {canToggleAllOrders ? (
+          <div className="pickuppoint-view-toggle-row">
+            <div className="pickuppoint-view-toggle" role="tablist" aria-label="طريقة عرض الطلبات">
+              <button
+                type="button"
+                className={`pickuppoint-view-toggle-btn ${!showAllOrdersMode ? "is-active" : ""}`}
+                onClick={() => setShowAllOrdersMode(false)}
+                aria-pressed={!showAllOrdersMode}
+              >
+                حسب الطلبات
+              </button>
+              <button
+                type="button"
+                className={`pickuppoint-view-toggle-btn ${showAllOrdersMode ? "is-active" : ""}`}
+                onClick={() => { setShowAllOrdersMode(true); setOrdersMenuOpen(false); }}
+                aria-pressed={showAllOrdersMode}
+              >
+                كل الطلبات
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         <div className="pickuppoint-search-row pickup-section-header">
-          {!isLocationRole ? (
+          {!shouldShowAllOrders ? (
           <button
             type="button"
             className="pickup-orders-menu-trigger"
@@ -725,29 +749,6 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
             </span>
           ) : null}
         </div>
-
-        {canToggleAllOrders ? (
-          <div className="pickuppoint-view-toggle-row">
-            <div className="pickuppoint-view-toggle" role="tablist" aria-label="طريقة عرض الطلبات">
-              <button
-                type="button"
-                className={`pickuppoint-view-toggle-btn ${!showAllOrdersMode ? "is-active" : ""}`}
-                onClick={() => setShowAllOrdersMode(false)}
-                aria-pressed={!showAllOrdersMode}
-              >
-                حسب الطلبات
-              </button>
-              <button
-                type="button"
-                className={`pickuppoint-view-toggle-btn ${showAllOrdersMode ? "is-active" : ""}`}
-                onClick={() => setShowAllOrdersMode(true)}
-                aria-pressed={showAllOrdersMode}
-              >
-                كل الطلبات
-              </button>
-            </div>
-          </div>
-        ) : null}
 
         {search.trim().length >= 2 && searchResults.length ? (
           <div className="pickuppoint-search-results">
@@ -1178,6 +1179,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
             )}
           </main>
         </div>
+        <InstantPickupSection pickupPoint={pickupLocation.pickupValue} role={profile.role} />
       </div>
 
       {ordersMenuPortalTarget && !isLocationRole

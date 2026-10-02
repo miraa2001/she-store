@@ -1,11 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatILS } from "../../lib/orders";
 import { formatPickupDisplayLabel } from "../../lib/pickup";
 import SessionLoader from "../common/SessionLoader";
 import OrderStatusDropdown from "./OrderStatusDropdown";
-import pdfExportIconWeb from "../../assets/icons/documents/pdf-web.png";
-import pdfExportIconAndroid from "../../assets/icons/documents/pdf-android.png";
-import pdfExportIconIos from "../../assets/icons/documents/pdf-ios.png";
 import actionsMenuIcon from "../../assets/icons/actions/menu-vertical.png";
 import editIcon from "../../assets/icons/actions/edit.png";
 import editPriceIcon from "../../assets/icons/actions/edit-price.png";
@@ -38,9 +35,6 @@ export default function OrdersTab({
   onUpdateOrderStatus,
   onOpenAddModal,
   onOpenOrderSettings,
-  onExportPdf,
-  canExportPdf = true,
-  pdfExporting,
   customersError,
   purchasesLoading,
   purchasesError,
@@ -54,7 +48,6 @@ export default function OrdersTab({
   onInquireWhatsapp,
   onNotifyWhatsapp,
   highlightPurchaseId = "",
-  hidePurchaseGrid = false
 }) {
   const [cardSlideIndexes, setCardSlideIndexes] = useState({});
   const highlightRef = useRef(null);
@@ -62,13 +55,6 @@ export default function OrdersTab({
   const canOpenOrderSettings = isRahaf && editMode && !!selectedOrder;
   const canShowPurchaseNotes = isRahaf || isReem;
   const shouldShowOriginalPrice = !isReem;
-  const pdfExportIcon = useMemo(() => {
-    if (typeof navigator === "undefined") return pdfExportIconWeb;
-    const ua = String(navigator.userAgent || "").toLowerCase();
-    if (ua.includes("android")) return pdfExportIconAndroid;
-    if (ua.includes("iphone") || ua.includes("ipad") || ua.includes("ipod")) return pdfExportIconIos;
-    return pdfExportIconWeb;
-  }, []);
 
   useEffect(() => {
     if (!highlightPurchaseId) return;
@@ -131,21 +117,6 @@ export default function OrdersTab({
             </button>
           ) : null}
 
-          {canExportPdf && !isMobile ? (
-            <button
-              className="btn-ghost-light"
-              type="button"
-              onClick={onExportPdf}
-              disabled={pdfExporting}
-              aria-label={pdfExporting ? "جاري تصدير PDF" : "تصدير PDF"}
-            >
-              <img
-                src={pdfExportIcon}
-                alt="pdf--v3"
-                style={{ width: 28, height: 28, objectFit: "contain", display: "block" }}
-              />
-            </button>
-          ) : null}
         </div>
       </div>
 
@@ -179,7 +150,7 @@ export default function OrdersTab({
         <div className="workspace-empty">لا توجد مشتريات مطابقة.</div>
       ) : null}
 
-      {!purchasesLoading && !purchasesError && filteredPurchases.length && !hidePurchaseGrid ? (
+      {!purchasesLoading && !purchasesError && filteredPurchases.length ? (
         <div className="purchase-cards-grid">
           {filteredPurchases.map((purchase) => {
             const canShowWhatsapp = isRahaf && !!selectedOrder?.arrived;

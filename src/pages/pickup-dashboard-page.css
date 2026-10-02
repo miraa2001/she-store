@@ -583,14 +583,14 @@
   .pickup-tabs {
     display: flex;
     gap: 6px;
-    overflow: visible;
+    overflow-x: auto;
+    overflow-y: hidden;
     padding: 6px;
   }
 
   .pickup-tab-btn {
-    flex: 1 1 0;
-    width: 0;
-    min-width: 0;
+    flex: 0 0 auto;
+    width: auto;
     min-height: 44px;
     padding: 8px 10px;
     justify-content: center;

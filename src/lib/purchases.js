@@ -273,16 +273,15 @@ export async function markPurchasePaidPrice(purchaseId, paidPrice) {
 }
 
 export function normalizeOperationalPickupPoint(value) {
-  const normalized = formatPickupFormValue(value, PICKUP_HOME);
-  if (!normalized || normalized === PICKUP_DELIVERY) return PICKUP_HOME;
-  return normalized;
+  return formatPickupFormValue(value, PICKUP_HOME);
 }
 
 export function getTransferPickupOptions(currentValue) {
   const options = [
     { value: PICKUP_HOME, label: "البيت" },
     { value: PICKUP_POINT, label: "مريمتي" },
-    { value: PICKUP_POINT_NABLUS, label: "نابلس" }
+    { value: PICKUP_POINT_NABLUS, label: "نابلس" },
+    { value: PICKUP_DELIVERY, label: "توصيل" }
   ];
   const normalizedCurrent = normalizeOperationalPickupPoint(currentValue);
   if (normalizedCurrent && !options.some((option) => option.value === normalizedCurrent)) {

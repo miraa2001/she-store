@@ -1,5 +1,4 @@
 import {
-  PICKUP_DELIVERY,
   PICKUP_HOME,
   formatPickupFormValue,
   getPreferredPickupForCustomer,
@@ -62,25 +61,38 @@ export function getOrderProfitFields(order = {}) {
   return {
     totalProfit: parseOptionalPrice(order.total_profit),
     miraProfit: parseOptionalPrice(order.mira_profit),
-    rahafProfit: parseOptionalPrice(order.rahaf_profit)
+    rahafProfit: parseOptionalPrice(order.rahaf_profit),
+    homeProfitPercent: parseOptionalPrice(order.home_profit_percent),
+    rahafProfitPercent: parseOptionalPrice(order.rahaf_profit_percent),
+    miraProfitPercent: parseOptionalPrice(order.mira_profit_percent),
+    marketingFee: parsePrice(order.marketing_fee),
+    homeProfitDeduction: parsePrice(order.home_profit_deduction),
+    rahafProfitDeduction: parsePrice(order.rahaf_profit_deduction),
+    miraProfitDeduction: parsePrice(order.mira_profit_deduction)
   };
 }
 
-export async function selectOrdersWithOptionalProfitFields(selectClause) {
+export async function selectOrdersWithOptionalProfitFields(selectClause, range = null) {
   const baseSelect = String(selectClause || "").trim();
-  const profitSelect = "total_profit, mira_profit, rahaf_profit";
-  const fullSelect = `${baseSelect}, ${profitSelect}`;
+  const profitSelect = "total_profit, mira_profit, rahaf_profit, home_profit_percent, rahaf_profit_percent, mira_profit_percent, marketing_fee";
+  const fullSelect = `${baseSelect}, ${profitSelect}, home_profit_deduction, rahaf_profit_deduction, mira_profit_deduction`;
 
-  let result = await sb
-    .from("orders")
-    .select(fullSelect)
-    .order("created_at", { ascending: false });
+  const buildQuery = (columns) => {
+    const query = sb.from("orders").select(columns).order("created_at", { ascending: false });
+    if (range?.createdFrom) query.gte("created_at", range.createdFrom);
+    return range
+      ? query.order("id", { ascending: true }).range(range.from, range.to)
+      : query;
+  };
 
-  if (result.error?.code === "42703") {
-    result = await sb
-      .from("orders")
-      .select(baseSelect)
-      .order("created_at", { ascending: false });
+  let result = await buildQuery(fullSelect);
+
+  if (["42703", "PGRST204"].includes(result.error?.code)) {
+    result = await buildQuery(`${baseSelect}, ${profitSelect}`);
+  }
+  if (["42703", "PGRST204"].includes(result.error?.code)) {
+    result = await buildQuery(`${baseSelect}, total_profit, mira_profit, rahaf_profit`);
+    if (["42703", "PGRST204"].includes(result.error?.code)) result = await buildQuery(baseSelect);
   }
 
   return result;
@@ -144,9 +156,7 @@ function shortOrderNo(id) {
 }
 
 function normalizeReadyPickupPoint(value) {
-  const normalized = formatPickupFormValue(value, PICKUP_HOME);
-  if (!normalized || normalized === PICKUP_DELIVERY) return PICKUP_HOME;
-  return normalized;
+  return formatPickupFormValue(value, PICKUP_HOME);
 }
 
 async function prepareOrderPurchasesForPickup(orderId, readyAt = new Date().toISOString()) {
@@ -447,30 +457,48 @@ export async function updateOrderProfitSettings(orderId, input = {}) {
   const id = String(orderId || "").trim();
   if (!id) throw new Error("تعذر تحديد الطلب لحفظ الأرباح.");
 
+  const percentages = [input.homeProfitPercent, input.rahafProfitPercent, input.miraProfitPercent].map((value) => {
+    const number = toNullableProfitNumber(value, "نسبة الربح");
+    if (number === null || number > 100 || Math.abs(number * 100 - Math.round(number * 100)) > 0.000001) {
+      throw new Error("أدخلي النسب الثلاث بين 0 و100 بمنزلتين عشريتين كحد أقصى.");
+    }
+    return Math.round(number * 100);
+  });
+  if (percentages.reduce((sum, value) => sum + value, 0) !== 10000) throw new Error("يجب أن يكون مجموع نسب الأرباح 100%.");
+  const moneyAmount = (value, label) => {
+    const number = toNullableProfitNumber(value, label) ?? 0;
+    if (!Number.isSafeInteger(Math.round(number * 100)) || Math.abs(number * 100 - Math.round(number * 100)) > 0.000001) {
+      throw new Error(`أدخلي ${label} بمنزلتين عشريتين كحد أقصى.`);
+    }
+    return Math.round(number * 100) / 100;
+  };
   const payload = {
-    total_profit: toNullableProfitNumber(input.totalProfit, "الربح الكلي"),
-    mira_profit: toNullableProfitNumber(input.miraProfit, "ربح ميرا"),
-    rahaf_profit: toNullableProfitNumber(input.rahafProfit, "ربح رهف")
+    home_profit_percent: percentages[0] / 100,
+    rahaf_profit_percent: percentages[1] / 100,
+    mira_profit_percent: percentages[2] / 100,
+    marketing_fee: moneyAmount(input.marketingFee, "مصاريف التسويق"),
+    home_profit_deduction: moneyAmount(input.homeProfitDeduction, "مخصومات البيت"),
+    rahaf_profit_deduction: moneyAmount(input.rahafProfitDeduction, "مخصومات رهف"),
+    mira_profit_deduction: moneyAmount(input.miraProfitDeduction, "مخصومات ميرا")
   };
 
-  const { error } = await sb
+  const { data, error } = await sb
     .from("orders")
     .update(payload)
-    .eq("id", id);
+    .eq("id", id)
+    .select("id, home_profit_percent, rahaf_profit_percent, mira_profit_percent, marketing_fee, home_profit_deduction, rahaf_profit_deduction, mira_profit_deduction")
+    .single();
 
   if (error) {
-    if (error.code === "42703") {
-      throw new Error("يلزم إضافة أعمدة الأرباح إلى جدول الطلبات أولاً.");
+    if (["42703", "PGRST204"].includes(error.code)) {
+      throw new Error("يلزم تشغيل تحديث توزيع الأرباح في قاعدة البيانات أولاً.");
     }
 
     throw error;
   }
 
-  return {
-    totalProfit: payload.total_profit,
-    miraProfit: payload.mira_profit,
-    rahafProfit: payload.rahaf_profit
-  };
+  if (!data?.id) throw new Error("تعذر حفظ إعدادات الأرباح.");
+  return getOrderProfitFields(data);
 }
 
 export async function deleteOrderById(orderId) {

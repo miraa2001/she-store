@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:home-cash": "node --test tests/home-cash-ledger.test.mjs",
+    "test:images": "node --test tests/image-cleanup.test.mjs",
+    "test:instant-pickups": "node --test tests/instant-pickups.test.mjs",
+    "test:profits": "node --test tests/profit-distribution.test.mjs tests/finance-period.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.0",
@@ -19,6 +23,7 @@
     "styled-components": "^6.3.9"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@vitejs/plugin-react": "^4.5.2",
     "vite": "^5.4.14"
   }

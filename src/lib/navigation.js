@@ -19,13 +19,12 @@ const ORDERS_NAV_ITEMS = [
   { id: "orders", label: "الطلبيات", href: "#/orders", icon: "package" },
   { id: "pickup-dashboard", label: "لوحة الاستلام", href: "#/pickup-dashboard", icon: "map" },
   ...PICKUP_NAV_ITEMS,
-  { id: "archive", label: "الأرشيف", href: "#/archive", icon: "archive" },
   { id: "finance", label: "المالية", href: "#/finance", icon: "dollar" },
   { id: "homepickup", label: "استلام المنزل", href: "#/homepickup", icon: "truck" }
 ];
 
 const ORDERS_NAV_ACCESS = {
-  rahaf: ["orders", "pickup-dashboard", "archive", "finance"],
+  rahaf: ["orders", "pickup-dashboard", "finance"],
   reem: ["orders", "pickup-dashboard", "homepickup"],
   rawand: ["orders", "pickup-dashboard", "homepickup"],
   maryamti: ["orders", "pickuppoint"],
@@ -36,7 +35,6 @@ const PICKUP_SIDEBAR_LINKS_BY_ROLE = {
   rahaf: [
     { label: "الطلبيات", href: "#/orders" },
     { label: "الاستلام والتحصيل", href: "#/pickup-dashboard" },
-    { label: "الأرشيف", href: "#/archive" },
     { label: "المالية", href: "#/finance" }
   ],
   reem: [
@@ -50,9 +48,9 @@ const PICKUP_SIDEBAR_LINKS_BY_ROLE = {
 };
 
 const PICKUP_TABS_BY_ROLE = {
-  rahaf: ["home", "pickup", "nablus", "collections"],
-  reem: ["home", "nablus"],
-  rawand: ["home"],
+  rahaf: ["home", "pickup", "nablus", "delivery"],
+  reem: ["home", "nablus", "delivery"],
+  rawand: ["home", "delivery"],
   maryamti: ["pickup"],
   nablus: ["nablus"]
 };

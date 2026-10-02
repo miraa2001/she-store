@@ -1629,6 +1629,9 @@
   width: min(460px, calc(100vw - 24px));
 }
 
+.order-profit-party-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.order-profit-party-fields label { min-width: 0; }
+
 .purchase-modal-head {
   border-bottom: 1px solid rgba(229, 231, 235, 0.9);
   padding: 12px 14px;
@@ -4259,6 +4262,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  flex-wrap: wrap;
   padding: 14px 14px 12px;
   border-bottom: 1px solid rgba(229, 231, 235, 0.9);
   background: rgba(255, 255, 255, 0.96);
@@ -4268,9 +4272,19 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+}
+
+.orders-drawer-head .orders-drawer-actions,
+.orders-sheet-head .orders-drawer-actions {
+  width: 100%;
 }
 
 .orders-menu-create-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   border: 1px solid rgba(71, 20, 63, 0.24);
   background: rgba(109, 63, 107, 0.12);
   color: #47143F;
@@ -4291,6 +4305,33 @@
   flex: 1;
   overflow: auto;
   padding: 12px;
+}
+
+.orders-image-cleanup-btn {
+  flex-shrink: 0;
+  margin: 12px 14px 0;
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  white-space: normal;
+}
+
+.orders-image-cleanup-btn svg { flex-shrink: 0; }
+.orders-image-cleanup-btn:disabled { opacity: 0.6; cursor: wait; }
+
+.toast.toast-quick {
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  animation: toast-quick-fade 2.5s ease forwards;
+}
+
+@keyframes toast-quick-fade {
+  0% { opacity: 0; }
+  8%, 82% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 /* Mobile bottom sheet orders menu */
@@ -4327,6 +4368,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  flex-wrap: wrap;
   padding: 0 14px 10px;
   border-bottom: 1px solid rgba(229, 231, 235, 0.9);
 }

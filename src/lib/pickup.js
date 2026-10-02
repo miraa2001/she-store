@@ -65,7 +65,7 @@ const PICKUP_LOCATION_CONFIGS = {
 
 export const PICKUP_POINT_LOCATIONS = Object.values(PICKUP_LOCATION_CONFIGS);
 export const PICKUP_POINT_ROLE_IDS = PICKUP_POINT_LOCATIONS.map((location) => location.role);
-export const CUSTOMER_PICKUP_OPTIONS = [PICKUP_HOME, PICKUP_POINT, PICKUP_POINT_NABLUS];
+export const CUSTOMER_PICKUP_OPTIONS = [PICKUP_HOME, PICKUP_POINT, PICKUP_POINT_NABLUS, PICKUP_DELIVERY];
 
 export function normalizePickup(value) {
   return String(value || "")

@@ -3,7 +3,6 @@ import SessionTimeoutGuard from "./components/SessionTimeoutGuard";
 import OrdersPage from "./pages/OrdersPage";
 import PickupDashboardPage from "./pages/PickupDashboardPage";
 import FinancePage from "./pages/FinancePage";
-import ArchivePage from "./pages/ArchivePage";
 import CollectionsPage from "./pages/CollectionsPage";
 import HomePickupPage from "./pages/HomePickupPage";
 import PickupPointPage from "./pages/PickupPointPage";
@@ -14,7 +13,6 @@ const pages = [
   { id: "index", title: "الطلبات", file: "index.html", note: "لوحة الطلبات الرئيسية" },
   { id: "pickup-dashboard", title: "لوحة الاستلام", file: "pickup-dashboard.html", note: "متابعة الاستلام والتحصيل" },
   { id: "pickuppoint", title: "نقطة الاستلام", file: "pickuppoint.html", note: "تشغيل نقطة الاستلام" },
-  { id: "archive", title: "الأرشيف", file: "archive.html", note: "الطلبات المؤرشفة" },
   { id: "finance", title: "المالية", file: "finance.html", note: "التقارير والتحصيل" },
   { id: "collections", title: "المجموعات", file: "collections.html", note: "إدارة المجموعات" },
   { id: "homepickup", title: "استلام المنزل", file: "homepickup.html", note: "متابعة توصيل المنزل" },
@@ -29,7 +27,6 @@ function Dashboard() {
     if (pageId === "index") return "/orders";
     if (pageId === "pickup-dashboard") return "/pickup-dashboard";
     if (pageId === "finance") return "/finance";
-    if (pageId === "archive") return "/archive";
     if (pageId === "collections") return "/collections";
     if (pageId === "homepickup") return "/homepickup";
     if (pageId === "pickuppoint") return "/pickuppoint";
@@ -120,7 +117,8 @@ export default function App() {
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/pickup-dashboard" element={<PickupDashboardPage />} />
         <Route path="/finance" element={<FinancePage />} />
-        <Route path="/archive" element={<ArchivePage />} />
+        <Route path="/archive" element={<Navigate to="/orders" replace />} />
+        <Route path="/legacy/archive" element={<Navigate to="/orders" replace />} />
         <Route path="/collections" element={<CollectionsPage />} />
         <Route path="/homepickup" element={<HomePickupPage />} />
         <Route path="/pickuppoint" element={<PickupPointPage locationId="maryamti" />} />

@@ -7,7 +7,7 @@ import { getOrdersNavItems, isNavHrefActive } from "../lib/navigation";
 import { formatILS, parsePrice } from "../lib/orders";
 import { movePurchaseToPickupLocation } from "../lib/purchases";
 import { buildCollectedMoneyMessage, buildPickupStatusMessage, notifyPickupStatus } from "../lib/pickupNotifications";
-import { PICKUP_HOME } from "../lib/pickup";
+import { PICKUP_DELIVERY, PICKUP_HOME } from "../lib/pickup";
 import { setBodyScrollLock } from "../lib/bodyScrollLock";
 import { signOutAndRedirect } from "../lib/session";
 import { sb } from "../lib/supabaseClient";
@@ -15,6 +15,7 @@ import SessionLoader from "../components/common/SessionLoader";
 import AppNavIcon from "../components/common/AppNavIcon";
 import PickupAnimatedCheckbox from "../components/common/PickupAnimatedCheckbox";
 import PickupTransferDialog from "../components/pickup/PickupTransferDialog";
+import InstantPickupSection from "../components/pickup/InstantPickupSection";
 import SheStoreLogo from "../components/common/SheStoreLogo";
 import imagesHeaderIcon from "../assets/icons/pickup/images.png";
 import customerHeaderIcon from "../assets/icons/pickup/customer.png";
@@ -52,8 +53,9 @@ function buildOrderGroups(orderList) {
   return groups;
 }
 
-export default function HomePickupPage({ embedded = false }) {
+export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_HOME }) {
   const { profile } = useAuthProfile();
+  const isDelivery = pickupPoint === PICKUP_DELIVERY;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [viewMode, setViewMode] = useState("table");
   const [isDesktop, setIsDesktop] = useState(() =>
@@ -81,8 +83,8 @@ export default function HomePickupPage({ embedded = false }) {
   const highlightTimeoutRef = useRef(null);
   const lastLoadedOrderKeyRef = useRef("");
   const homeSearchQueryBuilder = useCallback(
-    (request) => request.eq("pickup_point", PICKUP_HOME).eq("ready_for_pickup", true),
-    []
+    (request) => request.eq("pickup_point", pickupPoint).eq("ready_for_pickup", true),
+    [pickupPoint]
   );
   const { searchResults, searchLoading, clearSearchResults } = usePurchaseCustomerSearch({
     search,
@@ -225,7 +227,7 @@ export default function HomePickupPage({ embedded = false }) {
       const { data: pickupRows, error: pickupError } = await sb
         .from("purchases")
         .select("order_id, pickup_point, collected, ready_for_pickup")
-        .eq("pickup_point", PICKUP_HOME)
+        .eq("pickup_point", pickupPoint)
         .eq("ready_for_pickup", true)
         .eq("collected", false);
 
@@ -269,7 +271,7 @@ export default function HomePickupPage({ embedded = false }) {
     } finally {
       setLoadingOrders(false);
     }
-  }, []);
+  }, [pickupPoint]);
 
   const loadPurchases = useCallback(async (orderInput) => {
     const orderIds = Array.isArray(orderInput)
@@ -291,7 +293,7 @@ export default function HomePickupPage({ embedded = false }) {
         .select(
           "id, order_id, customer_name, price, paid_price, picked_up, picked_up_at, pickup_point, ready_for_pickup, ready_for_pickup_at, collected, purchase_images(storage_path)"
         )
-        .eq("pickup_point", PICKUP_HOME)
+        .eq("pickup_point", pickupPoint)
         .eq("ready_for_pickup", true)
         .eq("collected", false)
         .order("created_at", { ascending: true });
@@ -322,7 +324,7 @@ export default function HomePickupPage({ embedded = false }) {
     } finally {
       setLoadingPurchases(false);
     }
-  }, []);
+  }, [pickupPoint]);
 
   useEffect(() => {
     if (profile.loading || !profile.authenticated) return;
@@ -369,7 +371,7 @@ export default function HomePickupPage({ embedded = false }) {
           picked: payload.picked_up,
           customerName: target.customer_name,
           price: target.paid_price ?? target.price,
-          pickupLabel: PICKUP_HOME
+          pickupLabel: pickupPoint
         })
       );
     }
@@ -400,7 +402,7 @@ export default function HomePickupPage({ embedded = false }) {
       return;
     }
     await notifyPickupStatus(
-      buildCollectedMoneyMessage({ pickupLabel: PICKUP_HOME, amountText: pendingText })
+      buildCollectedMoneyMessage({ pickupLabel: pickupPoint, amountText: pendingText })
     );
     await loadPurchases(selectedOrderIds);
     await loadOrders();
@@ -860,8 +862,8 @@ export default function HomePickupPage({ embedded = false }) {
             <div className="topbar-brand-with-logo">
               <SheStoreLogo className="topbar-logo-link" imageClassName="topbar-logo-img" />
               <div className="homepickup-brand">
-                <b>مستلمو البيت</b>
-                <div className="homepickup-muted">طلبات الاستلام من البيت</div>
+                <b>{isDelivery ? "توصيل" : "مستلمو البيت"}</b>
+                <div className="homepickup-muted">{isDelivery ? "طلبات التوصيل" : "طلبات الاستلام من البيت"}</div>
               </div>
             </div>
             <button type="button" className="homepickup-menu-btn" onClick={() => setSidebarOpen(true)}>
@@ -869,30 +871,6 @@ export default function HomePickupPage({ embedded = false }) {
             </button>
           </div>
         ) : null}
-
-        <div className="homepickup-search-row pickup-section-header">
-          <button
-            type="button"
-            className="pickup-orders-menu-trigger"
-            onClick={() => setOrdersMenuOpen(true)}
-            aria-label="فتح قائمة الطلبات"
-          >
-            <AppNavIcon name="package" className="icon" />
-            <span>الطلبات</span>
-            <b>{orders.length}</b>
-          </button>
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            className="homepickup-search-box pickup-search-input"
-            placeholder="بحث باسم الزبون..."
-          />
-          {search.trim().length >= 2 ? (
-            <span className="homepickup-pill">
-              {searchLoading ? "..." : `${searchResults.length} نتيجة`}
-            </span>
-          ) : null}
-        </div>
 
         {canToggleAllOrders ? (
           <div className="homepickup-scope-toggle-row">
@@ -908,7 +886,7 @@ export default function HomePickupPage({ embedded = false }) {
               <button
                 type="button"
                 className={`homepickup-scope-toggle-btn ${showAllOrdersMode ? "is-active" : ""}`}
-                onClick={() => setShowAllOrdersMode(true)}
+                onClick={() => { setShowAllOrdersMode(true); setOrdersMenuOpen(false); }}
                 aria-pressed={showAllOrdersMode}
               >
                 كل الطلبات
@@ -916,6 +894,32 @@ export default function HomePickupPage({ embedded = false }) {
             </div>
           </div>
         ) : null}
+
+        <div className="homepickup-search-row pickup-section-header">
+          {!shouldShowAllOrders ? (
+          <button
+            type="button"
+            className="pickup-orders-menu-trigger"
+            onClick={() => setOrdersMenuOpen(true)}
+            aria-label="فتح قائمة الطلبات"
+          >
+            <AppNavIcon name="package" className="icon" />
+            <span>الطلبات</span>
+            <b>{orders.length}</b>
+          </button>
+          ) : null}
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            className="homepickup-search-box pickup-search-input"
+            placeholder="بحث باسم الزبون..."
+          />
+          {search.trim().length >= 2 ? (
+            <span className="homepickup-pill">
+              {searchLoading ? "..." : `${searchResults.length} نتيجة`}
+            </span>
+          ) : null}
+        </div>
 
         {search.trim().length >= 2 && searchResults.length ? (
           <div className="homepickup-search-results">
@@ -1264,6 +1268,7 @@ export default function HomePickupPage({ embedded = false }) {
             )}
           </main>
         </div>
+        <InstantPickupSection pickupPoint={pickupPoint} role={profile.role} />
       </div>
 
       <div className={`pickup-orders-menu-overlay ${ordersMenuOpen ? "open" : ""}`} onClick={() => setOrdersMenuOpen(false)}>

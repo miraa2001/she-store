@@ -1,5 +1,6 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { Package, ShoppingBag, UserPlus, Users } from "lucide-react";
 import "./orders-page.css";
 import {
   ORDER_TYPES,
@@ -47,7 +48,7 @@ import {
   buildWhatsappUrl,
   resolvePurchaseWhatsappTarget
 } from "../lib/whatsapp";
-import { exportOrderPdf } from "../lib/pdfExport";
+import { cleanupCollectedOrderImages } from "../lib/imageCleanup";
 import { hasGeminiKey, resolveTotalFromGemini, runGeminiCartAnalysis } from "../lib/gemini";
 import { getOrdersNavItems, getRoleLandingHref, isNavHrefActive } from "../lib/navigation";
 import {
@@ -63,16 +64,17 @@ import {
 } from "../lib/pickup";
 import { signOutAndRedirect } from "../lib/session";
 import CustomersTab from "../components/tabs/CustomersTab";
+import InstantPickupsTab from "../components/tabs/InstantPickupsTab";
 import CommandHeader from "../components/orders/CommandHeader";
 import OrdersBottomSheet from "../components/orders/OrdersBottomSheet";
 import OrdersDrawer from "../components/orders/OrdersDrawer";
 import OrdersTab from "../components/orders/OrdersTab";
-import KanbanView from "../components/orders/KanbanView";
 import PurchaseFormModal from "../components/orders/PurchaseFormModal";
 import CustomerQuickAddModal from "../components/orders/CustomerQuickAddModal";
 import LightboxModal from "../components/orders/LightboxModal";
 import SessionLoader from "../components/common/SessionLoader";
 import SpeedDial from "../components/common/SpeedDial";
+import InstantPickupDialog from "../components/pickup/InstantPickupDialog";
 import SheStoreLogo from "../components/common/SheStoreLogo";
 import AppNavIcon from "../components/common/AppNavIcon";
 import ordersMenuIcon from "../assets/icons/navigation/orders.png";
@@ -277,11 +279,10 @@ export default function OrdersPage() {
     typeof window === "undefined" ? 1280 : window.innerWidth
   );
   const [globalOpen, setGlobalOpen] = useState(false);
-  const [ordersMenuOpen, setOrdersMenuOpen] = useState(false);
+  const [ordersMenuOpen, setOrdersMenuOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("orders");
   const [search, setSearch] = useState("");
   const [editMode, setEditMode] = useState(true);
-  const [desktopOrdersView, setDesktopOrdersView] = useState("list");
   const [selectedOrderId, setSelectedOrderId] = useState("");
   const { profile } = useAuthProfile();
 
@@ -330,9 +331,9 @@ export default function OrdersPage() {
     city: CUSTOMER_CITIES[0],
     pickup: DEFAULT_PICKUP_OPTION
   });
-  const [pdfExporting, setPdfExporting] = useState(false);
+  const [cleaningImages, setCleaningImages] = useState(false);
+  const imageCleanupRunning = useRef(false);
   const [orderStatusSaving, setOrderStatusSaving] = useState(false);
-  const [kanbanMovingPurchaseId, setKanbanMovingPurchaseId] = useState("");
   const [newFilePreviews, setNewFilePreviews] = useState([]);
 
   const [toast, setToast] = useState(null);
@@ -342,19 +343,21 @@ export default function OrdersPage() {
   const [paidPriceDialog, setPaidPriceDialog] = useState(null);
   const [paidPriceDialogBusy, setPaidPriceDialogBusy] = useState(false);
   const [orderDialog, setOrderDialog] = useState(null);
+  const [instantPickupOpen, setInstantPickupOpen] = useState(false);
+  const [instantTabDialogOpen, setInstantTabDialogOpen] = useState(false);
   const [orderDialogBusy, setOrderDialogBusy] = useState(false);
   const [orderSettingsDialog, setOrderSettingsDialog] = useState(null);
   const [orderSettingsDialogBusy, setOrderSettingsDialogBusy] = useState(false);
   const [lightbox, setLightbox] = useState({ open: false, images: [], index: 0, title: "" });
   const [highlightPurchaseId, setHighlightPurchaseId] = useState("");
   const hasInitializedUrlState = useRef(false);
+  const pendingUrlTab = useRef(null);
 
   const location = useLocation();
   const navigate = useNavigate();
 
   const isMobile = viewportWidth < 768;
   const isTablet = viewportWidth >= 768 && viewportWidth < 1024;
-  const isDesktop = viewportWidth >= 1024;
 
   const setCreateCustomerForm = useCallback((updater) => {
     setCustomerForm((prev) => {
@@ -395,7 +398,7 @@ export default function OrdersPage() {
   const isPickupOnlyRole = isPickupPointRole(profile.role);
   const canUseOrdersWorkbench = isRahaf || isViewOnlyRole;
   const allowedTabs = useMemo(
-    () => (isReem ? ["orders"] : isRahaf || isViewOnlyRole ? ["orders", "customers"] : ["orders"]),
+    () => (isReem ? ["orders", "instant"] : isRahaf ? ["orders", "customers", "instant"] : isViewOnlyRole ? ["orders", "customers"] : ["orders"]),
     [isRahaf, isReem, isViewOnlyRole]
   );
 
@@ -417,7 +420,7 @@ export default function OrdersPage() {
     let cancelled = false;
     const needle = String(search || "").trim();
 
-    if (!needle) {
+    if (!needle || activeTab === "instant") {
       setHeaderSearchLoading(false);
       setHeaderSearchResults([]);
       return undefined;
@@ -447,7 +450,7 @@ export default function OrdersPage() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [isPurchaseVisibleToCurrentRole, orders, search]);
+  }, [activeTab, isPurchaseVisibleToCurrentRole, orders, search]);
 
   const selectedOrder = useMemo(
     () => orders.find((order) => String(order.id) === String(selectedOrderId)) || null,
@@ -542,7 +545,7 @@ export default function OrdersPage() {
         if (candidate && visibleOrders.some((order) => String(order.id) === String(candidate))) {
           return candidate;
         }
-        return visibleOrders[0]?.id || "";
+        return "";
       });
     } catch (error) {
       console.error(error);
@@ -625,26 +628,24 @@ export default function OrdersPage() {
     setEditMode(true);
   }, [isRahaf, profile.authenticated]);
 
-  useEffect(() => {
-    if (!isReem) return;
-    setDesktopOrdersView("list");
-  }, [isReem]);
 
 
   useEffect(() => {
+    if (profile.loading) return;
     const params = new URLSearchParams(location.search);
     const tabFromUrl = params.get("tab");
-
-    if (tabFromUrl && allowedTabs.includes(tabFromUrl)) {
-      setActiveTab((prev) => (prev === tabFromUrl ? prev : tabFromUrl));
-    }
-
+    const nextTab = allowedTabs.includes(tabFromUrl) ? tabFromUrl : "orders";
+    pendingUrlTab.current = nextTab;
+    setActiveTab((prev) => (prev === nextTab ? prev : nextTab));
     hasInitializedUrlState.current = true;
-  }, [allowedTabs, location.search]);
+  }, [allowedTabs, location.search, profile.loading]);
 
   useEffect(() => {
     if (!profile.authenticated) return;
     if (!hasInitializedUrlState.current) return;
+    // Let an incoming URL update the tab before writing local state back to it.
+    if (pendingUrlTab.current !== null && pendingUrlTab.current !== activeTab) return;
+    pendingUrlTab.current = null;
 
     const params = new URLSearchParams(location.search);
     let changed = false;
@@ -662,7 +663,7 @@ export default function OrdersPage() {
     if (!changed) return;
     const query = params.toString();
     navigate(query ? `${location.pathname}?${query}` : location.pathname, { replace: true });
-  }, [activeTab, location.pathname, navigate, profile.authenticated]);
+  }, [activeTab, location.pathname, location.search, navigate, profile.authenticated]);
 
   useEffect(() => {
     if (allowedTabs.includes(activeTab)) return;
@@ -681,13 +682,13 @@ export default function OrdersPage() {
   }, [activeTab, refreshPurchases, selectedOrderId]);
 
   useEffect(() => {
-    if (activeTab === "orders") return;
-    setOrdersMenuOpen(false);
-  }, [activeTab]);
+    if (activeTab !== "orders") setOrdersMenuOpen(false);
+    else if (!selectedOrderId) setOrdersMenuOpen(true);
+  }, [activeTab, selectedOrderId]);
 
   useEffect(() => {
     if (!toast) return;
-    const timer = setTimeout(() => setToast(null), 5000);
+    const timer = setTimeout(() => setToast(null), toast.quick ? 2500 : 5000);
     return () => clearTimeout(timer);
   }, [toast]);
 
@@ -1287,9 +1288,13 @@ export default function OrdersPage() {
     setOrderSettingsDialog({
       orderId: targetOrder.id,
       name: String(targetOrder.name || ""),
-      totalProfit: targetOrder.totalProfit ?? "",
-      miraProfit: targetOrder.miraProfit ?? "",
-      rahafProfit: targetOrder.rahafProfit ?? ""
+      homeProfitPercent: targetOrder.homeProfitPercent ?? "",
+      miraProfitPercent: targetOrder.miraProfitPercent ?? "",
+      rahafProfitPercent: targetOrder.rahafProfitPercent ?? "",
+      marketingFee: targetOrder.marketingFee ?? 0,
+      homeProfitDeduction: targetOrder.homeProfitDeduction ?? 0,
+      rahafProfitDeduction: targetOrder.rahafProfitDeduction ?? 0,
+      miraProfitDeduction: targetOrder.miraProfitDeduction ?? 0
     });
   };
 
@@ -1352,9 +1357,13 @@ export default function OrdersPage() {
     setOrderSettingsDialogBusy(true);
     try {
       const nextValues = await updateOrderProfitSettings(orderSettingsDialog.orderId, {
-        totalProfit: orderSettingsDialog.totalProfit,
-        miraProfit: orderSettingsDialog.miraProfit,
-        rahafProfit: orderSettingsDialog.rahafProfit
+        homeProfitPercent: orderSettingsDialog.homeProfitPercent,
+        miraProfitPercent: orderSettingsDialog.miraProfitPercent,
+        rahafProfitPercent: orderSettingsDialog.rahafProfitPercent,
+        marketingFee: orderSettingsDialog.marketingFee,
+        homeProfitDeduction: orderSettingsDialog.homeProfitDeduction,
+        rahafProfitDeduction: orderSettingsDialog.rahafProfitDeduction,
+        miraProfitDeduction: orderSettingsDialog.miraProfitDeduction
       });
 
       setOrders((prev) =>
@@ -1362,9 +1371,7 @@ export default function OrdersPage() {
           String(order.id) === String(orderSettingsDialog.orderId)
             ? {
                 ...order,
-                totalProfit: nextValues.totalProfit,
-                miraProfit: nextValues.miraProfit,
-                rahafProfit: nextValues.rahafProfit
+                ...nextValues
               }
             : order
         )
@@ -1623,22 +1630,21 @@ export default function OrdersPage() {
     }
   };
 
-  const exportPdfNative = async () => {
-    if (!selectedOrder) return;
-    if (pdfExporting) return;
-
-    setPdfExporting(true);
+  const handleCleanupImages = async () => {
+    if (!isRahaf || imageCleanupRunning.current) return;
+    imageCleanupRunning.current = true;
+    setCleaningImages(true);
+    setOrdersMenuOpen(false);
     try {
-      await exportOrderPdf({
-        order: selectedOrder,
-        purchases
-      });
-      setToast({ type: "success", text: "تم تصدير ملف PDF." });
+      const { deleted } = await cleanupCollectedOrderImages(sb);
+      setToast({ type: "success", quick: true, text: deleted ? `تم حذف ${deleted} صورة من الطلبات المحصلة.` : "لا توجد صور منتهية الصلاحية." });
+      if (selectedOrderId) await refreshPurchases(selectedOrderId);
     } catch (error) {
       console.error(error);
-      setToast({ type: "danger", text: error?.message || "فشل تصدير PDF." });
+      setToast({ type: "danger", quick: true, text: `${error.deleted ? `تم حذف ${error.deleted} صورة. ` : ""}${error?.message || "تعذر تنظيف الصور. أعيدي المحاولة."}` });
     } finally {
-      setPdfExporting(false);
+      imageCleanupRunning.current = false;
+      setCleaningImages(false);
     }
   };
 
@@ -1654,79 +1660,36 @@ export default function OrdersPage() {
     setHighlightPurchaseId(String(row.id));
   };
 
-  const handleMovePurchaseKanban = async (purchase, targetColumn) => {
-    if (!purchase?.id || !selectedOrder) return;
-
-    let patch = {};
-    let successText = "";
-
-    if (targetColumn === "pending") {
-      patch = { picked_up: false, collected: false };
-      successText = "تم نقل المشترى إلى قيد الانتظار.";
-    } else if (targetColumn === "received") {
-      patch = { picked_up: true, collected: false };
-      successText = "تم نقل المشترى إلى تم الاستلام.";
-    } else if (targetColumn === "collected") {
-      patch = { picked_up: true, collected: true };
-      successText = "تم نقل المشترى إلى تم التحصيل.";
-    } else {
-      return;
-    }
-
-    setKanbanMovingPurchaseId(String(purchase.id));
-    try {
-      const { error } = await sb.from("purchases").update(patch).eq("id", purchase.id);
-      if (error) throw error;
-
-      setPurchases((prev) =>
-        prev.map((item) =>
-          String(item.id) === String(purchase.id)
-            ? {
-                ...item,
-                ...patch
-              }
-            : item
-        )
-      );
-
-      setToast({ type: "success", text: successText });
-      await refreshOrders(selectedOrder.id);
-    } catch (error) {
-      console.error(error);
-      setToast({ type: "danger", text: "فشل نقل المشترى بين الأعمدة." });
-    } finally {
-      setKanbanMovingPurchaseId("");
-    }
-  };
+  const openInstantPickup = useCallback(() => {
+    if (!isRahaf) return;
+    setOrdersMenuOpen(false);
+    setInstantPickupOpen(true);
+  }, [isRahaf]);
 
   const speedDialActions = useMemo(() => {
     if (!isMobile) return [];
 
     const actions = [];
-
-    if (allowedTabs.includes("customers")) {
-      if (activeTab === "customers") {
-        actions.push({
-          id: "tab-orders",
-          label: "الطلبات",
-          icon: "📦",
-          onClick: () => setActiveTab("orders")
-        });
-      } else {
-        actions.push({
-          id: "tab-customers",
-          label: "العملاء",
-          icon: "👥",
-          onClick: () => setActiveTab("customers")
-        });
-      }
+    if (isRahaf && (activeTab === "orders" || activeTab === "instant")) {
+      actions.push({ id: "instant-pickup", label: "اضافة مستلم فوري", icon: <UserPlus size={22} />, onClick: openInstantPickup });
     }
+
+    const tabs = [
+      { id: "orders", label: "الطلبات", Icon: Package },
+      { id: "customers", label: "العملاء", Icon: Users },
+      { id: "instant", label: "استلام فوري", Icon: ShoppingBag }
+    ];
+    tabs.filter((tab) => tab.id !== activeTab && allowedTabs.includes(tab.id)).forEach((tab) => {
+      actions.push({ id: `tab-${tab.id}`, label: tab.label, icon: <tab.Icon size={22} />, onClick: () => setActiveTab(tab.id) });
+    });
 
     return actions;
   }, [
     activeTab,
     allowedTabs,
-    isMobile
+    isMobile,
+    isRahaf,
+    openInstantPickup
   ]);
 
   const showMobileSpeedDial =
@@ -1734,6 +1697,8 @@ export default function OrdersPage() {
     (isMobile || isTablet) &&
     !globalOpen &&
     !formOpen &&
+    !instantPickupOpen &&
+    !instantTabDialogOpen &&
     !lightbox.open &&
     !ordersMenuOpen;
 
@@ -1831,24 +1796,22 @@ export default function OrdersPage() {
       <CommandHeader
         isRahaf={isRahaf}
         canAccessCustomers={allowedTabs.includes("customers")}
+        canAccessInstantPickups={allowedTabs.includes("instant")}
         activeTab={activeTab}
         onActiveTabChange={setActiveTab}
         search={search}
         onSearchChange={setSearch}
-        searchCount={searchCount}
+        searchCount={activeTab === "instant" ? null : searchCount}
         editMode={editMode}
         onEditModeChange={setEditMode}
         onOpenSidebar={() => setGlobalOpen(true)}
         showOrdersMenuTrigger={activeTab === "orders"}
         onOpenOrdersMenu={() => setOrdersMenuOpen(true)}
         totalOrders={totalOrders}
-        showDesktopOrdersViewToggle={isDesktop && activeTab === "orders" && !isReem}
-        desktopOrdersView={desktopOrdersView}
-        onDesktopOrdersViewChange={setDesktopOrdersView}
         Icon={Icon}
       />
 
-      {String(search || "").trim() ? (
+      {activeTab !== "instant" && String(search || "").trim() ? (
         <div className="orders-header-search-results">
           {headerSearchLoading ? (
             <div className="orders-search-hint workspace-loader">
@@ -1889,6 +1852,9 @@ export default function OrdersPage() {
           isRahaf={isRahaf}
           onForceOrdersTab={() => setActiveTab("orders")}
           onCreateOrder={openCreateOrderDialog}
+          onCreateInstantPickup={openInstantPickup}
+          onCleanupImages={handleCleanupImages}
+          cleaningImages={cleaningImages}
           onRenameOrder={openRenameOrderDialog}
           onDeleteOrder={openDeleteOrderDialog}
           totalOrders={totalOrders}
@@ -1909,6 +1875,9 @@ export default function OrdersPage() {
           isRahaf={isRahaf}
           onForceOrdersTab={() => setActiveTab("orders")}
           onCreateOrder={openCreateOrderDialog}
+          onCreateInstantPickup={openInstantPickup}
+          onCleanupImages={handleCleanupImages}
+          cleaningImages={cleaningImages}
           onRenameOrder={openRenameOrderDialog}
           onDeleteOrder={openDeleteOrderDialog}
         />
@@ -1931,9 +1900,6 @@ export default function OrdersPage() {
                 onUpdateOrderStatus={handleUpdateOrderStatus}
                 onOpenAddModal={openAddModal}
                 onOpenOrderSettings={openOrderSettingsDialog}
-                onExportPdf={exportPdfNative}
-                canExportPdf={!isReem}
-                pdfExporting={pdfExporting}
                 customersError={customersError}
                 purchasesLoading={purchasesLoading}
                 purchasesError={purchasesError}
@@ -1949,17 +1915,8 @@ export default function OrdersPage() {
                 onInquireWhatsapp={inquirePickupViaWhatsapp}
                 onNotifyWhatsapp={notifyViaWhatsapp}
                 highlightPurchaseId={highlightPurchaseId}
-                hidePurchaseGrid={isDesktop && desktopOrdersView === "kanban" && !isReem}
               />
 
-              {isDesktop && desktopOrdersView === "kanban" && !isReem ? (
-                <KanbanView
-                  purchases={filteredPurchases}
-                  movingPurchaseId={kanbanMovingPurchaseId}
-                  onMovePurchase={handleMovePurchaseKanban}
-                  onOpenLightbox={(images, index, title) => setLightbox({ open: true, images, index, title })}
-                />
-              ) : null}
             </>
           ) : activeTab === "customers" ? (
             <CustomersTab
@@ -1986,12 +1943,18 @@ export default function OrdersPage() {
               createPickupOptions={customerCreatePickupOptions}
               editingPickupOptions={customerEditPickupOptions}
             />
+          ) : activeTab === "instant" ? (
+            <InstantPickupsTab role={profile.role} search={search} onAdd={openInstantPickup} onDialogChange={setInstantTabDialogOpen} />
           ) : null}
         </section>
       </div>
 
       {showMobileSpeedDial ? (
         <SpeedDial actions={speedDialActions} position="bottom-right" size="large" />
+      ) : null}
+
+      {instantPickupOpen && isRahaf ? (
+        <InstantPickupDialog onClose={() => setInstantPickupOpen(false)} onSaved={() => setToast({ type: "success", text: "تمت إضافة المستلم الفوري." })} />
       ) : null}
 
       <PurchaseFormModal
@@ -2255,54 +2218,34 @@ export default function OrdersPage() {
                 <div className="delete-confirm-target">{orderSettingsDialog.name}</div>
               ) : null}
 
-              <label>
-                <span>الربح الكلي</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={orderSettingsDialog.totalProfit}
-                  onChange={(event) =>
-                    setOrderSettingsDialog((prev) =>
-                      prev ? { ...prev, totalProfit: event.target.value } : prev
-                    )
-                  }
-                  disabled={orderSettingsDialogBusy}
-                  autoFocus
-                />
-              </label>
+              {[["home", "البيت"], ["mira", "ميرا"], ["rahaf", "رهف"]].map(([party, label]) => (
+                <div className="order-profit-party-fields" key={party}>
+                  <label>
+                    <span>نسبة {label} (%)</span>
+                    <input type="number" step="0.01" min="0" max="100"
+                      value={orderSettingsDialog[`${party}ProfitPercent`]}
+                      onChange={(event) => setOrderSettingsDialog((prev) => prev ? { ...prev, [`${party}ProfitPercent`]: event.target.value } : prev)}
+                      disabled={orderSettingsDialogBusy} autoFocus={party === "home"} />
+                  </label>
+                  <label>
+                    <span>مخصومات {label} (₪)</span>
+                    <input type="number" step="0.01" min="0"
+                      value={orderSettingsDialog[`${party}ProfitDeduction`]}
+                      onChange={(event) => setOrderSettingsDialog((prev) => prev ? { ...prev, [`${party}ProfitDeduction`]: event.target.value } : prev)}
+                      disabled={orderSettingsDialogBusy} />
+                  </label>
+                </div>
+              ))}
 
               <label>
-                <span>ربح ميرا</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={orderSettingsDialog.miraProfit}
-                  onChange={(event) =>
-                    setOrderSettingsDialog((prev) =>
-                      prev ? { ...prev, miraProfit: event.target.value } : prev
-                    )
-                  }
-                  disabled={orderSettingsDialogBusy}
-                />
+                <span>مصاريف التسويق (₪)</span>
+                <input type="number" step="0.01" min="0" value={orderSettingsDialog.marketingFee}
+                  onChange={(event) => setOrderSettingsDialog((prev) => prev ? { ...prev, marketingFee: event.target.value } : prev)}
+                  disabled={orderSettingsDialogBusy} />
               </label>
-
-              <label>
-                <span>ربح رهف</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={orderSettingsDialog.rahafProfit}
-                  onChange={(event) =>
-                    setOrderSettingsDialog((prev) =>
-                      prev ? { ...prev, rahafProfit: event.target.value } : prev
-                    )
-                  }
-                  disabled={orderSettingsDialogBusy}
-                />
-              </label>
+              <div className="order-profit-percent-total">
+                مجموع النسب: {formatILS(Number(orderSettingsDialog.homeProfitPercent || 0) + Number(orderSettingsDialog.miraProfitPercent || 0) + Number(orderSettingsDialog.rahafProfitPercent || 0))}%
+              </div>
 
               <div className="purchase-modal-foot">
                 <button
@@ -2417,7 +2360,7 @@ export default function OrdersPage() {
       />
 
       {toast ? (
-        <div className={`toast toast-${toast.type || "info"}`}>
+        <div role="status" className={`toast toast-${toast.type || "info"}${toast.quick ? " toast-quick" : ""}`}>
           <span>{toast.text}</span>
           {toast.action === "تراجع" ? (
             <button type="button" onClick={undoDeletePurchase}>

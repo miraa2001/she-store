@@ -6,7 +6,7 @@ import { formatDMY } from "../lib/dateFormat";
 import { getOrdersNavItems, isNavHrefActive } from "../lib/navigation";
 import { formatILS, parsePrice } from "../lib/orders";
 import { movePurchaseToPickupLocation } from "../lib/purchases";
-import { PICKUP_HOME, isPickupPointPickup } from "../lib/pickup";
+import { PICKUP_DELIVERY, PICKUP_HOME, isPickupPointPickup } from "../lib/pickup";
 import { setBodyScrollLock } from "../lib/bodyScrollLock";
 import { signOutAndRedirect } from "../lib/session";
 import { sb } from "../lib/supabaseClient";
@@ -57,6 +57,7 @@ export default function CollectionsPage({ embedded = false }) {
   const [error, setError] = useState("");
   const [homeList, setHomeList] = useState([]);
   const [pickupList, setPickupList] = useState([]);
+  const [deliveryList, setDeliveryList] = useState([]);
   const [transferDialog, setTransferDialog] = useState(null);
   const [transferBusy, setTransferBusy] = useState(false);
   const location = useLocation();
@@ -84,9 +85,12 @@ export default function CollectionsPage({ embedded = false }) {
     [pickupList]
   );
 
-  const grandTotal = homeTotal + pickupTotal;
-  const homePicked = useMemo(() => homeList.filter((purchase) => !!purchase.picked_up), [homeList]);
-  const pickupPicked = useMemo(() => pickupList.filter((purchase) => !!purchase.picked_up), [pickupList]);
+  const deliveryTotal = useMemo(
+    () => deliveryList.reduce((sum, item) => sum + parsePrice(item.paid_price), 0),
+    [deliveryList]
+  );
+
+  const grandTotal = homeTotal + pickupTotal + deliveryTotal;
 
   const summarizeMethod = useCallback((list) => {
     const pickedCollected = list.filter((purchase) => !!purchase.picked_up && !!purchase.collected);
@@ -107,6 +111,12 @@ export default function CollectionsPage({ embedded = false }) {
 
   const homeSummary = useMemo(() => summarizeMethod(homeList), [homeList, summarizeMethod]);
   const pickupSummary = useMemo(() => summarizeMethod(pickupList), [pickupList, summarizeMethod]);
+  const deliverySummary = useMemo(() => summarizeMethod(deliveryList), [deliveryList, summarizeMethod]);
+  const collectionMethods = [
+    { id: "home", label: "استلام البيت", icon: "home", list: homeList, summary: homeSummary },
+    { id: "pickup", label: "نقاط الاستلام", icon: "map", list: pickupList, summary: pickupSummary },
+    { id: "delivery", label: "توصيل", icon: "truck", list: deliveryList, summary: deliverySummary }
+  ];
 
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -151,13 +161,17 @@ export default function CollectionsPage({ embedded = false }) {
           const list = (order.purchases || []).filter((purchase) => !!purchase.ready_for_pickup);
           if (!list.length) return false;
 
-          return list.some((p) => p.pickup_point === PICKUP_HOME || isPickupPointPickup(p.pickup_point));
+          return list.some((p) =>
+            p.pickup_point === PICKUP_HOME || p.pickup_point === PICKUP_DELIVERY || isPickupPointPickup(p.pickup_point)
+          );
         })
         .map((order) => {
           const list = (order.purchases || []).filter(
             (purchase) =>
               !!purchase.ready_for_pickup &&
-              (purchase.pickup_point === PICKUP_HOME || isPickupPointPickup(purchase.pickup_point))
+              (purchase.pickup_point === PICKUP_HOME ||
+                purchase.pickup_point === PICKUP_DELIVERY ||
+                isPickupPointPickup(purchase.pickup_point))
           );
           const allCollected = list.every((purchase) => !!purchase.collected);
           const collectedTotal = list.reduce((sum, purchase) => {
@@ -192,6 +206,7 @@ export default function CollectionsPage({ embedded = false }) {
     if (!orderId) {
       setHomeList([]);
       setPickupList([]);
+      setDeliveryList([]);
       return;
     }
 
@@ -210,11 +225,13 @@ export default function CollectionsPage({ embedded = false }) {
       const list = data || [];
       setHomeList(list.filter((purchase) => purchase.pickup_point === PICKUP_HOME));
       setPickupList(list.filter((purchase) => isPickupPointPickup(purchase.pickup_point)));
+      setDeliveryList(list.filter((purchase) => purchase.pickup_point === PICKUP_DELIVERY));
     } catch (err) {
       console.error(err);
       setError("تعذر تحميل بيانات التحصيل.");
       setHomeList([]);
       setPickupList([]);
+      setDeliveryList([]);
     } finally {
       setLoadingDetails(false);
     }
@@ -390,9 +407,10 @@ export default function CollectionsPage({ embedded = false }) {
                     </span>
                   </div>
                   <div className="collections-row collections-top-pills-row">
-                    <span className="collections-pill">عدد المشتريات: {homeList.length + pickupList.length}</span>
+                    <span className="collections-pill">عدد المشتريات: {homeList.length + pickupList.length + deliveryList.length}</span>
                     <span className="collections-pill">مجموع البيت: {formatILS(homeTotal)} ₪</span>
                     <span className="collections-pill">مجموع نقاط الاستلام: {formatILS(pickupTotal)} ₪</span>
+                    <span className="collections-pill">مجموع التوصيل: {formatILS(deliveryTotal)} ₪</span>
                     <span className="collections-pill">المجموع الكلي: {formatILS(grandTotal)} ₪</span>
                   </div>
                 </div>
@@ -404,24 +422,24 @@ export default function CollectionsPage({ embedded = false }) {
                 ) : null}
 
                 {!loadingDetails ? (
-                  <>
-                    <section className="collections-method-section">
+                  collectionMethods.map((method) => (
+                    <section key={method.id} className="collections-method-section">
                       <div className="collections-section-title collections-section-title--with-icon">
-                        <AppNavIcon name="home" className="icon" />
-                        <span>استلام البيت</span>
+                        <AppNavIcon name={method.icon} className="icon" />
+                        <span>{method.label}</span>
                       </div>
                       <div className="collections-method-summary">
                         <div className="collections-method-summary-row">
-                          <span className="collections-pill">محصّل ومستلم: {homeSummary.pickedCollectedCount}</span>
-                          <span className="collections-pill">المجموع: {formatILS(homeSummary.pickedCollectedSum)} ₪</span>
+                          <span className="collections-pill">محصّل ومستلم: {method.summary.pickedCollectedCount}</span>
+                          <span className="collections-pill">المجموع: {formatILS(method.summary.pickedCollectedSum)} ₪</span>
                         </div>
                         <div className="collections-method-summary-row">
-                          <span className="collections-pill">مستلم وغير محصّل: {homeSummary.pickedNotCollectedCount}</span>
-                          <span className="collections-pill">المجموع: {formatILS(homeSummary.pickedNotCollectedSum)} ₪</span>
+                          <span className="collections-pill">مستلم وغير محصّل: {method.summary.pickedNotCollectedCount}</span>
+                          <span className="collections-pill">المجموع: {formatILS(method.summary.pickedNotCollectedSum)} ₪</span>
                         </div>
                         <div className="collections-method-summary-row">
-                          <span className="collections-pill">غير مستلم وغير محصّل: {homeSummary.notPickedNotCollectedCount}</span>
-                          <span className="collections-pill">المجموع: {formatILS(homeSummary.notPickedNotCollectedSum)} ₪</span>
+                          <span className="collections-pill">غير مستلم وغير محصّل: {method.summary.notPickedNotCollectedCount}</span>
+                          <span className="collections-pill">المجموع: {formatILS(method.summary.notPickedNotCollectedSum)} ₪</span>
                         </div>
                       </div>
                       <div className="collections-table-wrap">
@@ -457,8 +475,8 @@ export default function CollectionsPage({ embedded = false }) {
                             </tr>
                           </thead>
                           <tbody>
-                            {homePicked.length ? (
-                              homePicked.map((purchase) => (
+                            {method.list.some((purchase) => purchase.picked_up) ? (
+                              method.list.filter((purchase) => purchase.picked_up).map((purchase) => (
                                 <tr key={purchase.id}>
                                   <td>{purchase.customer_name || ""}</td>
                                   <td>{formatILS(parsePrice(purchase.paid_price ?? purchase.price))}</td>
@@ -487,90 +505,7 @@ export default function CollectionsPage({ embedded = false }) {
                         </table>
                       </div>
                     </section>
-
-                    <section className="collections-method-section">
-                      <div className="collections-section-title collections-section-title--with-icon">
-                        <AppNavIcon name="map" className="icon" />
-                        <span>نقاط الاستلام</span>
-                      </div>
-                      <div className="collections-method-summary">
-                        <div className="collections-method-summary-row">
-                          <span className="collections-pill">محصّل ومستلم: {pickupSummary.pickedCollectedCount}</span>
-                          <span className="collections-pill">المجموع: {formatILS(pickupSummary.pickedCollectedSum)} ₪</span>
-                        </div>
-                        <div className="collections-method-summary-row">
-                          <span className="collections-pill">مستلم وغير محصّل: {pickupSummary.pickedNotCollectedCount}</span>
-                          <span className="collections-pill">المجموع: {formatILS(pickupSummary.pickedNotCollectedSum)} ₪</span>
-                        </div>
-                        <div className="collections-method-summary-row">
-                          <span className="collections-pill">غير مستلم وغير محصّل: {pickupSummary.notPickedNotCollectedCount}</span>
-                          <span className="collections-pill">المجموع: {formatILS(pickupSummary.notPickedNotCollectedSum)} ₪</span>
-                        </div>
-                      </div>
-                      <div className="collections-table-wrap">
-                        <table className="collections-table">
-                          <thead>
-                            <tr>
-                              <th>
-                                <span className="collections-th-label">
-                                  <img
-                                    src={customerHeaderIcon}
-                                    alt=""
-                                    aria-hidden="true"
-                                    className="collections-th-icon"
-                                  />
-                                  الزبون
-                                </span>
-                              </th>
-                              <th>
-                                <span className="collections-th-label">
-                                  <img src={priceHeaderIcon} alt="" aria-hidden="true" className="collections-th-icon" />
-                                  المدفوع
-                                </span>
-                              </th>
-                              <th>
-                                <span className="collections-th-label">
-                                  <img src={pickedHeaderIcon} alt="" aria-hidden="true" className="collections-th-icon" />
-                                  حالة التحصيل
-                                </span>
-                              </th>
-                              <th>
-                                <span className="collections-th-label">نقل</span>
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {pickupPicked.length ? (
-                              pickupPicked.map((purchase) => (
-                                <tr key={purchase.id}>
-                                  <td>{purchase.customer_name || ""}</td>
-                                  <td>{formatILS(parsePrice(purchase.paid_price ?? purchase.price))}</td>
-                                  <td>{purchase.collected ? "محصّل" : "بانتظار التحصيل"}</td>
-                                  <td>
-                                    <button
-                                      type="button"
-                                      className="collections-btn pickup-transfer-trigger"
-                                      onClick={() => openTransferDialog(purchase)}
-                                      disabled={!!purchase.collected}
-                                      title={purchase.collected ? "لا يمكن نقل مشترى تم تحصيله" : ""}
-                                    >
-                                      نقل
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))
-                            ) : (
-                              <tr>
-                                <td colSpan={4} className="collections-muted">
-                                  لا يوجد مشتريات مستلمة
-                                </td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </section>
-                  </>
+                  ))
                 ) : null}
               </>
             )}

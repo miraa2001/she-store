@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ImageOff, UserPlus } from "lucide-react";
 import SessionLoader from "../common/SessionLoader";
 import actionsMenuIcon from "../../assets/icons/actions/menu-vertical.png";
 import editIcon from "../../assets/icons/actions/edit.png";
@@ -15,6 +16,9 @@ export default function OrdersBottomSheet({
   isRahaf,
   onForceOrdersTab,
   onCreateOrder,
+  onCreateInstantPickup,
+  onCleanupImages,
+  cleaningImages = false,
   onRenameOrder,
   onDeleteOrder
 }) {
@@ -63,6 +67,13 @@ export default function OrdersBottomSheet({
           <strong>اختيار الطلب</strong>
           <div className="orders-drawer-actions">
             {isRahaf ? (
+              <button type="button" className="orders-menu-create-btn" onClick={() => {
+                setOpenActionsOrderId("");
+                onCreateInstantPickup?.();
+                onClose?.();
+              }}><UserPlus size={16} aria-hidden="true" />اضافة مستلم فوري</button>
+            ) : null}
+            {isRahaf ? (
               <button
                 type="button"
                 className="orders-menu-create-btn"
@@ -81,6 +92,12 @@ export default function OrdersBottomSheet({
           </div>
         </div>
 
+        {isRahaf ? (
+          <button type="button" className="orders-menu-create-btn orders-image-cleanup-btn" disabled={cleaningImages} onClick={onCleanupImages}>
+            <ImageOff size={18} aria-hidden="true" />
+            <span>{cleaningImages ? "جاري التحقق من الصور..." : "تحقق من الصور منتهية الصلاحية"}</span>
+          </button>
+        ) : null}
         <div className="orders-sheet-list">
           {ordersLoading ? (
             <div className="orders-horizontal-empty workspace-loader">
