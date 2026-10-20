@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test:home-cash": "node --test tests/home-cash-ledger.test.mjs",
     "test:images": "node --test tests/image-cleanup.test.mjs",
+    "test:receipts": "node --test tests/purchase-receipt.test.mjs",
     "test:instant-pickups": "node --test tests/instant-pickups.test.mjs",
     "test:profits": "node --test tests/profit-distribution.test.mjs tests/finance-period.test.mjs"
   },
