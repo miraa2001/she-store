@@ -1616,13 +1616,13 @@ export default function OrdersPage() {
         throw new Error("لم يتم العثور على أسعار واضحة. جربي صورًا أوضح.");
       }
 
-      const rounded = Math.round(total);
+      const formattedTotal = total.toFixed(2);
       setFormState((prev) => ({
         ...prev,
-        price: String(rounded),
-        paidPrice: String(rounded)
+        price: formattedTotal,
+        paidPrice: formattedTotal
       }));
-      setFormAiStatus({ text: `تم احتساب السعر: ${rounded}`, isError: false });
+      setFormAiStatus({ text: `تم احتساب السعر: ${formattedTotal}`, isError: false });
     } catch (error) {
       setFormAiStatus({ text: error?.message || "فشل التحليل.", isError: true });
     } finally {

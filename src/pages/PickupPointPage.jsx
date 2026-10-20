@@ -7,6 +7,7 @@ import { usePurchaseCustomerSearch } from "../hooks/usePurchaseCustomerSearch";
 import { getOrdersNavItems, getRoleLabel, isNavHrefActive } from "../lib/navigation";
 import { formatILS, parsePrice } from "../lib/orders";
 import { movePurchaseToPickupLocation } from "../lib/purchases";
+import { savePurchaseReceipt } from "../lib/purchaseReceipt";
 import { buildCollectedMoneyMessage, buildPickupStatusMessage, notifyPickupStatus } from "../lib/pickupNotifications";
 import { getPickupLocationById, isPickupPointForLocation } from "../lib/pickup";
 import { setBodyScrollLock } from "../lib/bodyScrollLock";
@@ -81,6 +82,8 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [loadingPurchases, setLoadingPurchases] = useState(false);
   const [error, setError] = useState("");
+  const [savingReceiptId, setSavingReceiptId] = useState("");
+  const receiptSavingRef = useRef(false);
   const [ordersMenuOpen, setOrdersMenuOpen] = useState(false);
   const [collecting, setCollecting] = useState(false);
   const [collectingAll, setCollectingAll] = useState(false);
@@ -366,6 +369,10 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
 
   async function togglePicked(purchaseId, checked) {
     const target = purchases.find((purchase) => String(purchase.id) === String(purchaseId));
+    if (!target || target.collected || receiptSavingRef.current) return;
+    receiptSavingRef.current = true;
+    setSavingReceiptId(purchaseId);
+    setError("");
     const payload = checked
       ? { picked_up: true, picked_up_at: new Date().toISOString() }
       : { picked_up: false, picked_up_at: null };
@@ -374,22 +381,23 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
       prev.map((purchase) => (String(purchase.id) === String(purchaseId) ? { ...purchase, ...payload } : purchase))
     );
 
-    const { error: updateError } = await sb.from("purchases").update(payload).eq("id", purchaseId);
-    if (updateError) {
-      console.error(updateError);
-      await loadPurchases(selectedOrderIds);
-      return;
-    }
-
-    if (target) {
-      await notifyPickupStatus(
+    try {
+      const saved = await savePurchaseReceipt(sb, purchaseId, checked);
+      setPurchases((prev) => prev.map((purchase) => String(purchase.id) === String(purchaseId) ? { ...purchase, picked_up: saved.picked_up, picked_up_at: saved.picked_up_at } : purchase));
+      if (saved.changed) await notifyPickupStatus(
         buildPickupStatusMessage({
-          picked: payload.picked_up,
+          picked: saved.picked_up,
           customerName: target.customer_name,
           price: target.paid_price ?? target.price,
           pickupLabel: pickupLocation.pickupLabel
         })
       );
+    } catch (saveError) {
+      setPurchases((prev) => prev.map((purchase) => String(purchase.id) === String(purchaseId) ? { ...purchase, picked_up: target.picked_up, picked_up_at: target.picked_up_at } : purchase));
+      setError(saveError?.message || "تعذر حفظ حالة الاستلام.");
+    } finally {
+      receiptSavingRef.current = false;
+      setSavingReceiptId("");
     }
 
     await loadAllOrdersTotal();
@@ -950,6 +958,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                       <div className="pickuppoint-pick-row pickup-checkbox-wrap">
                                         <PickupAnimatedCheckbox
                                           checked={!!purchase.picked_up}
+                                          disabled={!!savingReceiptId || !!purchase.collected}
                                           onChange={(event) => togglePicked(purchase.id, event.target.checked)}
                                           ariaLabel={
                                             purchase.picked_up
@@ -1140,6 +1149,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                   <div className="pickuppoint-pick-row pickup-checkbox-wrap">
                                     <PickupAnimatedCheckbox
                                       checked={!!purchase.picked_up}
+                                      disabled={!!savingReceiptId || !!purchase.collected}
                                       onChange={(event) => togglePicked(purchase.id, event.target.checked)}
                                       ariaLabel={purchase.picked_up ? "تم الاستلام" : "غير مستلم"}
                                     />
