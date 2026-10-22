@@ -6,15 +6,15 @@ import { usePurchaseCustomerSearch } from "../hooks/usePurchaseCustomerSearch";
 import { getOrdersNavItems, isNavHrefActive } from "../lib/navigation";
 import { formatILS, parsePrice } from "../lib/orders";
 import { movePurchaseToPickupLocation } from "../lib/purchases";
-import { savePurchaseReceipt } from "../lib/purchaseReceipt";
-import { buildCollectedMoneyMessage, buildPickupStatusMessage, notifyPickupStatus } from "../lib/pickupNotifications";
+import { collectibleAmount, collectPayments } from "../lib/payments";
+import { buildCollectedMoneyMessage, notifyPickupStatus } from "../lib/pickupNotifications";
 import { PICKUP_DELIVERY, PICKUP_HOME } from "../lib/pickup";
 import { setBodyScrollLock } from "../lib/bodyScrollLock";
 import { signOutAndRedirect } from "../lib/session";
 import { sb } from "../lib/supabaseClient";
 import SessionLoader from "../components/common/SessionLoader";
 import AppNavIcon from "../components/common/AppNavIcon";
-import PickupAnimatedCheckbox from "../components/common/PickupAnimatedCheckbox";
+import PurchasePaymentControl, { OutstandingPaymentsSection } from "../components/pickup/PurchasePaymentControl";
 import PickupTransferDialog from "../components/pickup/PickupTransferDialog";
 import InstantPickupSection from "../components/pickup/InstantPickupSection";
 import SheStoreLogo from "../components/common/SheStoreLogo";
@@ -68,8 +68,6 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [loadingPurchases, setLoadingPurchases] = useState(false);
   const [error, setError] = useState("");
-  const [savingReceiptId, setSavingReceiptId] = useState("");
-  const receiptSavingRef = useRef(false);
   const [collecting, setCollecting] = useState(false);
   const [collectingAll, setCollectingAll] = useState(false);
   const [collectingSectionId, setCollectingSectionId] = useState("");
@@ -116,7 +114,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
     () =>
       visiblePurchases
         .filter((purchase) => purchase.picked_up)
-        .reduce((sum, purchase) => sum + parsePrice(purchase.paid_price ?? purchase.price), 0),
+        .reduce((sum, purchase) => sum + collectibleAmount(purchase), 0),
     [visiblePurchases]
   );
   const amountToCollect = useMemo(() => pickedTotal, [pickedTotal]);
@@ -136,7 +134,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
         );
         const sectionPickedTotal = sectionPurchases
           .filter((purchase) => purchase.picked_up)
-          .reduce((sum, purchase) => sum + parsePrice(purchase.paid_price ?? purchase.price), 0);
+          .reduce((sum, purchase) => sum + collectibleAmount(purchase), 0);
 
         return {
           id: order.id,
@@ -294,7 +292,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
       let purchasesQuery = sb
         .from("purchases")
         .select(
-          "id, order_id, customer_name, price, paid_price, picked_up, picked_up_at, pickup_point, ready_for_pickup, ready_for_pickup_at, collected, purchase_images(storage_path)"
+          "id, order_id, customer_name, price, paid_price, picked_up, picked_up_at, pickup_point, ready_for_pickup, ready_for_pickup_at, collected, purchase_images(storage_path), received_amount, remitted_amount"
         )
         .eq("pickup_point", pickupPoint)
         .eq("ready_for_pickup", true)
@@ -351,86 +349,29 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
     await signOutAndRedirect();
   }
 
-  async function togglePicked(purchaseId, checked) {
-    const target = purchases.find((item) => String(item.id) === String(purchaseId));
-    if (!target || target.collected || receiptSavingRef.current || profile.role === "rawand") return;
-    receiptSavingRef.current = true;
-    setSavingReceiptId(purchaseId);
-    setError("");
-    const payload = checked
-      ? { picked_up: true, picked_up_at: new Date().toISOString() }
-      : { picked_up: false, picked_up_at: null };
-
-    setPurchases((prev) =>
-      prev.map((item) => (String(item.id) === String(purchaseId) ? { ...item, ...payload } : item))
-    );
-
-    try {
-      const saved = await savePurchaseReceipt(sb, purchaseId, checked);
-      setPurchases((prev) => prev.map((item) => String(item.id) === String(purchaseId) ? { ...item, picked_up: saved.picked_up, picked_up_at: saved.picked_up_at } : item));
-      if (saved.changed) await notifyPickupStatus(
-        buildPickupStatusMessage({
-          picked: saved.picked_up,
-          customerName: target.customer_name,
-          price: target.paid_price ?? target.price,
-          pickupLabel: pickupPoint
-        })
-      );
-    } catch (saveError) {
-      setPurchases((prev) => prev.map((item) => String(item.id) === String(purchaseId) ? { ...item, picked_up: target.picked_up, picked_up_at: target.picked_up_at } : item));
-      setError(saveError?.message || "تعذر حفظ حالة الاستلام.");
-    } finally {
-      receiptSavingRef.current = false;
-      setSavingReceiptId("");
-    }
-  }
-
-  async function collectPurchaseBatch(pendingPurchases, busySetter) {
-    const pending = (pendingPurchases || []).filter((purchase) => purchase.picked_up && !purchase.collected);
-    if (!pending.length) return;
-
-    const pendingTotal = pending.reduce(
-      (sum, purchase) => sum + parsePrice(purchase.paid_price ?? purchase.price),
-      0
-    );
-    const pendingText = formatILS(pendingTotal);
-    const ok = window.confirm(`تأكيد تحصيل ${pending.length} مشتريات بمبلغ ${pendingText} ₪؟`);
-    if (!ok) return;
-
-    busySetter(true);
-    const ids = pending.map((purchase) => purchase.id);
-    const { error: collectError } = await sb
-      .from("purchases")
-      .update({ collected: true, collected_at: new Date().toISOString() })
-      .in("id", ids);
-
-    if (collectError) {
-      console.error(collectError);
-      busySetter(false);
-      return;
-    }
-    await notifyPickupStatus(
-      buildCollectedMoneyMessage({ pickupLabel: pickupPoint, amountText: pendingText })
-    );
+  async function refreshPaymentRows() {
     await loadPurchases(selectedOrderIds);
     await loadOrders();
-    busySetter(false);
   }
 
-  async function collectHomeMoney() {
-    if (!isRahaf || !selectedOrderId) return;
-    await collectPurchaseBatch(visiblePurchases, setCollecting);
+  async function collectPaymentRows(items, busySetter) {
+    if (!isRahaf) return;
+    const pending = items.filter((row) => collectibleAmount(row) > 0);
+    if (!pending.length) return;
+    const total = pending.reduce((sum, row) => sum + collectibleAmount(row), 0);
+    if (!window.confirm("تأكيد تحصيل " + formatILS(total) + " ₪؟")) return;
+    busySetter(true); setError("");
+    try {
+      const amount = await collectPayments(sb, pending.map((row) => row.id));
+      if (amount > 0) await notifyPickupStatus(buildCollectedMoneyMessage({ pickupLabel: pickupPoint, amountText: formatILS(amount) }));
+      await refreshPaymentRows();
+    } catch (collectError) { setError(collectError.message || "تعذر التحصيل."); }
+    finally { busySetter(false); }
   }
 
-  async function collectHomeSection(section) {
-    if (!isRahaf || !section?.id) return;
-    await collectPurchaseBatch(section.purchases, (busy) => setCollectingSectionId(busy ? section.id : ""));
-  }
-
-  async function collectAllHomeMoney() {
-    if (!isRahaf || !shouldShowAllOrders) return;
-    await collectPurchaseBatch(visiblePurchases, setCollectingAll);
-  }
+  async function collectHomeMoney() { await collectPaymentRows(visiblePurchases, setCollecting); }
+  async function collectHomeSection(section) { await collectPaymentRows(section.purchases, (busy) => setCollectingSectionId(busy ? section.id : "")); }
+  async function collectAllHomeMoney() { await collectPaymentRows(visiblePurchases, setCollectingAll); }
 
   function startEditPaid(purchase) {
     if (!isRahaf) return;
@@ -450,7 +391,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
     const raw = String(paidEditor.value ?? "").trim();
     const nextVal = raw === "" ? null : Number(raw);
     if (raw !== "" && (!Number.isFinite(nextVal) || nextVal < 0)) {
-      window.alert("السعر المدفوع غير صحيح.");
+      window.alert("السعر المتفق عليه غير صحيح.");
       return;
     }
 
@@ -462,7 +403,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
 
     if (updateError) {
       console.error(updateError);
-      window.alert("فشل حفظ المدفوع.");
+      window.alert("فشل حفظ السعر المتفق عليه.");
       setPaidEditor((prev) => ({ ...prev, saving: false }));
       return;
     }
@@ -477,8 +418,8 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
 
   function openTransferDialog(purchase) {
     if (!isRahaf || !purchase) return;
-    if (purchase.collected) {
-      window.alert("لا يمكن نقل مشترى تم تحصيله.");
+    if (purchase.collected || Number(purchase.received_amount) > 0) {
+      window.alert("لا يمكن نقل مشترى له دفعات مسجلة.");
       return;
     }
     setTransferDialog(purchase);
@@ -558,7 +499,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
 
         <div className="homepickup-kanban-meta">
           {!isRahaf ? (
-            <span>المدفوع: {formatILS(parsePrice(purchase.paid_price ?? purchase.price))} ₪</span>
+            <span>السعر المتفق عليه: {formatILS(parsePrice(purchase.paid_price ?? purchase.price))} ₪</span>
           ) : null}
           {isRahaf ? (
             isEditing ? (
@@ -571,7 +512,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
                 className="homepickup-paid-input pickup-input mini"
               />
             ) : (
-              <span>المدفوع: {purchase.paid_price === null || purchase.paid_price === undefined || purchase.paid_price === "" ? "—" : `${formatILS(parsePrice(purchase.paid_price))} ₪`}</span>
+              <span>السعر المتفق عليه: {purchase.paid_price === null || purchase.paid_price === undefined || purchase.paid_price === "" ? "—" : `${formatILS(parsePrice(purchase.paid_price))} ₪`}</span>
             )
           ) : null}
         </div>
@@ -591,12 +532,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
 
         <footer className="homepickup-kanban-actions">
           <div className="homepickup-pick-row pickup-checkbox-wrap">
-              <PickupAnimatedCheckbox
-                checked={!!purchase.picked_up}
-                disabled={!!savingReceiptId || !!purchase.collected || profile.role === "rawand"}
-                onChange={(event) => togglePicked(purchase.id, event.target.checked)}
-                ariaLabel={purchase.picked_up ? "تم الاستلام" : "غير مستلم"}
-              />
+              <PurchasePaymentControl purchase={purchase} role={profile.role} onSaved={refreshPaymentRows} />
               <span>{purchase.picked_up ? "تم الاستلام" : "غير مستلم"}</span>
             </div>
           {isRahaf ? (
@@ -604,7 +540,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
               type="button"
               className="homepickup-btn mini pickup-transfer-trigger"
               onClick={() => openTransferDialog(purchase)}
-              disabled={!!purchase.collected}
+              disabled={!!purchase.collected || Number(purchase.received_amount) > 0}
             >
               نقل
             </button>
@@ -630,13 +566,13 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
               <th>
                 <span className="homepickup-th-label">
                   <img src={priceHeaderIcon} alt="" className="homepickup-th-icon" aria-hidden="true" />
-                  <span>المدفوع</span>
+                  <span>السعر المتفق عليه</span>
                 </span>
               </th>
               {isRahaf ? (
                 <th className="homepickup-edit-col">
                   <span className="homepickup-th-label">
-                    <span>تعديل المدفوع</span>
+                    <span>تعديل السعر المتفق عليه</span>
                   </span>
                 </th>
               ) : null}
@@ -747,12 +683,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
 
                     <td>
                       <div className="homepickup-pick-row pickup-checkbox-wrap">
-                        <PickupAnimatedCheckbox
-                          checked={!!purchase.picked_up}
-                          disabled={!!savingReceiptId || !!purchase.collected || profile.role === "rawand"}
-                          onChange={(event) => togglePicked(purchase.id, event.target.checked)}
-                          ariaLabel={purchase.picked_up ? "تم الاستلام" : "غير مستلم"}
-                        />
+                        <PurchasePaymentControl purchase={purchase} role={profile.role} onSaved={refreshPaymentRows} />
                         <span>{purchase.picked_up ? "تم الاستلام" : "غير مستلم"}</span>
                       </div>
                     </td>
@@ -764,7 +695,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
                           type="button"
                           className="homepickup-btn mini pickup-transfer-trigger"
                           onClick={() => openTransferDialog(purchase)}
-                          disabled={!!purchase.collected}
+                          disabled={!!purchase.collected || Number(purchase.received_amount) > 0}
                         >
                           نقل
                         </button>
@@ -867,6 +798,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
         </>
       ) : null}
       <div className={`homepickup-wrap ${embedded ? "pickup-embedded-container" : ""}`}>
+        {error ? <div className="homepickup-error" role="alert">{error}</div> : null}
         {!embedded ? (
           <div className="homepickup-topbar">
             <div className="topbar-brand-with-logo">
@@ -937,7 +869,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
               <button key={result.id} type="button" onClick={() => openSearchResult(result)}>
                 <b>{result.customer_name || ""}</b>
                 <div className="homepickup-muted">
-                  {result.orderName} — المدفوع: {formatILS(result.paid_price ?? result.price)} ₪
+                  {result.orderName} — السعر المتفق عليه: {formatILS(result.paid_price ?? result.price)} ₪
                 </div>
               </button>
             ))}
@@ -1117,13 +1049,13 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
                             <th>
                               <span className="homepickup-th-label">
                                 <img src={priceHeaderIcon} alt="" className="homepickup-th-icon" aria-hidden="true" />
-                                <span>المدفوع</span>
+                                <span>السعر المتفق عليه</span>
                               </span>
                             </th>
                             {isRahaf ? (
                               <th className="homepickup-edit-col">
                                 <span className="homepickup-th-label">
-                                  <span>تعديل المدفوع</span>
+                                  <span>تعديل السعر المتفق عليه</span>
                                 </span>
                               </th>
                             ) : null}
@@ -1235,12 +1167,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
 
                                   <td>
                                     <div className="homepickup-pick-row pickup-checkbox-wrap">
-                                      <PickupAnimatedCheckbox
-                                        checked={!!purchase.picked_up}
-                                        disabled={!!savingReceiptId || !!purchase.collected || profile.role === "rawand"}
-                                        onChange={(event) => togglePicked(purchase.id, event.target.checked)}
-                                        ariaLabel={purchase.picked_up ? "تم الاستلام" : "غير مستلم"}
-                                      />
+                                      <PurchasePaymentControl purchase={purchase} role={profile.role} onSaved={refreshPaymentRows} />
                                       <span>{purchase.picked_up ? "تم الاستلام" : "غير مستلم"}</span>
                                     </div>
                                   </td>
@@ -1252,7 +1179,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
                                         type="button"
                                         className="homepickup-btn mini pickup-transfer-trigger"
                                         onClick={() => openTransferDialog(purchase)}
-                                        disabled={!!purchase.collected}
+                                        disabled={!!purchase.collected || Number(purchase.received_amount) > 0}
                                       >
                                         نقل
                                       </button>
@@ -1279,6 +1206,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
             )}
           </main>
         </div>
+        <OutstandingPaymentsSection rows={visiblePurchases} role={profile.role} onSaved={refreshPaymentRows} />
         <InstantPickupSection pickupPoint={pickupPoint} role={profile.role} />
       </div>
 

@@ -1,0 +1,30 @@
+.purchase-payment-control { display: flex; align-items: center; gap: 8px; min-width: 210px; }
+.purchase-payment-summary { display: grid; gap: 4px; font-size: 12px; white-space: normal; }
+.purchase-payment-summary small { color: #784e68; }
+.purchase-payment-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.purchase-payment-actions button { white-space: nowrap; flex-shrink: 0; }
+.purchase-payment-control button, .purchase-payment-dialog button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; background: #f5eff5; color: #47143f; border: 1px solid #d8c7d7; border-radius: 6px; padding: 7px 9px; font: inherit; cursor: pointer; }
+.purchase-payment-overlay { position: fixed; inset: 0; z-index: 300; background: #21132188; display: grid; place-items: center; padding: 16px; }
+.purchase-payment-dialog { width: min(480px, 100%); max-height: calc(100dvh - 32px); overflow: auto; box-sizing: border-box; background: #fff; color: #342633; padding: 20px; border-radius: 8px; box-shadow: 0 14px 40px #21132133; }
+.purchase-payment-dialog header, .purchase-payment-entry > div { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.purchase-payment-dialog h3 { margin: 0; font-size: 18px; overflow-wrap: anywhere; }
+.purchase-payment-dialog h4 { font-size: 14px; margin-bottom: 8px; }
+.purchase-payment-dialog p { font-size: 13px; }
+.purchase-payment-dialog dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; font-size: 12px; border-block: 1px solid #e5dce4; padding-block: 12px; }
+.purchase-payment-dialog dd { margin: 6px 0 0; font-weight: 700; overflow-wrap: anywhere; }
+.purchase-payment-dialog label { display: grid; gap: 6px; font-size: 13px; }
+.purchase-payment-dialog input { width: 100%; min-width: 0; box-sizing: border-box; padding: 10px; font: inherit; border: 1px solid #bca8ba; border-radius: 6px; background: #fff; color: inherit; }
+.purchase-payment-dialog form, .purchase-payment-cancel { display: grid; gap: 10px; }
+.purchase-payment-dialog .payment-primary { background: #47143f; color: white; }
+.purchase-payment-dialog > .payment-primary { width: 100%; white-space: normal; line-height: 1.5; }
+.purchase-payment-dialog button:disabled { opacity: .55; cursor: not-allowed; }
+.purchase-payment-history { display: grid; gap: 0; }
+.purchase-payment-entry { display: grid; gap: 5px; padding: 12px 0; border-bottom: 1px solid #e5dce4; font-size: 12px; }
+.purchase-payment-entry small { color: #73636f; white-space: normal; }
+.purchase-payment-entry.cancelled { color: #8b485b; }
+.purchase-payment-entry button { justify-self: start; }
+.purchase-payment-cancel { margin-top: 14px; }
+.purchase-payment-error { padding: 10px; margin-bottom: 10px; background: #fff0f1; color: #9b253e; border-radius: 6px; font-size: 13px; }
+.outstanding-payments { margin-block: 16px; border-block: 1px solid #d8c7d7; padding-block: 12px; }
+.outstanding-payments h3 { margin: 0 0 10px; font-size: 16px; color: #47143f; }
+.outstanding-payment-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #eee6ed; font-size: 13px; }

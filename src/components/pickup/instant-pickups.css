@@ -35,20 +35,20 @@
 .instant-pickup-modes button { background: #fff; border: 0; color: #64748b; font: inherit; font-size: 13px; padding: 9px 12px; min-height: 38px; cursor: pointer; }
 .instant-pickup-modes button[aria-pressed="true"] { background: var(--instant-soft); color: var(--instant-primary); }
 .instant-pickup-scroll { width: 100%; overflow-x: auto; margin-top: 12px; border-block: 1px solid var(--instant-border); }
-.instant-pickup-table { width: 100%; min-width: 550px; table-layout: fixed; border-collapse: collapse; background: #fff; font-size: 14px; }
-.instant-pickup-table.has-actions { min-width: 740px; }
+.instant-pickup-table { width: 100%; min-width: 800px; table-layout: fixed; border-collapse: collapse; background: #fff; font-size: 14px; }
+.instant-pickup-table.has-actions { min-width: 1000px; }
 .instant-pickup-table th,
 .instant-pickup-table td { padding: 12px; text-align: right; vertical-align: middle; border-bottom: 1px solid var(--instant-border); overflow-wrap: anywhere; }
 .instant-pickup-table th { background: var(--instant-soft); color: var(--instant-primary); font-weight: 600; font-size: 13px; }
 .instant-pickup-table th:first-child { width: 30%; }
 .instant-pickup-table th:nth-child(2) { width: 95px; }
-.instant-pickup-table th:nth-child(3) { width: 150px; }
+.instant-pickup-table th:nth-child(3) { width: 285px; }
 .instant-pickup-table.has-actions th:last-child { width: 156px; }
 .instant-pickup-money { direction: ltr; font-variant-numeric: tabular-nums; }
 .instant-pickup-date { font-size: 12px; color: #64748b; }
 .instant-pickup-total { margin-top: 12px; font-size: 13px; color: #64748b; }
 .instant-pickup-total b { color: var(--instant-primary); font-variant-numeric: tabular-nums; }
-.instant-pickup-received { display: flex; align-items: center; gap: 8px; }
+.instant-pickup-received { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .instant-pickup-error { color: #b42318; margin-block: 12px; font-size: 14px; overflow-wrap: anywhere; }
 .instant-pickup-spinner { animation: instant-pickup-spin 1s linear infinite; }
 @keyframes instant-pickup-spin { to { transform: rotate(360deg); } }

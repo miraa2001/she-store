@@ -1,6 +1,7 @@
 import { parseFinanceAmount } from "./finance";
 import { PICKUP_DELIVERY, PICKUP_HOME, PICKUP_POINT, PICKUP_POINT_NABLUS } from "./pickup";
 import { sb } from "./supabaseClient";
+import { collectPayments } from "./payments";
 
 export const INSTANT_PICKUP_LOCATIONS = [
   { value: PICKUP_HOME, label: "البيت" },
@@ -25,7 +26,7 @@ export async function fetchInstantPickups(pickupPoint, collected = false) {
   const rows = [];
   for (let offset = 0; ; offset += 500) {
     const { data, error } = await sb.from("instant_pickups")
-      .select("id, customer_name, price, pickup_point, picked_up, picked_up_at, collected, collected_at, created_at")
+      .select("id, customer_name, price, pickup_point, picked_up, picked_up_at, collected, collected_at, created_at, received_amount, remitted_amount")
       .eq("pickup_point", pickupPoint).eq("collected", collected)
       .order("created_at", { ascending: false }).order("id", { ascending: false })
       .range(offset, offset + 499);
@@ -57,8 +58,7 @@ export async function updateInstantPickup(id, action, pickupPoint = null) {
 }
 
 export async function collectInstantPickups(ids) {
-  const { data, error } = await sb.rpc("collect_instant_pickups", { p_ids: ids });
-  if (error) throw instantError(error);
+  const data = await collectPayments(sb, ids, true);
   notifyChanged();
   return data;
 }

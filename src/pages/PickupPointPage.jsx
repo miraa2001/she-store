@@ -7,15 +7,15 @@ import { usePurchaseCustomerSearch } from "../hooks/usePurchaseCustomerSearch";
 import { getOrdersNavItems, getRoleLabel, isNavHrefActive } from "../lib/navigation";
 import { formatILS, parsePrice } from "../lib/orders";
 import { movePurchaseToPickupLocation } from "../lib/purchases";
-import { savePurchaseReceipt } from "../lib/purchaseReceipt";
-import { buildCollectedMoneyMessage, buildPickupStatusMessage, notifyPickupStatus } from "../lib/pickupNotifications";
+import { collectibleAmount, collectPayments } from "../lib/payments";
+import { buildCollectedMoneyMessage, notifyPickupStatus } from "../lib/pickupNotifications";
 import { getPickupLocationById, isPickupPointForLocation } from "../lib/pickup";
 import { setBodyScrollLock } from "../lib/bodyScrollLock";
 import { signOutAndRedirect } from "../lib/session";
 import { sb } from "../lib/supabaseClient";
 import SessionLoader from "../components/common/SessionLoader";
 import AppNavIcon from "../components/common/AppNavIcon";
-import PickupAnimatedCheckbox from "../components/common/PickupAnimatedCheckbox";
+import PurchasePaymentControl, { OutstandingPaymentsSection } from "../components/pickup/PurchasePaymentControl";
 import PickupTransferDialog from "../components/pickup/PickupTransferDialog";
 import InstantPickupSection from "../components/pickup/InstantPickupSection";
 import SheStoreLogo from "../components/common/SheStoreLogo";
@@ -82,8 +82,6 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [loadingPurchases, setLoadingPurchases] = useState(false);
   const [error, setError] = useState("");
-  const [savingReceiptId, setSavingReceiptId] = useState("");
-  const receiptSavingRef = useRef(false);
   const [ordersMenuOpen, setOrdersMenuOpen] = useState(false);
   const [collecting, setCollecting] = useState(false);
   const [collectingAll, setCollectingAll] = useState(false);
@@ -146,7 +144,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
     () =>
       visiblePurchases
         .filter((purchase) => purchase.picked_up)
-        .reduce((sum, purchase) => sum + parsePrice(purchase.paid_price ?? purchase.price), 0),
+        .reduce((sum, purchase) => sum + collectibleAmount(purchase), 0),
     [visiblePurchases]
   );
   const pickupOrderSections = useMemo(() => {
@@ -156,7 +154,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
         const sectionPurchases = visiblePurchases.filter((purchase) => ids.has(String(purchase.order_id)));
         const sectionPickedTotal = sectionPurchases
           .filter((purchase) => purchase.picked_up)
-          .reduce((sum, purchase) => sum + parsePrice(purchase.paid_price ?? purchase.price), 0);
+          .reduce((sum, purchase) => sum + collectibleAmount(purchase), 0);
 
         return {
           id: `section-${group.dateKey}`,
@@ -295,7 +293,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
     try {
       const { data, error: purchasesError } = await sb
         .from("purchases")
-        .select("id, order_id, customer_name, price, paid_price, picked_up, picked_up_at, pickup_point, ready_for_pickup, ready_for_pickup_at, collected")
+        .select("id, order_id, customer_name, price, paid_price, picked_up, picked_up_at, pickup_point, ready_for_pickup, ready_for_pickup_at, collected, received_amount, remitted_amount")
         .in("order_id", orderIds)
         .eq("ready_for_pickup", true)
         .eq("collected", false)
@@ -324,7 +322,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
 
     const { data, error: totalError } = await sb
       .from("purchases")
-      .select("paid_price, price, pickup_point, ready_for_pickup")
+      .select("paid_price, price, pickup_point, ready_for_pickup, received_amount, remitted_amount")
       .eq("ready_for_pickup", true)
       .eq("picked_up", true)
       .eq("collected", false);
@@ -337,7 +335,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
 
     const total = (data || [])
       .filter((purchase) => isPickupPointForLocation(purchase.pickup_point, pickupLocation.id))
-      .reduce((sum, purchase) => sum + parsePrice(purchase.paid_price ?? purchase.price), 0);
+      .reduce((sum, purchase) => sum + collectibleAmount(purchase), 0);
 
     setAllOrdersTotal(total);
   }, [canAccess, pickupLocation.id]);
@@ -367,151 +365,35 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
     await signOutAndRedirect();
   }
 
-  async function togglePicked(purchaseId, checked) {
-    const target = purchases.find((purchase) => String(purchase.id) === String(purchaseId));
-    if (!target || target.collected || receiptSavingRef.current) return;
-    receiptSavingRef.current = true;
-    setSavingReceiptId(purchaseId);
-    setError("");
-    const payload = checked
-      ? { picked_up: true, picked_up_at: new Date().toISOString() }
-      : { picked_up: false, picked_up_at: null };
+  async function refreshPaymentRows() {
+    await loadPurchases(selectedOrderIds);
+    await loadOrders();
+    await loadAllOrdersTotal();
+  }
 
-    setPurchases((prev) =>
-      prev.map((purchase) => (String(purchase.id) === String(purchaseId) ? { ...purchase, ...payload } : purchase))
-    );
-
+  async function collectPaymentRows(items, busySetter) {
+    if (!isRahaf) return;
+    const pending = items.filter((row) => collectibleAmount(row) > 0);
+    if (!pending.length) return;
+    const total = pending.reduce((sum, row) => sum + collectibleAmount(row), 0);
+    if (!window.confirm("تأكيد تحصيل " + formatILS(total) + " ₪؟")) return;
+    busySetter(true); setError("");
     try {
-      const saved = await savePurchaseReceipt(sb, purchaseId, checked);
-      setPurchases((prev) => prev.map((purchase) => String(purchase.id) === String(purchaseId) ? { ...purchase, picked_up: saved.picked_up, picked_up_at: saved.picked_up_at } : purchase));
-      if (saved.changed) await notifyPickupStatus(
-        buildPickupStatusMessage({
-          picked: saved.picked_up,
-          customerName: target.customer_name,
-          price: target.paid_price ?? target.price,
-          pickupLabel: pickupLocation.pickupLabel
-        })
-      );
-    } catch (saveError) {
-      setPurchases((prev) => prev.map((purchase) => String(purchase.id) === String(purchaseId) ? { ...purchase, picked_up: target.picked_up, picked_up_at: target.picked_up_at } : purchase));
-      setError(saveError?.message || "تعذر حفظ حالة الاستلام.");
-    } finally {
-      receiptSavingRef.current = false;
-      setSavingReceiptId("");
-    }
-
-    await loadAllOrdersTotal();
+      const amount = await collectPayments(sb, pending.map((row) => row.id));
+      if (amount > 0) await notifyPickupStatus(buildCollectedMoneyMessage({ pickupLabel: pickupLocation.pickupLabel, amountText: formatILS(amount) }));
+      await refreshPaymentRows();
+    } catch (collectError) { setError(collectError.message || "تعذر التحصيل."); }
+    finally { busySetter(false); }
   }
 
-  async function collectCurrentOrder() {
-    if (!isRahaf || !selectedOrderIds.length) return;
-    const pending = visiblePurchases.filter((purchase) => purchase.picked_up && !purchase.collected);
-    if (!pending.length) return;
-
-    const pendingTotal = pending.reduce(
-      (sum, purchase) => sum + parsePrice(purchase.paid_price ?? purchase.price),
-      0
-    );
-    const pendingText = formatILS(pendingTotal);
-    const ok = window.confirm(`تأكيد تحصيل ${pending.length} مشتريات بمبلغ ${pendingText} ₪؟`);
-    if (!ok) return;
-
-    setCollecting(true);
-    const ids = pending.map((purchase) => purchase.id);
-    const { error: collectError } = await sb
-      .from("purchases")
-      .update({ collected: true, collected_at: new Date().toISOString() })
-      .in("id", ids);
-
-    if (collectError) {
-      console.error(collectError);
-      setCollecting(false);
-      return;
-    }
-    await notifyPickupStatus(
-      buildCollectedMoneyMessage({ pickupLabel: pickupLocation.pickupLabel, amountText: pendingText })
-    );
-    await loadOrders();
-    await loadAllOrdersTotal();
-    setCollecting(false);
-  }
-
-  async function collectSection(section) {
-    if (!isRahaf || !section?.id) return;
-    const pending = (section.purchases || []).filter((purchase) => purchase.picked_up && !purchase.collected);
-    if (!pending.length) return;
-
-    const pendingTotal = pending.reduce(
-      (sum, purchase) => sum + parsePrice(purchase.paid_price ?? purchase.price),
-      0
-    );
-    const pendingText = formatILS(pendingTotal);
-    const ok = window.confirm(`تأكيد تحصيل ${pending.length} مشتريات بمبلغ ${pendingText} ₪؟`);
-    if (!ok) return;
-
-    setCollectingSectionId(section.id);
-    const ids = pending.map((purchase) => purchase.id);
-    const { error: collectError } = await sb
-      .from("purchases")
-      .update({ collected: true, collected_at: new Date().toISOString() })
-      .in("id", ids);
-
-    if (collectError) {
-      console.error(collectError);
-      setCollectingSectionId("");
-      return;
-    }
-
-    await notifyPickupStatus(
-      buildCollectedMoneyMessage({ pickupLabel: pickupLocation.pickupLabel, amountText: pendingText })
-    );
-    await loadOrders();
-    await loadAllOrdersTotal();
-    setCollectingSectionId("");
-  }
-
+  async function collectCurrentOrder() { await collectPaymentRows(visiblePurchases, setCollecting); }
+  async function collectSection(section) { await collectPaymentRows(section.purchases, (busy) => setCollectingSectionId(busy ? section.id : "")); }
   async function collectAllOrders() {
     if (!isRahaf) return;
-
-    const { data, error: totalError } = await sb
-      .from("purchases")
-      .select("id, paid_price, price, pickup_point, ready_for_pickup")
-      .eq("ready_for_pickup", true)
-      .eq("picked_up", true)
-      .eq("collected", false);
-
-    if (totalError) {
-      console.error(totalError);
-      return;
-    }
-
-    const pickupList = (data || []).filter((purchase) =>
-      isPickupPointForLocation(purchase.pickup_point, pickupLocation.id)
-    );
-    const total = pickupList.reduce((sum, purchase) => sum + parsePrice(purchase.paid_price ?? purchase.price), 0);
-    if (total <= 0) return;
-
-    const ok = window.confirm(`تأكيد تحصيل كل المبالغ (${pickupList.length} مشتريات) بمبلغ ${formatILS(total)} ₪؟`);
-    if (!ok) return;
-
-    setCollectingAll(true);
-    const ids = pickupList.map((purchase) => purchase.id);
-    const { error: collectError } = await sb
-      .from("purchases")
-      .update({ collected: true, collected_at: new Date().toISOString() })
-      .in("id", ids);
-
-    if (collectError) {
-      console.error(collectError);
-      setCollectingAll(false);
-      return;
-    }
-    await notifyPickupStatus(
-      buildCollectedMoneyMessage({ pickupLabel: pickupLocation.pickupLabel, amountText: formatILS(total) })
-    );
-    await loadOrders();
-    await loadAllOrdersTotal();
-    setCollectingAll(false);
+    const { data, error: loadError } = await sb.from("purchases")
+      .select("id, pickup_point, received_amount, remitted_amount").eq("ready_for_pickup", true).eq("collected", false);
+    if (loadError) { setError(loadError.message); return; }
+    await collectPaymentRows((data || []).filter((row) => isPickupPointForLocation(row.pickup_point, pickupLocation.id)), setCollectingAll);
   }
 
   function startEditPaid(purchase) {
@@ -532,7 +414,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
     const raw = String(paidEditor.value ?? "").trim();
     const nextVal = raw === "" ? null : Number(raw);
     if (raw !== "" && (!Number.isFinite(nextVal) || nextVal < 0)) {
-      window.alert("السعر المدفوع غير صحيح.");
+      window.alert("السعر المتفق عليه غير صحيح.");
       return;
     }
 
@@ -544,7 +426,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
 
     if (updateError) {
       console.error(updateError);
-      window.alert("فشل حفظ المدفوع.");
+      window.alert("فشل حفظ السعر المتفق عليه.");
       setPaidEditor((prev) => ({ ...prev, saving: false }));
       return;
     }
@@ -560,8 +442,8 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
 
   function openTransferDialog(purchase) {
     if (!isRahaf || !purchase) return;
-    if (purchase.collected) {
-      window.alert("لا يمكن نقل مشترى تم تحصيله.");
+    if (purchase.collected || Number(purchase.received_amount) > 0) {
+      window.alert("لا يمكن نقل مشترى له دفعات مسجلة.");
       return;
     }
     setTransferDialog(purchase);
@@ -694,6 +576,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
         </>
       ) : null}
       <div className={`pickuppoint-wrap ${embedded ? "pickup-embedded-container" : ""}`}>
+        {error ? <div className="pickuppoint-error" role="alert">{error}</div> : null}
         {!embedded ? (
           <div className="pickuppoint-topbar">
             <div className="topbar-brand-with-logo">
@@ -769,7 +652,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                 <button key={result.id} type="button" onClick={() => openSearchResult(result)}>
                   <b>{result.customer_name || ""}</b>
                   <div className="pickuppoint-muted">
-                    {orderDisplay} — المدفوع: {formatILS(result.paid_price ?? result.price)}
+                    {orderDisplay} — السعر المتفق عليه: {formatILS(result.paid_price ?? result.price)}
                   </div>
                 </button>
               );
@@ -868,7 +751,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                 {isRahaf ? (
                                   <th className="pickuppoint-edit-col">
                                     <span className="pickuppoint-th-label">
-                                      <span>تعديل المدفوع</span>
+                                      <span>تعديل السعر المتفق عليه</span>
                                     </span>
                                   </th>
                                 ) : null}
@@ -956,16 +839,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                     ) : null}
                                     <td>
                                       <div className="pickuppoint-pick-row pickup-checkbox-wrap">
-                                        <PickupAnimatedCheckbox
-                                          checked={!!purchase.picked_up}
-                                          disabled={!!savingReceiptId || !!purchase.collected}
-                                          onChange={(event) => togglePicked(purchase.id, event.target.checked)}
-                                          ariaLabel={
-                                            purchase.picked_up
-                                              ? "\u062A\u0645 \u0627\u0644\u0627\u0633\u062A\u0644\u0627\u0645"
-                                              : "\u063A\u064A\u0631 \u0645\u0633\u062A\u0644\u0645"
-                                          }
-                                        />
+                                        <PurchasePaymentControl purchase={purchase} role={profile.role} onSaved={refreshPaymentRows} />
                                         <span className={`pickuppoint-status ${purchase.picked_up ? "success" : "neutral"}`}>
                                           {purchase.picked_up
                                             ? "\u062A\u0645 \u0627\u0644\u0627\u0633\u062A\u0644\u0627\u0645"
@@ -980,7 +854,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                           type="button"
                                           className="pickuppoint-btn mini pickup-transfer-trigger"
                                           onClick={() => openTransferDialog(purchase)}
-                                          disabled={!!purchase.collected}
+                                          disabled={!!purchase.collected || Number(purchase.received_amount) > 0}
                                         >
                                           نقل
                                         </button>
@@ -1052,13 +926,13 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                           <th>
                             <span className="pickuppoint-th-label">
                               <img src={priceHeaderIcon} alt="" className="pickuppoint-th-icon" aria-hidden="true" />
-                              <span>المدفوع</span>
+                              <span>السعر المتفق عليه</span>
                             </span>
                           </th>
                           {isRahaf ? (
                             <th className="pickuppoint-edit-col">
                               <span className="pickuppoint-th-label">
-                                <span>تعديل المدفوع</span>
+                                <span>تعديل السعر المتفق عليه</span>
                               </span>
                             </th>
                           ) : null}
@@ -1147,12 +1021,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                 ) : null}
                                 <td>
                                   <div className="pickuppoint-pick-row pickup-checkbox-wrap">
-                                    <PickupAnimatedCheckbox
-                                      checked={!!purchase.picked_up}
-                                      disabled={!!savingReceiptId || !!purchase.collected}
-                                      onChange={(event) => togglePicked(purchase.id, event.target.checked)}
-                                      ariaLabel={purchase.picked_up ? "تم الاستلام" : "غير مستلم"}
-                                    />
+                                    <PurchasePaymentControl purchase={purchase} role={profile.role} onSaved={refreshPaymentRows} />
                                     <span className={`pickuppoint-status ${purchase.picked_up ? "success" : "neutral"}`}>
                                       {purchase.picked_up ? "تم الاستلام" : "غير مستلم"}
                                     </span>
@@ -1165,7 +1034,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                       type="button"
                                       className="pickuppoint-btn mini pickup-transfer-trigger"
                                       onClick={() => openTransferDialog(purchase)}
-                                      disabled={!!purchase.collected}
+                                      disabled={!!purchase.collected || Number(purchase.received_amount) > 0}
                                     >
                                       نقل
                                     </button>
@@ -1189,6 +1058,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
             )}
           </main>
         </div>
+        <OutstandingPaymentsSection rows={visiblePurchases} role={profile.role} onSaved={refreshPaymentRows} />
         <InstantPickupSection pickupPoint={pickupLocation.pickupValue} role={profile.role} />
       </div>
 
