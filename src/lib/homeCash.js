@@ -8,7 +8,8 @@ export const HOME_CASH_EXPENSE_CATEGORIES = [
   { value: "pins", label: "دبابيس" },
   { value: "name_stickers", label: "ستكرات أسماء الزبائن" },
   { value: "postal_delivery", label: "توصيل البريد" },
-  { value: "atm_deposit", label: "وضع مصاري في الصراف" }
+  { value: "atm_deposit", label: "وضع مصاري في الصراف" },
+  { value: "other", label: "أخرى" }
 ];
 export const HOME_CASH_SOURCE_LABELS = { home: "البيت", maryamti: "مريمتي", nablus: "نابلس", delivery: "توصيل" };
 
