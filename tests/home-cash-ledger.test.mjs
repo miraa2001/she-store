@@ -177,4 +177,26 @@ test("Home cash migration and ledger", async (t) => {
     await assert.rejects(db.query("select public.get_home_cash_summary()"));
     await db.exec("reset role;");
   });
+
+  await t.test("Other expense category deducts cash, retries safely, and can be cancelled", async () => {
+    const otherMigration = await readFile(new URL("../supabase/migrations/20261022010000_add_other_home_cash_expense.sql", import.meta.url), "utf8");
+    const before = (await summary()).balance;
+    await db.exec(otherMigration);
+    assert.equal((await summary()).balance, before);
+    await db.exec("set role authenticated;");
+    await spend(500, "other", 9.76, 1, "Miscellaneous expense");
+    await spend(500, "other", 9.76, 1, "Miscellaneous expense");
+    assert.equal((await summary()).balance, before - 9.76);
+    const entry = (await db.query("select * from public.get_home_cash_activity(0,100)")).rows.find((row) => row.id === uuid(500));
+    assert.equal(entry.category, "other");
+    assert.equal(Number(entry.amount), -9.76);
+    await assert.rejects(spend(501, "unknown_category", 1));
+    await db.query("select public.cancel_home_cash_expense($1)", [uuid(500)]);
+    assert.equal((await summary()).balance, before);
+    await db.exec(`select set_config('request.jwt.claim.sub', '${uuid(2)}', false);`);
+    await assert.rejects(spend(502, "other", 1));
+    await db.exec(`reset role; select set_config('request.jwt.claim.sub', '${uuid(1)}', false);`);
+    await db.exec(otherMigration);
+    assert.equal((await summary()).balance, before);
+  });
 });
