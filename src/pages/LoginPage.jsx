@@ -243,7 +243,12 @@ export default function LoginPage() {
         }
 
         .login-card {
+          max-width: 440px;
+          padding: 44px 40px;
           animation: fadeUp 0.65s cubic-bezier(0.16,1,0.3,1) both;
+        }
+        .login-intro {
+          margin-bottom: 36px;
         }
         .login-logo-wrap {
           margin: 8px 0 26px;
@@ -403,6 +408,38 @@ export default function LoginPage() {
           display: inline-block;
         }
 
+        @media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+          .login-card {
+            max-width: 900px;
+            padding: 44px 48px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-rows: auto 1fr auto;
+            column-gap: 64px;
+          }
+          .login-logo-wrap {
+            grid-column: 1;
+            grid-row: 1;
+            justify-content: flex-start;
+            margin: 0 0 24px;
+          }
+          .login-intro {
+            grid-column: 1;
+            grid-row: 2;
+            margin-bottom: 0;
+          }
+          .login-fields-layout {
+            grid-column: 2;
+            grid-row: 1 / span 2;
+            align-self: center;
+            min-width: 0;
+          }
+          .login-footer {
+            grid-column: 1 / -1;
+            grid-row: 3;
+          }
+        }
+
         @media (max-width: 480px) {
           .login-card { padding: 32px 24px !important; }
         }
@@ -425,10 +462,8 @@ export default function LoginPage() {
         className="login-card"
         style={{
           width: "100%",
-          maxWidth: 440,
           background: "#ffffff",
           borderRadius: 24,
-          padding: "44px 40px",
           boxShadow: "0 2px 8px rgba(71, 20, 63, 0.06), 0 16px 48px rgba(71, 20, 63, 0.1), 0 1px 0 rgba(255,255,255,0.8) inset",
           border: "1px solid rgba(221,231,227,0.8)",
           position: "relative",
@@ -468,7 +503,7 @@ export default function LoginPage() {
           />
         </div>
 
-        <div style={{ marginBottom: 36, animation: "fadeUp 0.5s both" }}>
+        <div className="login-intro" style={{ animation: "fadeUp 0.5s both" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
             <div
               style={{
@@ -512,7 +547,7 @@ export default function LoginPage() {
           <p style={{ color: "#64748b", fontSize: 14, fontWeight: 400 }}>Manage orders and pickup points in one place</p>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div className="login-fields-layout" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="field-wrap">
             <label
               style={{
@@ -658,6 +693,7 @@ export default function LoginPage() {
         </div>
 
         <div
+          className="login-footer"
           style={{
             marginTop: 28,
             paddingTop: 20,
