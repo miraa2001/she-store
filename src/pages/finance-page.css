@@ -689,12 +689,14 @@
 
 .profit-distribution h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 20px; color: var(--finance-primary); }
 .profit-distribution h3 { margin: 0; font-size: 16px; color: var(--finance-primary); }
-.profit-balances { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; padding-block: 20px; border-block: 1px solid var(--finance-border); }
-.profit-balances dl { margin-bottom: 0; }
-.profit-balances dl > div { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; }
-.profit-balances dl > div:first-child { display: block; }
-.profit-balances dt { font-size: 13px; color: #64748b; }
-.profit-balances dd { margin: 0; font-variant-numeric: tabular-nums; color: var(--finance-primary); overflow-wrap: anywhere; }
+.profit-balances { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; padding-block: 20px; border-block: 1px solid var(--finance-border); }
+.profit-balances > section { min-width: 0; padding-inline: 24px; }
+.profit-balances > section + section { border-inline-start: 1px solid var(--finance-border); }
+.profit-balances dl { display: grid; grid-template-columns: minmax(0, max-content) minmax(0, max-content); gap: 10px 16px; margin: 16px 0 0; }
+.profit-balances dl > div { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: baseline; }
+.profit-balances dl > div:first-child { display: block; margin-bottom: 6px; }
+.profit-balances dt { min-width: 0; font-size: 13px; color: #64748b; overflow-wrap: anywhere; }
+.profit-balances dd { min-width: 0; margin: 0; font-variant-numeric: tabular-nums; color: var(--finance-primary); overflow-wrap: anywhere; direction: ltr; text-align: start; }
 .profit-balances dl > div:first-child dd { font-size: 26px; font-weight: 600; margin-top: 6px; }
 .profit-balances .is-negative { color: #b42318; }
 .profit-payout-form { padding-block: 24px; border-bottom: 1px solid var(--finance-border); }
@@ -711,7 +713,8 @@
 .profit-table small { display: block; margin-top: 4px; color: #64748b; }
 @media (max-width: 640px) {
   .profit-balances { grid-template-columns: 1fr; gap: 16px; }
-  .profit-balances > section + section { border-top: 1px solid var(--finance-border); padding-top: 16px; }
+  .profit-balances > section { padding-inline: 0; }
+  .profit-balances > section + section { border-inline-start: 0; border-top: 1px solid var(--finance-border); padding-top: 16px; }
   .profit-payout-form fieldset { grid-template-columns: 1fr; }
   .profit-orders-heading input { max-width: none; }
 }
