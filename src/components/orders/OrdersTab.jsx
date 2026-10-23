@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ArrowRightLeft } from "lucide-react";
 import { formatILS } from "../../lib/orders";
 import { formatPickupDisplayLabel } from "../../lib/pickup";
 import SessionLoader from "../common/SessionLoader";
@@ -35,6 +36,7 @@ export default function OrdersTab({
   onUpdateOrderStatus,
   onOpenAddModal,
   onOpenOrderSettings,
+  onOpenOrderTransfer,
   customersError,
   purchasesLoading,
   purchasesError,
@@ -87,6 +89,11 @@ export default function OrdersTab({
         </div>
 
         <div className="order-detail-actions">
+          {canOpenOrderSettings ? (
+            <button type="button" className="icon-btn" disabled={selectedOrder.placedAtPickup || selectedOrder.allCollected} onClick={onOpenOrderTransfer} title="نقل المشتريات إلى طلب آخر" aria-label="نقل المشتريات إلى طلب آخر">
+              <ArrowRightLeft size={20} />
+            </button>
+          ) : null}
           {canOpenOrderSettings ? (
             <button
               type="button"

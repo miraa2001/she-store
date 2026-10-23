@@ -4433,3 +4433,9 @@
   background: #6D3F6B;
   color: #fff;
 }
+.order-transfer-modal { width: min(560px, calc(100vw - 32px)); max-height: 90dvh; overflow: auto; }
+.order-transfer-body { display: grid; gap: 16px; padding: 20px; }
+.order-transfer-list { max-height: 40dvh; overflow: auto; }
+.order-transfer-row { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border, #eadfed); }
+.order-transfer-row span { overflow-wrap: anywhere; }
+.order-transfer-body select { width: 100%; min-height: 44px; }

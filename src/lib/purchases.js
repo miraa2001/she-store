@@ -11,6 +11,21 @@ import {
 const IMAGE_UPLOAD_CONCURRENCY = 3;
 const DEFAULT_BAG_SIZE = "كيس صغير";
 
+export async function transferPurchasesToOrder(sourceOrderId, targetOrderId, purchaseIds) {
+  const { data, error } = await sb.rpc("transfer_order_purchases", {
+    p_source_order_id: sourceOrderId,
+    p_target_order_id: targetOrderId,
+    p_purchase_ids: purchaseIds
+  });
+  if (error) {
+    if (["PGRST202", "42883"].includes(error.code)) {
+      throw new Error("يلزم تشغيل تحديث قاعدة البيانات لنقل المشتريات أولاً.");
+    }
+    throw error;
+  }
+  return data;
+}
+
 function safeFileName(name) {
   return String(name || "image")
     .trim()

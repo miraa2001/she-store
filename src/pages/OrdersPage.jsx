@@ -69,6 +69,7 @@ import CommandHeader from "../components/orders/CommandHeader";
 import OrdersBottomSheet from "../components/orders/OrdersBottomSheet";
 import OrdersDrawer from "../components/orders/OrdersDrawer";
 import OrdersTab from "../components/orders/OrdersTab";
+import OrderPurchaseTransferDialog from "../components/orders/OrderPurchaseTransferDialog";
 import PurchaseFormModal from "../components/orders/PurchaseFormModal";
 import CustomerQuickAddModal from "../components/orders/CustomerQuickAddModal";
 import LightboxModal from "../components/orders/LightboxModal";
@@ -348,6 +349,7 @@ export default function OrdersPage() {
   const [orderDialogBusy, setOrderDialogBusy] = useState(false);
   const [orderSettingsDialog, setOrderSettingsDialog] = useState(null);
   const [orderSettingsDialogBusy, setOrderSettingsDialogBusy] = useState(false);
+  const [orderTransferDialog, setOrderTransferDialog] = useState(null);
   const [lightbox, setLightbox] = useState({ open: false, images: [], index: 0, title: "" });
   const [highlightPurchaseId, setHighlightPurchaseId] = useState("");
   const hasInitializedUrlState = useRef(false);
@@ -1900,6 +1902,7 @@ export default function OrdersPage() {
                 onUpdateOrderStatus={handleUpdateOrderStatus}
                 onOpenAddModal={openAddModal}
                 onOpenOrderSettings={openOrderSettingsDialog}
+                onOpenOrderTransfer={() => setOrderTransferDialog(selectedOrder)}
                 customersError={customersError}
                 purchasesLoading={purchasesLoading}
                 purchasesError={purchasesError}
@@ -2359,6 +2362,20 @@ export default function OrdersPage() {
         Icon={Icon}
       />
 
+      {orderTransferDialog ? (
+        <OrderPurchaseTransferDialog
+          order={orderTransferDialog}
+          orders={orders}
+          purchases={purchases}
+          onClose={() => setOrderTransferDialog(null)}
+          onSaved={async () => {
+            await refreshPurchases(selectedOrderId);
+            await refreshOrders(selectedOrderId);
+            setOrderTransferDialog(null);
+            setToast({ type: "success", quick: true, text: "تم نقل المشتريات وإعادة حساب أرباح الطلبين" });
+          }}
+        />
+      ) : null}
       {toast ? (
         <div role="status" className={`toast toast-${toast.type || "info"}${toast.quick ? " toast-quick" : ""}`}>
           <span>{toast.text}</span>
