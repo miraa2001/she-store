@@ -24,7 +24,7 @@ export function parseFinanceAmount(value) {
 }
 
 export function calculateOrderFinanceProfit(purchaseValue, postalFee, spent) {
-  return (Math.round(purchaseValue * 100) + Math.round(postalFee * 100) - Math.round(spent * 100)) / 100;
+  return (Math.round(purchaseValue * 100) - Math.round(postalFee * 100) - Math.round(spent * 100)) / 100;
 }
 
 export async function fetchFinanceOrders() {
