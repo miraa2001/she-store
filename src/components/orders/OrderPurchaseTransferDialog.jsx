@@ -14,7 +14,7 @@ export default function OrderPurchaseTransferDialog({ order, orders, purchases, 
     dialogRef.current?.focus();
     return () => previous?.focus?.();
   }, []);
-  const destinations = orders.filter((item) => item.id !== order.id && !item.placedAtPickup && !item.allCollected);
+  const destinations = orders.filter((item) => item.id !== order.id && !item.arrived && !item.placedAtPickup && !item.allCollected);
   const eligible = purchases.filter((item) => !item.ready_for_pickup && !item.picked_up && !item.collected);
 
   async function submit(event) {
@@ -23,7 +23,7 @@ export default function OrderPurchaseTransferDialog({ order, orders, purchases, 
     setBusy(true);
     setError("");
     try {
-      await transferPurchasesToOrder(order.id, target, selected);
+      await transferPurchasesToOrder(order.id, target === "unassigned" ? null : target, selected);
       await onSaved();
     } catch (failure) {
       setError(failure?.message || "تعذر نقل المشتريات");
@@ -48,7 +48,7 @@ export default function OrderPurchaseTransferDialog({ order, orders, purchases, 
         }
       }}>
         <div className="purchase-modal-head">
-          <h3 id="order-transfer-title">نقل المشتريات إلى طلب آخر</h3>
+          <h3 id="order-transfer-title">نقل المشتريات</h3>
           <button type="button" className="icon-btn" aria-label="إغلاق" title="إغلاق" disabled={busy} onClick={onClose}><X size={20} /></button>
         </div>
         <div className="order-transfer-body">
@@ -66,6 +66,7 @@ export default function OrderPurchaseTransferDialog({ order, orders, purchases, 
           <label htmlFor="transfer-target-order">الطلب الجديد</label>
           <select id="transfer-target-order" value={target} onChange={(event) => setTarget(event.target.value)} disabled={busy} required>
             <option value="">اختاري الطلب</option>
+            {order.id ? <option value="unassigned">مشتريات غير معيّنة</option> : null}
             {destinations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
           {error ? <p role="alert" className="workspace-error">{error}</p> : null}

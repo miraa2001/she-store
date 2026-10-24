@@ -290,6 +290,7 @@
 }
 
 .tab {
+  flex-shrink: 0;
   border: 0;
   background: transparent;
   color: #4b5563;

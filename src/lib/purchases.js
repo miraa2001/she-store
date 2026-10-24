@@ -60,20 +60,23 @@ export function sanitizeLinks(list) {
   return Array.from(new Set(out));
 }
 
-export async function fetchPurchasesByOrder(orderId) {
-  if (!orderId) return [];
+export async function fetchPurchasesByOrder(orderId, { unassigned = false } = {}) {
+  if (!orderId && !unassigned) return [];
 
-  const { data, error } = await sb
-    .from("purchases")
-    .select(
-      "id, order_id, customer_id, customer_name, qty, price, paid_price, bag_size, pickup_point, ready_for_pickup, ready_for_pickup_at, note, created_at, collected, picked_up, purchase_links(url), purchase_images(id,storage_path)"
-    )
-    .eq("order_id", orderId)
-    .order("created_at", { ascending: false });
+  const columns = "id, order_id, customer_id, customer_name, qty, price, paid_price, bag_size, pickup_point, ready_for_pickup, ready_for_pickup_at, note, created_at, collected, picked_up, purchase_links(url), purchase_images(id,storage_path)";
+  const all = [];
+  const pageSize = 500;
+  for (let offset = 0; ; offset += pageSize) {
+    const request = sb.from("purchases").select(columns)
+      .order("created_at", { ascending: false }).order("id", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    const { data, error } = await (unassigned ? request.is("order_id", null) : request.eq("order_id", orderId));
+    if (error) throw error;
+    all.push(...(data || []));
+    if ((data || []).length < pageSize) break;
+  }
 
-  if (error) throw error;
-
-  return (data || []).map((purchase) => {
+  return all.map((purchase) => {
     const links = (purchase.purchase_links || []).map((item) => String(item?.url || "")).filter(Boolean);
     const images = (purchase.purchase_images || []).map((img) => ({
       id: img.id,
@@ -114,7 +117,7 @@ export async function uploadPurchaseImages({ files, orderId, purchaseId, onProgr
 
   const uploadOne = async (file) => {
     const random = Math.random().toString(36).slice(2, 8);
-    const path = `${orderId}/${purchaseId}/${Date.now()}-${random}-${safeFileName(file.name)}`;
+    const path = `${orderId || "unassigned"}/${purchaseId}/${Date.now()}-${random}-${safeFileName(file.name)}`;
     const { error } = await sb.storage.from(IMAGE_BUCKET).upload(path, file);
     if (error) throw new Error(error.message || "Upload failed");
     return path;

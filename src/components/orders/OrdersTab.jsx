@@ -32,6 +32,7 @@ export default function OrdersTab({
   isMobile = false,
   isRahaf,
   isReem = false,
+  isUnassigned = false,
   editMode,
   onUpdateOrderStatus,
   onOpenAddModal,
@@ -53,8 +54,8 @@ export default function OrdersTab({
 }) {
   const [cardSlideIndexes, setCardSlideIndexes] = useState({});
   const highlightRef = useRef(null);
-  const canEditOrderStatus = isRahaf && editMode && !!selectedOrder;
-  const canOpenOrderSettings = isRahaf && editMode && !!selectedOrder;
+  const canEditOrderStatus = !isUnassigned && isRahaf && editMode && !!selectedOrder;
+  const canOpenOrderSettings = !isUnassigned && isRahaf && editMode && !!selectedOrder;
   const canShowPurchaseNotes = isRahaf || isReem;
   const shouldShowOriginalPrice = !isReem;
 
@@ -89,8 +90,8 @@ export default function OrdersTab({
         </div>
 
         <div className="order-detail-actions">
-          {canOpenOrderSettings ? (
-            <button type="button" className="icon-btn" disabled={selectedOrder.placedAtPickup || selectedOrder.allCollected} onClick={onOpenOrderTransfer} title="نقل المشتريات إلى طلب آخر" aria-label="نقل المشتريات إلى طلب آخر">
+          {isRahaf && editMode && selectedOrder ? (
+            <button type="button" className="icon-btn" disabled={purchasesLoading || !!purchasesError || (!isUnassigned && (selectedOrder.arrived || selectedOrder.placedAtPickup || selectedOrder.allCollected))} onClick={onOpenOrderTransfer} title="نقل المشتريات" aria-label="نقل المشتريات">
               <ArrowRightLeft size={20} />
             </button>
           ) : null}
@@ -127,9 +128,9 @@ export default function OrdersTab({
         </div>
       </div>
 
-      {isMobile && canEditOrderStatus ? (
+      {isMobile && (canEditOrderStatus || (isUnassigned && isRahaf && editMode)) ? (
         <div className="mobile-order-controls">
-          <div className="order-status-inline">
+          {!isUnassigned ? <div className="order-status-inline">
             <span className="order-status-inline-label">حالة الطلب</span>
             <OrderStatusDropdown
               value={selectedOrderStatus}
@@ -137,7 +138,7 @@ export default function OrdersTab({
               disabled={orderStatusSaving || orderStatusLocked}
               lockCollected={orderStatusLocked}
             />
-          </div>
+          </div> : null}
 
           <button className="btn-primary mobile-add-purchase-btn" type="button" onClick={onOpenAddModal}>
             + إضافة مشترى

@@ -67,6 +67,11 @@ export default function CommandHeader({
             استلام فوري
           </button>
         ) : null}
+        {isRahaf ? (
+          <button type="button" className={`tab ${activeTab === "unassigned" ? "active" : ""}`} onClick={() => onActiveTabChange("unassigned")}>
+            مشتريات غير معيّنة
+          </button>
+        ) : null}
       </div>
     );
   };
@@ -88,7 +93,7 @@ export default function CommandHeader({
           </button>
 
           <div className="command-mobile-title">
-            <strong>{activeTab === "instant" ? "استلام فوري" : activeTab === "customers" ? "العملاء" : "الطلبات"}</strong>
+            <strong>{activeTab === "unassigned" ? "مشتريات غير معيّنة" : activeTab === "instant" ? "استلام فوري" : activeTab === "customers" ? "العملاء" : "الطلبات"}</strong>
             {activeTab === "orders" ? <small>{totalOrders} طلب</small> : null}
           </div>
 
