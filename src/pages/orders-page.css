@@ -4440,3 +4440,14 @@
 .order-transfer-row { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border, #eadfed); }
 .order-transfer-row span { overflow-wrap: anywhere; }
 .order-transfer-body select { width: 100%; min-height: 44px; }
+.purchase-category-picker { min-width: 0; margin: 0; padding: 12px; border: 1px solid #e8ddea; border-radius: 6px; }
+.purchase-category-picker legend { padding-inline: 6px; font-size: 14px; color: #47143f; }
+.purchase-category-picker > div { display: flex; flex-wrap: wrap; gap: 12px 20px; }
+.purchase-category-picker > div > label { display: inline-flex; flex-direction: row; align-items: center; gap: 8px; }
+.purchase-category-picker input[type="checkbox"] { width: 18px; height: 18px; min-height: 0; margin: 0; padding: 0; accent-color: #6d3f6b; }
+.purchase-category-labels { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.purchase-category-label { display: inline-block; padding: 3px 8px; border: 1px solid #dfd1e5; border-radius: 4px; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.purchase-category-fast { background: #f1eaf5; color: #592953; }
+.purchase-category-makeup { background: #fbedf3; color: #853c63; }
+.purchase-category-electronics { background: #eaf4f3; color: #316560; }
+.order-transfer-customer { display: grid; gap: 6px; min-width: 0; }

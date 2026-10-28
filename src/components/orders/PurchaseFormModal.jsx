@@ -3,6 +3,7 @@ import Stepper, { Step } from "../common/Stepper";
 import FileUploadDropzone from "../common/FileUploadDropzone";
 import ImageAnnotatorModal from "../common/ImageAnnotatorModal";
 import LightboxModal from "./LightboxModal";
+import { PURCHASE_CATEGORIES, normalizePurchaseCategories } from "../../lib/purchaseCategories";
 
 export default function PurchaseFormModal({
   open,
@@ -95,6 +96,22 @@ export default function PurchaseFormModal({
 
   const detailsFields = (
     <div className="modal-grid-two">
+      {!formState.orderId || formState.purchaseCategories?.length ? (
+        <fieldset className="purchase-category-picker customer-field-full">
+          <legend>تصنيفات المشترى</legend>
+          <div>
+            {PURCHASE_CATEGORIES.map(({ value, label }) => (
+              <label key={value}>
+                <input type="checkbox" checked={(formState.purchaseCategories || []).includes(value)} disabled={formSaving}
+                  onChange={(event) => onUpdateForm({ purchaseCategories: normalizePurchaseCategories(event.target.checked
+                    ? [...(formState.purchaseCategories || []), value]
+                    : (formState.purchaseCategories || []).filter((category) => category !== value)) })} />
+                <span>{label}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      ) : null}
       <label className="customer-field-full">
         <span>اسم الزبون (بحث)</span>
         <input

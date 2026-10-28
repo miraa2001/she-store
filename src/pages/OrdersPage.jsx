@@ -1,5 +1,6 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import { Package, ShoppingBag, UserPlus, Users } from "lucide-react";
 import "./orders-page.css";
 import {
@@ -32,6 +33,7 @@ import {
   updatePurchaseWithRelations
 } from "../lib/purchases";
 import { searchByName } from "../lib/search";
+import { normalizePurchaseCategories } from "../lib/purchaseCategories";
 import {
   CUSTOMER_CITIES,
   createCustomer,
@@ -80,6 +82,7 @@ import SheStoreLogo from "../components/common/SheStoreLogo";
 import AppNavIcon from "../components/common/AppNavIcon";
 import ordersMenuIcon from "../assets/icons/navigation/orders.png";
 const MAX_IMAGES = 10;
+const PurchaseComparisonDialog = lazy(() => import("../components/orders/PurchaseComparisonDialog"));
 const ORDER_TYPE_OPTIONS = [
   { value: ORDER_TYPES.IHERB, label: "iHerb" },
   { value: ORDER_TYPES.SHEIN, label: "Shein" }
@@ -93,6 +96,7 @@ function createEmptyForm(orderId, customers) {
   return {
     purchaseId: "",
     orderId: orderId || "",
+    purchaseCategories: [],
     customerId: "",
     customerName: "",
     qty: "1",
@@ -351,6 +355,7 @@ export default function OrdersPage() {
   const [orderSettingsDialog, setOrderSettingsDialog] = useState(null);
   const [orderSettingsDialogBusy, setOrderSettingsDialogBusy] = useState(false);
   const [orderTransferDialog, setOrderTransferDialog] = useState(null);
+  const [comparisonOpen, setComparisonOpen] = useState(false);
   const [lightbox, setLightbox] = useState({ open: false, images: [], index: 0, title: "" });
   const [highlightPurchaseId, setHighlightPurchaseId] = useState("");
   const hasInitializedUrlState = useRef(false);
@@ -954,6 +959,7 @@ export default function OrdersPage() {
     setFormState({
       purchaseId: purchase.id,
       orderId: purchase.order_id,
+      purchaseCategories: normalizePurchaseCategories(purchase.purchase_categories),
       customerId: purchase.customer_id || "",
       customerName: purchase.customer_name || "",
       qty: purchase.qty ?? 1,
@@ -1118,6 +1124,7 @@ export default function OrdersPage() {
         const result = await createPurchaseWithRelations({
           purchase: {
             order_id: formState.orderId || null,
+            purchase_categories: normalizePurchaseCategories(formState.purchaseCategories),
             ...(!formState.orderId ? { ready_for_pickup: false, ready_for_pickup_at: null } : {}),
             customer_id: formState.customerId,
             customer_name: formState.customerName,
@@ -1149,6 +1156,7 @@ export default function OrdersPage() {
           purchaseId: formState.purchaseId,
           purchasePatch: {
             order_id: formState.orderId || null,
+            purchase_categories: normalizePurchaseCategories(formState.purchaseCategories),
             customer_id: formState.customerId,
             customer_name: formState.customerName,
             qty,
@@ -1217,6 +1225,7 @@ export default function OrdersPage() {
           purchase: {
             id: target.id,
             order_id: target.order_id,
+            purchase_categories: normalizePurchaseCategories(target.purchase_categories),
             customer_id: target.customer_id,
             customer_name: target.customer_name,
             qty: target.qty,
@@ -1718,6 +1727,7 @@ export default function OrdersPage() {
     !globalOpen &&
     !formOpen &&
     !orderTransferDialog &&
+    !comparisonOpen &&
     !instantPickupOpen &&
     !instantTabDialogOpen &&
     !lightbox.open &&
@@ -1923,6 +1933,7 @@ export default function OrdersPage() {
                 onOpenAddModal={openAddModal}
                 onOpenOrderSettings={openOrderSettingsDialog}
                 onOpenOrderTransfer={() => setOrderTransferDialog(activeTab === "unassigned" ? { id: null, name: "مشتريات غير معيّنة" } : selectedOrder)}
+                onOpenComparison={() => { if (isRahaf) setComparisonOpen(true); }}
                 customersError={customersError}
                 purchasesLoading={purchasesLoading}
                 purchasesError={purchasesError}
@@ -2382,6 +2393,19 @@ export default function OrdersPage() {
         Icon={Icon}
       />
 
+      {comparisonOpen && isRahaf ? (
+        <Suspense fallback={<div className="purchase-modal-backdrop"><SessionLoader /></div>}>
+          <PurchaseComparisonDialog purchases={purchases} onClose={(reload) => {
+            setComparisonOpen(false);
+            if (reload) { refreshPurchases(null, true); refreshOrders(selectedOrderId); }
+          }} onSaved={async (result) => {
+            await refreshPurchases(null, true);
+            await refreshOrders(selectedOrderId);
+            setComparisonOpen(false);
+            setToast({ type: "success", quick: true, text: `تم توزيع ${result.purchase_count} مشترى على ${result.orders.length} طلب` });
+          }} />
+        </Suspense>
+      ) : null}
       {orderTransferDialog ? (
         <OrderPurchaseTransferDialog
           order={orderTransferDialog}

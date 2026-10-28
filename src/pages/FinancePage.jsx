@@ -91,6 +91,7 @@ export default function FinancePage({ embedded = false }) {
   const [orders, setOrders] = useState([]);
   const [orderStatsMap, setOrderStatsMap] = useState(new Map());
   const [postalFeeAvailable, setPostalFeeAvailable] = useState(false);
+  const [miscDeductionAvailable, setMiscDeductionAvailable] = useState(false);
 
   const [activeTab, setActiveTab] = useState("ledger");
   const [selectedOrderId, setSelectedOrderId] = useState("");
@@ -122,6 +123,7 @@ export default function FinancePage({ embedded = false }) {
         ...getOrderProfitFields(order)
       }));
       setPostalFeeAvailable(ordersRes.postalFeeAvailable);
+      setMiscDeductionAvailable(ordersRes.miscDeductionAvailable);
 
       const stats = new Map();
 
@@ -165,6 +167,7 @@ export default function FinancePage({ embedded = false }) {
       setOrders([]);
       setOrderStatsMap(new Map());
       setPostalFeeAvailable(false);
+      setMiscDeductionAvailable(false);
       setError("تعذر تحميل بيانات المالية.");
     } finally {
       setLoading(false);
@@ -213,7 +216,7 @@ export default function FinancePage({ embedded = false }) {
       };
       const spent = parsePrice(order.spent_amount);
       const pending = Math.max(0, stats.expected - stats.collected);
-      const netProfit = postalFeeAvailable ? Math.max(0, calculateOrderFinanceProfit(stats.purchaseValue, parsePrice(order.postal_fee), spent) - order.marketingFee) : null;
+      const netProfit = postalFeeAvailable ? Math.max(0, calculateOrderFinanceProfit(stats.purchaseValue, parsePrice(order.postal_fee), spent, parsePrice(order.misc_deduction)) - order.marketingFee) : null;
       const [homeProfit, rahafProfit, miraProfit] = netProfit === null ? [null, null, null] : calculateProfitShares(netProfit,
         [order.homeProfitPercent, order.rahafProfitPercent, order.miraProfitPercent],
         [order.homeProfitDeduction, order.rahafProfitDeduction, order.miraProfitDeduction]);
@@ -224,6 +227,7 @@ export default function FinancePage({ embedded = false }) {
         orderDate: order.order_date,
         spent,
         postalFee: postalFeeAvailable ? parsePrice(order.postal_fee) : null,
+        miscDeduction: parsePrice(order.misc_deduction),
         purchaseValue: stats.purchaseValue,
         totalProfit: netProfit,
         marketingFee: order.marketingFee,
@@ -520,6 +524,7 @@ export default function FinancePage({ embedded = false }) {
           <OrderFinanceTable
             orders={orderRows}
             postalFeeAvailable={postalFeeAvailable}
+            miscDeductionAvailable={miscDeductionAvailable}
             onSaved={handleFinanceSaved}
           />
         ) : null}

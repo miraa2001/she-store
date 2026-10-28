@@ -1,0 +1,65 @@
+.comparison-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px; background: #21131f80; }
+.comparison-workspace { width: min(1440px, 100%); height: min(960px, calc(100dvh - 32px)); display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; overflow: hidden; background: #fffafd; border: 1px solid #e4d7e7; border-radius: 8px; color: #47143f; }
+.comparison-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 20px; border-bottom: 1px solid #e4d7e7; }
+.comparison-heading h2 { display: flex; gap: 8px; align-items: center; font-size: 20px; margin: 0; }
+.comparison-steps { display: flex; gap: 4px; padding: 8px 20px; border-bottom: 1px solid #e4d7e7; overflow-x: auto; }
+.comparison-steps button { border: 0; border-bottom: 3px solid transparent; background: transparent; color: #715871; min-height: 44px; padding: 8px 12px; font: inherit; white-space: nowrap; cursor: pointer; }
+.comparison-steps button[aria-current] { border-color: #6d3f6b; color: #47143f; font-weight: 700; }
+.comparison-workspace button:disabled { cursor: not-allowed; opacity: .55; }
+.comparison-content { overflow-y: auto; padding: 20px; min-width: 0; }
+.comparison-workspace input:not([type="checkbox"]), .comparison-workspace select { width: 100%; min-width: 0; height: 42px; border: 1px solid #dfd1e5; background: #fff; color: #332033; border-radius: 4px; padding: 8px 10px; font: inherit; box-sizing: border-box; }
+.comparison-workspace input[type="checkbox"] { flex: 0 0 18px; width: 18px; height: 18px; margin: 0; accent-color: #6d3f6b; }
+.comparison-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.comparison-toolbar > input { max-width: 320px; }
+.comparison-toolbar > label:not(.comparison-check) { display: grid; gap: 6px; width: 160px; font-size: 14px; }
+.comparison-check { display: flex; gap: 12px; align-items: center; min-width: 0; cursor: pointer; }
+.comparison-check span { min-width: 0; }
+.comparison-workspace strong, .comparison-workspace h3 { overflow-wrap: anywhere; }
+.comparison-workspace small { display: block; margin-top: 5px; color: #756a79; font-size: 13px; }
+.comparison-selection-row { display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 16px; align-items: center; padding: 12px 0; border-bottom: 1px solid #e4d7e7; }
+.comparison-order-configs { display: grid; gap: 20px; }
+.comparison-order-config { display: grid; grid-template-columns: 150px 180px 220px minmax(0, 1fr); gap: 16px; border: 0; border-bottom: 1px solid #e4d7e7; padding: 12px 0 20px; margin: 0; min-width: 0; }
+.comparison-order-config legend { font-weight: 700; padding: 0; }
+.comparison-order-config label { display: grid; gap: 6px; min-width: 0; color: #715871; font-size: 13px; }
+.comparison-error { color: #a32f45; font-size: 14px; margin: 8px 0 16px; overflow-wrap: anywhere; }
+.comparison-muted { color: #756a79; }
+.comparison-alternatives { display: flex; gap: 12px; flex-wrap: wrap; }
+.comparison-alternatives button { display: grid; gap: 6px; background: #fff; color: #47143f; padding: 12px 16px; border: 1px solid #dfd1e5; border-radius: 6px; font: inherit; cursor: pointer; }
+.comparison-alternatives button[aria-selected="true"] { background: #f2e8f3; border-color: #6d3f6b; }
+.comparison-alternatives span { font-size: 13px; }
+.comparison-summary { display: flex; gap: 24px; flex-wrap: wrap; padding: 20px 0; border-bottom: 1px solid #e4d7e7; font-size: 14px; }
+.comparison-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
+.comparison-result-group { min-width: 0; padding: 20px 16px; border-bottom: 1px solid #e4d7e7; border-inline-end: 1px solid #e4d7e7; }
+.comparison-result-group header { display: flex; justify-content: space-between; align-items: start; gap: 12px; flex-wrap: wrap; }
+.comparison-workspace h3 { margin: 0; font-size: 16px; }
+.comparison-result-group dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; font-size: 13px; }
+.comparison-result-group dt { color: #756a79; }
+.comparison-result-group dd { margin: 4px 0 0; font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; direction: ltr; unicode-bidi: isolate; text-align: right; }
+.comparison-item { display: grid; grid-template-columns: minmax(0, 1fr) 150px; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #eee5ef; font-size: 14px; }
+.comparison-item > div { min-width: 0; }
+.comparison-item select { font-size: 13px; }
+.comparison-leftovers { padding-block: 24px; }
+.comparison-leftovers h3 { margin-bottom: 12px; }
+.comparison-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 20px; background: #fff; border-top: 1px solid #e4d7e7; }
+.comparison-footer-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.comparison-next { justify-content: flex-end; }
+.comparison-next output { font-size: 14px; overflow-wrap: anywhere; }
+.comparison-footer button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; font: inherit; }
+.comparison-spinner { animation: comparison-spin 1s linear infinite; }
+@keyframes comparison-spin { to { transform: rotate(360deg); } }
+@media (max-width: 1000px) { .comparison-order-config { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) {
+  .comparison-backdrop { padding: 0; }
+  .comparison-workspace { height: 100dvh; border-radius: 0; }
+  .comparison-heading { padding: 12px; }
+  .comparison-heading h2 { font-size: 18px; }
+  .comparison-steps { padding-inline: 8px; }
+  .comparison-steps button { font-size: 13px; padding-inline: 8px; }
+  .comparison-content { padding: 12px; }
+  .comparison-selection-row { grid-template-columns: 1fr; gap: 10px; }
+  .comparison-order-config { gap: 12px; }
+  .comparison-result-group { padding-inline: 0; border-inline-end: 0; }
+  .comparison-item { grid-template-columns: minmax(0, 1fr) 135px; }
+  .comparison-footer { padding: 12px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .comparison-footer button { font-size: 13px; }
+}

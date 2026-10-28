@@ -10,6 +10,10 @@ function isMissingPostalFee(error) {
     String(error?.message || "").includes("postal_fee");
 }
 
+function isMissingMiscDeduction(error) {
+  return ["42703", "PGRST204"].includes(error?.code) && String(error?.message || "").includes("misc_deduction");
+}
+
 export function parseFinanceAmount(value) {
   const text = String(value ?? "").trim();
   const amount = text === "" ? 0 : Number(text);
@@ -23,30 +27,32 @@ export function parseFinanceAmount(value) {
   return Math.round(cents) / 100;
 }
 
-export function calculateOrderFinanceProfit(purchaseValue, postalFee, spent) {
-  return (Math.round(purchaseValue * 100) - Math.round(postalFee * 100) - Math.round(spent * 100)) / 100;
+export function calculateOrderFinanceProfit(purchaseValue, postalFee, spent, miscDeduction = 0) {
+  return (Math.round(purchaseValue * 100) - Math.round(postalFee * 100) - Math.round(spent * 100) - Math.round(miscDeduction * 100)) / 100;
 }
 
 export async function fetchFinanceOrders() {
   const orders = [];
   let postalFeeAvailable = true;
+  let miscDeductionAvailable = true;
 
   for (let offset = 0; ; offset += PAGE_SIZE) {
     const range = { from: offset, to: offset + PAGE_SIZE - 1, createdFrom: FINANCE_START_AT };
-    let result = await selectOrdersWithOptionalProfitFields(
-      postalFeeAvailable ? `${ORDER_COLUMNS}, postal_fee` : ORDER_COLUMNS,
-      range
-    );
-    if (isMissingPostalFee(result.error)) {
-      postalFeeAvailable = false;
-      result = await selectOrdersWithOptionalProfitFields(ORDER_COLUMNS, range);
+    let result;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      result = await selectOrdersWithOptionalProfitFields(
+        `${ORDER_COLUMNS}${postalFeeAvailable ? ", postal_fee" : ""}${miscDeductionAvailable ? ", misc_deduction" : ""}`, range
+      );
+      if (isMissingPostalFee(result.error)) { postalFeeAvailable = false; continue; }
+      if (isMissingMiscDeduction(result.error)) { miscDeductionAvailable = false; continue; }
+      break;
     }
     if (result.error) throw result.error;
     orders.push(...(result.data || []));
     if ((result.data || []).length < PAGE_SIZE) break;
   }
 
-  return { data: orders.filter(isFinanceOrderInPeriod), postalFeeAvailable };
+  return { data: orders.filter(isFinanceOrderInPeriod), postalFeeAvailable, miscDeductionAvailable };
 }
 
 export async function fetchFinancePurchases() {
@@ -63,21 +69,23 @@ export async function fetchFinancePurchases() {
   return { data: purchases };
 }
 
-export async function saveOrderFinance(orderId, { spent, postalFee }) {
+export async function saveOrderFinance(orderId, { spent, postalFee, miscDeduction }) {
   const id = String(orderId || "").trim();
   if (!id) throw new Error("تعذر تحديد الطلبية للحفظ.");
 
   const payload = {
     spent_amount: parseFinanceAmount(spent),
-    postal_fee: parseFinanceAmount(postalFee)
+    postal_fee: parseFinanceAmount(postalFee),
+    ...(miscDeduction === undefined ? {} : { misc_deduction: parseFinanceAmount(miscDeduction) })
   };
   const { data, error } = await sb.from("orders")
     .update(payload)
     .eq("id", id)
-    .select("id, spent_amount, postal_fee")
+    .select(`id, spent_amount, postal_fee${miscDeduction === undefined ? "" : ", misc_deduction"}`)
     .single();
   if (error) {
     if (isMissingPostalFee(error)) throw new Error("رسوم البريد غير متاحة حالياً. تعذر حفظ المالية.");
+    if (isMissingMiscDeduction(error)) throw new Error("يلزم تشغيل تحديث خربشات في قاعدة البيانات أولاً.");
     throw error;
   }
   if (!data?.id) throw new Error("تعذر حفظ مالية الطلبية.");

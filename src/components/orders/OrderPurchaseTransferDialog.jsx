@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowRightLeft, X } from "lucide-react";
 import { formatILS } from "../../lib/orders";
 import { transferPurchasesToOrder } from "../../lib/purchases";
+import PurchaseCategoryLabels from "./PurchaseCategoryLabels";
 
 export default function OrderPurchaseTransferDialog({ order, orders, purchases, onClose, onSaved }) {
   const [selected, setSelected] = useState([]);
@@ -57,7 +58,7 @@ export default function OrderPurchaseTransferDialog({ order, orders, purchases, 
             {eligible.map((purchase) => (
               <label key={purchase.id} className="order-transfer-row">
                 <input type="checkbox" disabled={busy} checked={selected.includes(purchase.id)} onChange={(event) => setSelected((ids) => event.target.checked ? [...ids, purchase.id] : ids.filter((id) => id !== purchase.id))} />
-                <span>{purchase.customer_name}</span>
+                <span className="order-transfer-customer">{purchase.customer_name}<PurchaseCategoryLabels categories={purchase.purchase_categories} /></span>
                 <span>{formatILS(purchase.paid_price ?? purchase.price)} ₪</span>
               </label>
             ))}

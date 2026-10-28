@@ -63,7 +63,7 @@ export function sanitizeLinks(list) {
 export async function fetchPurchasesByOrder(orderId, { unassigned = false } = {}) {
   if (!orderId && !unassigned) return [];
 
-  const columns = "id, order_id, customer_id, customer_name, qty, price, paid_price, bag_size, pickup_point, ready_for_pickup, ready_for_pickup_at, note, created_at, collected, picked_up, purchase_links(url), purchase_images(id,storage_path)";
+  const columns = "id, order_id, customer_id, customer_name, qty, price, paid_price, bag_size, pickup_point, ready_for_pickup, ready_for_pickup_at, note, created_at, collected, picked_up, purchase_categories, purchase_links(url), purchase_images(id,storage_path)";
   const all = [];
   const pageSize = 500;
   for (let offset = 0; ; offset += pageSize) {

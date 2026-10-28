@@ -4,23 +4,25 @@ import { formatDMY } from "../../lib/dateFormat";
 import { formatILS } from "../../lib/orders";
 import { calculateOrderFinanceProfit, parseFinanceAmount, saveOrderFinance } from "../../lib/finance";
 
-function OrderFinanceRow({ order, postalFeeAvailable, onSaved }) {
+function OrderFinanceRow({ order, postalFeeAvailable, miscDeductionAvailable, onSaved }) {
   const [spent, setSpent] = useState(String(order.spent));
   const [postalFee, setPostalFee] = useState(String(order.postalFee ?? ""));
+  const [miscDeduction, setMiscDeduction] = useState(String(order.miscDeduction ?? 0));
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [failed, setFailed] = useState(false);
-  const dirty = spent !== String(order.spent) || postalFee !== String(order.postalFee ?? "");
+  const dirty = spent !== String(order.spent) || postalFee !== String(order.postalFee ?? "") || miscDeduction !== String(order.miscDeduction ?? 0);
 
   useEffect(() => {
     setSpent(String(order.spent));
     setPostalFee(String(order.postalFee ?? ""));
-  }, [order.spent, order.postalFee]);
+    setMiscDeduction(String(order.miscDeduction ?? 0));
+  }, [order.spent, order.postalFee, order.miscDeduction]);
 
   let profit = null;
   if (postalFeeAvailable) {
     try {
-      profit = calculateOrderFinanceProfit(order.purchaseValue, parseFinanceAmount(postalFee), parseFinanceAmount(spent));
+      profit = calculateOrderFinanceProfit(order.purchaseValue, parseFinanceAmount(postalFee), parseFinanceAmount(spent), parseFinanceAmount(miscDeduction));
     } catch {
       profit = null;
     }
@@ -35,6 +37,7 @@ function OrderFinanceRow({ order, postalFeeAvailable, onSaved }) {
   function reset() {
     setSpent(String(order.spent));
     setPostalFee(String(order.postalFee ?? ""));
+    setMiscDeduction(String(order.miscDeduction ?? 0));
     setMessage("");
     setFailed(false);
   }
@@ -45,7 +48,7 @@ function OrderFinanceRow({ order, postalFeeAvailable, onSaved }) {
     setMessage("");
     setFailed(false);
     try {
-      const saved = await saveOrderFinance(order.id, { spent, postalFee });
+      const saved = await saveOrderFinance(order.id, { spent, postalFee, ...(miscDeductionAvailable ? { miscDeduction } : {}) });
       onSaved(saved);
       setMessage("تم الحفظ");
     } catch (error) {
@@ -87,6 +90,11 @@ function OrderFinanceRow({ order, postalFeeAvailable, onSaved }) {
           disabled={saving || !postalFeeAvailable}
         />
       </td>
+      <td>
+        <input type="number" min="0" step="0.01" inputMode="decimal" className="finance-ledger-input"
+          aria-label={`خربشات - ${order.name}`} value={miscDeduction}
+          onChange={(event) => changeValue(setMiscDeduction, event.target.value)} disabled={saving || !postalFeeAvailable || !miscDeductionAvailable} />
+      </td>
       <td className={`finance-ledger-money finance-ledger-profit ${profit < 0 ? "is-negative" : ""}`}>
         {profit === null ? "—" : formatILS(profit)}
       </td>
@@ -126,7 +134,7 @@ function OrderFinanceRow({ order, postalFeeAvailable, onSaved }) {
   );
 }
 
-export default function OrderFinanceTable({ orders, postalFeeAvailable, onSaved }) {
+export default function OrderFinanceTable({ orders, postalFeeAvailable, miscDeductionAvailable, onSaved }) {
   const [search, setSearch] = useState("");
   const visibleOrders = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -136,10 +144,11 @@ export default function OrderFinanceTable({ orders, postalFeeAvailable, onSaved 
     spent: sum.spent + order.spent,
     purchaseValue: sum.purchaseValue + order.purchaseValue,
     postalFee: sum.postalFee + (order.postalFee ?? 0),
+    miscDeduction: sum.miscDeduction + (order.miscDeduction ?? 0),
     marketingFee: sum.marketingFee + order.marketingFee,
-    distributable: sum.distributable + Math.max(0, calculateOrderFinanceProfit(order.purchaseValue, order.postalFee ?? 0, order.spent) - order.marketingFee)
-  }), { spent: 0, purchaseValue: 0, postalFee: 0, marketingFee: 0, distributable: 0 }), [visibleOrders]);
-  const totalProfit = calculateOrderFinanceProfit(totals.purchaseValue, totals.postalFee, totals.spent);
+    distributable: sum.distributable + Math.max(0, calculateOrderFinanceProfit(order.purchaseValue, order.postalFee ?? 0, order.spent, order.miscDeduction ?? 0) - order.marketingFee)
+  }), { spent: 0, purchaseValue: 0, postalFee: 0, miscDeduction: 0, marketingFee: 0, distributable: 0 }), [visibleOrders]);
+  const totalProfit = calculateOrderFinanceProfit(totals.purchaseValue, totals.postalFee, totals.spent, totals.miscDeduction);
 
   return (
     <section className="finance-ledger" aria-label="مالية الطلبيات">
@@ -159,6 +168,7 @@ export default function OrderFinanceTable({ orders, postalFeeAvailable, onSaved 
       {!postalFeeAvailable ? (
         <div className="finance-error" role="alert">رسوم البريد غير متاحة حالياً. تعذر تعديل سجل المالية.</div>
       ) : null}
+      {!miscDeductionAvailable ? <div className="finance-error" role="alert">يلزم تشغيل تحديث خربشات في قاعدة البيانات لتعديل هذا الحقل.</div> : null}
       <div className="finance-ledger-scroll" tabIndex={0} role="region" aria-label="جدول مالية الطلبيات">
         <table className="finance-ledger-table">
           <thead>
@@ -168,6 +178,7 @@ export default function OrderFinanceTable({ orders, postalFeeAvailable, onSaved 
               <th scope="col">المصروف</th>
               <th scope="col">قيمة المشتريات</th>
               <th scope="col">رسوم البريد</th>
+              <th scope="col">خربشات</th>
               <th scope="col">ربح الطلبية</th>
               <th scope="col">التسويق</th>
               <th scope="col">الربح للتوزيع</th>
@@ -176,10 +187,10 @@ export default function OrderFinanceTable({ orders, postalFeeAvailable, onSaved 
           </thead>
           <tbody>
             {visibleOrders.map((order) => (
-              <OrderFinanceRow key={order.id} order={order} postalFeeAvailable={postalFeeAvailable} onSaved={onSaved} />
+              <OrderFinanceRow key={order.id} order={order} postalFeeAvailable={postalFeeAvailable} miscDeductionAvailable={miscDeductionAvailable} onSaved={onSaved} />
             ))}
             {!visibleOrders.length ? (
-              <tr><td colSpan={9} className="finance-muted">{search ? "لا توجد نتائج" : "لا توجد طلبيات"}</td></tr>
+              <tr><td colSpan={10} className="finance-muted">{search ? "لا توجد نتائج" : "لا توجد طلبيات"}</td></tr>
             ) : null}
           </tbody>
           {visibleOrders.length ? (
@@ -189,6 +200,7 @@ export default function OrderFinanceTable({ orders, postalFeeAvailable, onSaved 
                 <td className="finance-ledger-money">{formatILS(totals.spent)}</td>
                 <td className="finance-ledger-money">{formatILS(totals.purchaseValue)}</td>
                 <td className="finance-ledger-money">{postalFeeAvailable ? formatILS(totals.postalFee) : "—"}</td>
+                <td className="finance-ledger-money">{miscDeductionAvailable ? formatILS(totals.miscDeduction) : "—"}</td>
                 <td className={`finance-ledger-money finance-ledger-profit ${totalProfit < 0 ? "is-negative" : ""}`}>
                   {postalFeeAvailable ? formatILS(totalProfit) : "—"}
                 </td>
