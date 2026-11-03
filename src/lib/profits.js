@@ -17,7 +17,7 @@ export function calculateProfitShares(profit, percentages, deductions = [0, 0, 0
   shares.sort((a, b) => b.remainder - a.remainder || a.index - b.index);
   const result = [];
   shares.forEach((share, rank) => {
-    result[share.index] = Math.max(0, share.base + (rank < remaining ? 1 : 0) - Math.round((deductions[share.index] ?? 0) * 100)) / 100;
+    result[share.index] = (share.base + (rank < remaining ? 1 : 0) - Math.round((deductions[share.index] ?? 0) * 100)) / 100;
   });
   return result;
 }
