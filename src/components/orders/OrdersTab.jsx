@@ -5,6 +5,7 @@ import { formatPickupDisplayLabel } from "../../lib/pickup";
 import SessionLoader from "../common/SessionLoader";
 import OrderStatusDropdown from "./OrderStatusDropdown";
 import PurchaseCategoryLabels from "./PurchaseCategoryLabels";
+import { PURCHASE_CATEGORIES } from "../../lib/purchaseCategories";
 import actionsMenuIcon from "../../assets/icons/actions/menu-vertical.png";
 import editIcon from "../../assets/icons/actions/edit.png";
 import editPriceIcon from "../../assets/icons/actions/edit-price.png";
@@ -34,6 +35,8 @@ export default function OrdersTab({
   isRahaf,
   isReem = false,
   isUnassigned = false,
+  unassignedCategory = "all",
+  onUnassignedCategoryChange,
   editMode,
   onUpdateOrderStatus,
   onOpenAddModal,
@@ -77,6 +80,19 @@ export default function OrdersTab({
 
   return (
     <>
+      {isUnassigned ? (
+        <div className="unassigned-filter-toolbar">
+          <div className="unassigned-category-filters" role="group" aria-label="تصفية المشتريات حسب التصنيف">
+            {[{ value: "all", label: "الكل" }, ...PURCHASE_CATEGORIES].map(({ value, label }) => (
+              <button type="button" key={value} aria-pressed={unassignedCategory === value} onClick={() => onUnassignedCategoryChange?.(value)}>{label}</button>
+            ))}
+          </div>
+          <output className="unassigned-filter-total" aria-label="مجموع أسعار المشتريات الظاهرة" aria-live="polite">
+            <span>مجموع الأسعار</span>
+            <strong><bdi dir="ltr">{purchasesLoading || purchasesError ? "—" : formatILS(purchaseStats.totalOriginalPrice)} ₪</bdi></strong>
+          </output>
+        </div>
+      ) : null}
       <div className="order-detail-header">
         <div>
           <h2>{selectedOrder?.name || "اختاري طلبًا"}</h2>

@@ -33,7 +33,7 @@ import {
   updatePurchaseWithRelations
 } from "../lib/purchases";
 import { searchByName } from "../lib/search";
-import { normalizePurchaseCategories } from "../lib/purchaseCategories";
+import { filterPurchasesByCategory, normalizePurchaseCategories } from "../lib/purchaseCategories";
 import {
   CUSTOMER_CITIES,
   createCustomer,
@@ -286,6 +286,7 @@ export default function OrdersPage() {
   const [globalOpen, setGlobalOpen] = useState(false);
   const [ordersMenuOpen, setOrdersMenuOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("orders");
+  const [unassignedCategory, setUnassignedCategory] = useState("all");
   const [search, setSearch] = useState("");
   const [editMode, setEditMode] = useState(true);
   const [selectedOrderId, setSelectedOrderId] = useState("");
@@ -487,16 +488,16 @@ export default function OrdersPage() {
   }, [orders]);
 
   const filteredPurchases = useMemo(() => activeTab === "unassigned"
-    ? searchByName(purchases, search, (purchase) => [purchase.customer_name, purchase.note])
-    : purchases, [activeTab, purchases, search]);
+    ? searchByName(filterPurchasesByCategory(purchases, unassignedCategory), search, (purchase) => [purchase.customer_name, purchase.note])
+    : purchases, [activeTab, purchases, search, unassignedCategory]);
 
   const purchaseStats = useMemo(() => {
-    const count = purchases.length;
-    const totalQty = purchases.reduce((sum, item) => sum + Number(item.qty || 0), 0);
-    const totalOriginalPrice = purchases.reduce((sum, item) => sum + parsePrice(item.price), 0);
-    const totalPaidPrice = purchases.reduce((sum, item) => sum + parsePrice(item.paid_price ?? item.price), 0);
+    const count = filteredPurchases.length;
+    const totalQty = filteredPurchases.reduce((sum, item) => sum + Number(item.qty || 0), 0);
+    const totalOriginalPrice = filteredPurchases.reduce((sum, item) => sum + parsePrice(item.price), 0);
+    const totalPaidPrice = filteredPurchases.reduce((sum, item) => sum + parsePrice(item.paid_price ?? item.price), 0);
     return { count, totalQty, totalOriginalPrice, totalPaidPrice };
-  }, [purchases]);
+  }, [filteredPurchases]);
 
   const filteredCustomers = useMemo(() => {
     return searchByName(customers, customerSearch, (customer) => [
@@ -1921,6 +1922,8 @@ export default function OrdersPage() {
               <OrdersTab
                 selectedOrder={activeTab === "unassigned" ? { id: null, name: "مشتريات غير معيّنة" } : selectedOrder}
                 isUnassigned={activeTab === "unassigned"}
+                unassignedCategory={unassignedCategory}
+                onUnassignedCategoryChange={setUnassignedCategory}
                 selectedOrderStatus={selectedOrderStatus}
                 orderStatusLocked={selectedOrderIsFullyCollected}
                 orderStatusSaving={orderStatusSaving}

@@ -103,6 +103,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
   const isLocationRole = profile.role === pickupLocation.role;
   const canAccessNablusForReem = isReem && pickupLocation.id === "nablus";
   const canAccess = isRahaf || isLocationRole || canAccessNablusForReem;
+  const showManagerDetails = isRahaf || canAccessNablusForReem;
   const canToggleAllOrders =
     (isRahaf || canAccessNablusForReem) && (pickupLocation.id === "maryamti" || pickupLocation.id === "nablus");
   const shouldShowAllOrders = isLocationRole || (canToggleAllOrders && showAllOrdersMode);
@@ -663,7 +664,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
         <div className="pickuppoint-grid pickuppoint-grid--single pickup-two-col-layout">
 
           <main className="pickuppoint-card pickup-main-pane">
-            {isRahaf || isLocationRole ? (
+            {canAccess ? (
               <div className="pickuppoint-global-summary">
                 <div className="pickuppoint-global-collect-row">
                   <span className="pickuppoint-pill">مجموع المبلغ للتحصيل: {formatILS(allOrdersTotal)} ₪</span>
@@ -761,7 +762,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                     <span>{"\u062A\u0645 \u0627\u0644\u0627\u0633\u062A\u0644\u0627\u0645"}</span>
                                   </span>
                                 </th>
-                                {isRahaf ? (
+                                {showManagerDetails ? (
                                   <th>
                                     <span className="pickuppoint-th-label">
                                       <img src={pickupTimeHeaderIcon} alt="" className="pickuppoint-th-icon" aria-hidden="true" />
@@ -847,7 +848,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                         </span>
                                       </div>
                                     </td>
-                                    {isRahaf ? <td>{formatDateTime(purchase.picked_up_at)}</td> : null}
+                                    {showManagerDetails ? <td>{formatDateTime(purchase.picked_up_at)}</td> : null}
                                     {isRahaf ? (
                                       <td>
                                         <button
@@ -942,7 +943,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                               <span>تم الاستلام</span>
                             </span>
                           </th>
-                          {isRahaf ? (
+                          {showManagerDetails ? (
                             <th>
                               <span className="pickuppoint-th-label">
                                 <img src={pickupTimeHeaderIcon} alt="" className="pickuppoint-th-icon" aria-hidden="true" />
@@ -1027,7 +1028,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                     </span>
                                   </div>
                                 </td>
-                                {isRahaf ? <td>{formatDateTime(purchase.picked_up_at)}</td> : null}
+                                {showManagerDetails ? <td>{formatDateTime(purchase.picked_up_at)}</td> : null}
                                 {isRahaf ? (
                                   <td>
                                     <button
@@ -1045,7 +1046,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                           })
                         ) : (
                           <tr>
-                            <td colSpan={isRahaf ? 7 : 4} className="pickuppoint-muted">
+                            <td colSpan={isRahaf ? 7 : showManagerDetails ? 5 : 4} className="pickuppoint-muted">
                               لا يوجد مشتريات
                             </td>
                           </tr>

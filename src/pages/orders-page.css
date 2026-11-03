@@ -4451,3 +4451,11 @@
 .purchase-category-makeup { background: #fbedf3; color: #853c63; }
 .purchase-category-electronics { background: #eaf4f3; color: #316560; }
 .order-transfer-customer { display: grid; gap: 6px; min-width: 0; }
+.unassigned-filter-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-block: 4px 16px; }
+.unassigned-category-filters { display: inline-flex; max-width: 100%; padding: 4px; gap: 4px; border: 1px solid #e4d7e7; border-radius: 6px; background: #fff; flex-wrap: wrap; }
+.unassigned-category-filters button { min-height: 40px; padding: 8px 12px; border: 0; border-radius: 4px; background: transparent; color: #6d3f6b; font: inherit; font-size: 14px; cursor: pointer; }
+.unassigned-category-filters button[aria-pressed="true"] { background: #6d3f6b; color: #fff; }
+.unassigned-category-filters button:focus-visible { outline: 2px solid #6d3f6b; outline-offset: 2px; }
+.unassigned-filter-total { display: inline-flex; align-items: baseline; gap: 12px; flex-wrap: wrap; color: #47143f; }
+.unassigned-filter-total > span { font-size: 14px; color: #756a79; }
+.unassigned-filter-total strong { font-size: 20px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
