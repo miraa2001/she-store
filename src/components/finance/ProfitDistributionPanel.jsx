@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, Banknote, Check, LoaderCircle, RefreshCw } from 
 import { formatDateTime } from "../../lib/dateFormat";
 import { formatILS } from "../../lib/orders";
 import { parseFinanceAmount } from "../../lib/finance";
-import { fetchProfitData, PROFIT_PAGE_SIZE, PROFIT_PARTIES, recordProfitPayout } from "../../lib/profits";
+import { fetchProfitData, HOME_PROFIT_RECIPIENTS, PROFIT_PAGE_SIZE, PROFIT_PARTIES, recordProfitPayout } from "../../lib/profits";
 
 const partyLabel = (party) => PROFIT_PARTIES.find((item) => item.value === party)?.label || party;
 
@@ -13,7 +13,7 @@ export default function ProfitDistributionPanel({ orders = [] }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ party: "home", amount: "", deductHomeCash: "" });
+  const [form, setForm] = useState({ party: "home", homeRecipient: "", amount: "", deductHomeCash: "" });
   const [revision, setRevision] = useState(0);
   const [offset, setOffset] = useState(0);
   const [search, setSearch] = useState("");
@@ -42,17 +42,19 @@ export default function ProfitDistributionPanel({ orders = [] }) {
   async function submit(event) {
     event.preventDefault();
     if (saving || loading || !data) return;
-    if (!window.confirm(`تأكيد تسليم ${form.amount} ₪ إلى ${partyLabel(form.party)}؟`)) return;
+    const recipient = form.party === "home" ? HOME_PROFIT_RECIPIENTS.find((item) => item.value === form.homeRecipient)?.label : partyLabel(form.party);
+    if (!recipient) { setError("اختاري مستلم أرباح البيت."); return; }
+    if (!window.confirm(`تأكيد تسليم ${form.amount} ₪ إلى ${recipient}؟`)) return;
     setSaving(true);
     setError("");
     setMessage("");
     try {
       const amount = parseFinanceAmount(form.amount);
       if (amount <= 0) throw new Error("أدخلي مبلغاً أكبر من صفر.");
-      request.current ||= { requestId: crypto.randomUUID(), party: form.party, amount, deductHomeCash: form.deductHomeCash === "yes" };
+      request.current ||= { requestId: crypto.randomUUID(), party: form.party, homeRecipient: form.party === "home" ? form.homeRecipient : null, amount, deductHomeCash: form.deductHomeCash === "yes" };
       await recordProfitPayout(request.current);
       request.current = null;
-      setForm((previous) => ({ ...previous, amount: "", deductHomeCash: "" }));
+      setForm((previous) => ({ ...previous, homeRecipient: "", amount: "", deductHomeCash: "" }));
       setMessage("تم تسجيل تسليم الأرباح");
       reload();
     } catch (err) {
@@ -95,13 +97,14 @@ export default function ProfitDistributionPanel({ orders = [] }) {
       })}</div>
       <form className="profit-payout-form" onSubmit={submit}>
         <h3>تسليم أرباح</h3>
-        <fieldset disabled={saving || loading || !!request.current}>
+        <fieldset className={form.party === "home" ? "has-home-recipient" : ""} disabled={saving || loading || !!request.current}>
           <label>الطرف<select value={form.party} onChange={(event) => change("party", event.target.value)}>{PROFIT_PARTIES.map((party) => <option key={party.value} value={party.value}>{party.label}</option>)}</select></label>
+          {form.party === "home" ? <label>مستلم أرباح البيت<select required value={form.homeRecipient} onChange={(event) => change("homeRecipient", event.target.value)}><option value="" disabled>اختاري</option>{HOME_PROFIT_RECIPIENTS.map((recipient) => <option key={recipient.value} value={recipient.value}>{recipient.label}</option>)}</select></label> : null}
           <label>المبلغ المسلّم (₪)<input type="number" min="0.01" step="0.01" required value={form.amount} onChange={(event) => change("amount", event.target.value)} /></label>
           <label>خصم من مصاري البيت<select required value={form.deductHomeCash} onChange={(event) => change("deductHomeCash", event.target.value)}><option value="" disabled>اختاري</option><option value="yes">نعم</option><option value="no">لا</option></select></label>
         </fieldset>
         <div className="profit-payout-submit"><span className="finance-muted">الرصيد المتاح: {formatILS(selectedBalance?.balance)} ₪</span>
-          <button type="submit" className="finance-btn primary" disabled={saving || loading || !form.amount || !form.deductHomeCash}>{saving ? <LoaderCircle size={18} className="finance-ledger-spinner" /> : <Check size={18} />}{request.current ? "إعادة المحاولة" : "تم التسليم"}</button>
+          <button type="submit" className="finance-btn primary" disabled={saving || loading || !form.amount || !form.deductHomeCash || (form.party === "home" && !form.homeRecipient)}>{saving ? <LoaderCircle size={18} className="finance-ledger-spinner" /> : <Check size={18} />}{request.current ? "إعادة المحاولة" : "تم التسليم"}</button>
         </div>
         {message ? <div className="finance-ledger-message" role="status">{message}</div> : null}
       </form>
@@ -118,9 +121,9 @@ export default function ProfitDistributionPanel({ orders = [] }) {
         <button className="finance-ledger-icon-btn" title="الأقدم" aria-label="التسليمات الأقدم" disabled={!data.hasMore || loading || saving} onClick={() => setOffset((value) => value + PROFIT_PAGE_SIZE)}><ArrowLeft size={18} /></button>
       </div></div>
       <div className="finance-ledger-scroll" tabIndex={0} role="region" aria-label="سجل تسليم الأرباح">
-        <table className="profit-table"><thead><tr><th>التاريخ</th><th>الطرف</th><th>المبلغ (₪)</th><th>خُصم من مصاري البيت</th><th>بواسطة</th></tr></thead><tbody>
-          {data.payouts.map((payout) => <tr key={payout.id}><td>{formatDateTime(payout.created_at)}</td><td>{partyLabel(payout.party)}</td><td>{formatILS(payout.amount)}</td><td>{payout.deduct_home_cash ? "نعم" : "لا"}</td><td>{payout.actor_email || "النظام"}</td></tr>)}
-          {!data.payouts.length ? <tr><td colSpan={5} className="finance-muted">لا توجد تسليمات</td></tr> : null}
+        <table className="profit-table"><thead><tr><th>التاريخ</th><th>الطرف</th><th>المستلم</th><th>المبلغ (₪)</th><th>خُصم من مصاري البيت</th><th>بواسطة</th></tr></thead><tbody>
+          {data.payouts.map((payout) => <tr key={payout.id}><td>{formatDateTime(payout.created_at)}</td><td>{partyLabel(payout.party)}</td><td>{payout.party === "home" ? HOME_PROFIT_RECIPIENTS.find((item) => item.value === payout.home_recipient)?.label || "البيت (سابق)" : partyLabel(payout.party)}</td><td>{formatILS(payout.amount)}</td><td>{payout.deduct_home_cash ? "نعم" : "لا"}</td><td>{payout.actor_email || "النظام"}</td></tr>)}
+          {!data.payouts.length ? <tr><td colSpan={6} className="finance-muted">لا توجد تسليمات</td></tr> : null}
         </tbody></table>
       </div>
     </> : null}

@@ -26,7 +26,8 @@ test("Reem shares Nablus manager details without gaining locations or admin acti
   }
   assert.match(source, /\{canAccess \? \(\s*<div className="pickuppoint-global-summary">/);
   assert.equal((source.match(/\{showManagerDetails \? <td>\{formatDateTime\(purchase\.picked_up_at\)\}/g) || []).length, 2);
-  assert.match(source, /colSpan=\{isRahaf \? 7 : showManagerDetails \? 5 : 4\}/);
+  assert.match(source, /colSpan=\{isRahaf \? 8 : showManagerDetails \? 6 : 5\}/);
+  assert.equal((source.match(/<th className="pickup-receipt-log-cell">مؤكد عبر<\/th>/g) || []).length, 2);
   for (const handler of ["collectPaymentRows", "collectAllOrders", "startEditPaid", "savePaidPrice", "openTransferDialog", "transferPickupLocation"]) {
     assert.match(source, new RegExp(`function ${handler}\\([^)]*\\) \\{\\s*if \\(!isRahaf`));
   }

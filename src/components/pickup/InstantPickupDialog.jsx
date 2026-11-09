@@ -6,7 +6,7 @@ import { createInstantPickup, INSTANT_PICKUP_LOCATIONS } from "../../lib/instant
 import { PICKUP_HOME } from "../../lib/pickup";
 import "./instant-pickups.css";
 
-export default function InstantPickupDialog({ defaultLocation = PICKUP_HOME, onClose, onSaved }) {
+export default function InstantPickupDialog({ defaultLocation = PICKUP_HOME, onClose, onSaved, onCreate = createInstantPickup, title = "اضافة مستلم فوري" }) {
   const dialogRef = useRef(null);
   const requestId = useRef(crypto.randomUUID());
   const [customerName, setCustomerName] = useState("");
@@ -32,8 +32,8 @@ export default function InstantPickupDialog({ defaultLocation = PICKUP_HOME, onC
     setSaving(true);
     setError("");
     try {
-      const entry = await createInstantPickup({ requestId: requestId.current, customerName, price, pickupPoint });
-      onSaved?.(entry);
+      const entry = await onCreate({ requestId: requestId.current, customerName, price, pickupPoint });
+      await onSaved?.(entry);
       onClose();
     } catch (saveError) {
       setError(saveError?.message || "تعذر حفظ المستلم.");
@@ -51,7 +51,7 @@ export default function InstantPickupDialog({ defaultLocation = PICKUP_HOME, onC
         if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) onClose();
       }}>
       <div className="instant-pickup-dialog-head">
-        <h2 id="instant-pickup-title">اضافة مستلم فوري</h2>
+        <h2 id="instant-pickup-title">{title}</h2>
         <button type="button" className="instant-pickup-icon-btn" onClick={onClose} disabled={saving} title="إغلاق" aria-label="إغلاق"><X size={18} /></button>
       </div>
       <form onSubmit={save}>

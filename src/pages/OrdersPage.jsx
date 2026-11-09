@@ -1,7 +1,7 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
-import { Package, ShoppingBag, UserPlus, Users } from "lucide-react";
+import { Archive, Package, ShoppingBag, UserPlus, Users } from "lucide-react";
 import "./orders-page.css";
 import {
   ORDER_TYPES,
@@ -67,6 +67,8 @@ import {
 import { signOutAndRedirect } from "../lib/session";
 import CustomersTab from "../components/tabs/CustomersTab";
 import InstantPickupsTab from "../components/tabs/InstantPickupsTab";
+import AbandonedPurchasesTab from "../components/tabs/AbandonedPurchasesTab";
+import AbandonPurchasesDialog from "../components/orders/AbandonPurchasesDialog";
 import CommandHeader from "../components/orders/CommandHeader";
 import OrdersBottomSheet from "../components/orders/OrdersBottomSheet";
 import OrdersDrawer from "../components/orders/OrdersDrawer";
@@ -356,6 +358,7 @@ export default function OrdersPage() {
   const [orderSettingsDialog, setOrderSettingsDialog] = useState(null);
   const [orderSettingsDialogBusy, setOrderSettingsDialogBusy] = useState(false);
   const [orderTransferDialog, setOrderTransferDialog] = useState(null);
+  const [abandonCandidates, setAbandonCandidates] = useState(null);
   const [comparisonOpen, setComparisonOpen] = useState(false);
   const [lightbox, setLightbox] = useState({ open: false, images: [], index: 0, title: "" });
   const [highlightPurchaseId, setHighlightPurchaseId] = useState("");
@@ -407,7 +410,7 @@ export default function OrdersPage() {
   const isPickupOnlyRole = isPickupPointRole(profile.role);
   const canUseOrdersWorkbench = isRahaf || isViewOnlyRole;
   const allowedTabs = useMemo(
-    () => (isReem ? ["orders", "instant"] : isRahaf ? ["orders", "customers", "instant", "unassigned"] : isViewOnlyRole ? ["orders", "customers"] : ["orders"]),
+    () => (isReem ? ["orders", "instant"] : isRahaf ? ["orders", "customers", "instant", "abandoned", "unassigned"] : isViewOnlyRole ? ["orders", "customers"] : ["orders"]),
     [isRahaf, isReem, isViewOnlyRole]
   );
 
@@ -429,7 +432,7 @@ export default function OrdersPage() {
     let cancelled = false;
     const needle = String(search || "").trim();
 
-    if (!needle || activeTab === "instant" || activeTab === "unassigned") {
+    if (!needle || activeTab === "instant" || activeTab === "unassigned" || activeTab === "abandoned") {
       setHeaderSearchLoading(false);
       setHeaderSearchResults([]);
       return undefined;
@@ -1706,6 +1709,7 @@ export default function OrdersPage() {
       { id: "orders", label: "الطلبات", Icon: Package },
       { id: "customers", label: "العملاء", Icon: Users },
       { id: "instant", label: "استلام فوري", Icon: ShoppingBag },
+      { id: "abandoned", label: "أرشيف المتروكات", Icon: Archive },
       { id: "unassigned", label: "مشتريات غير معيّنة", Icon: Package }
     ];
     tabs.filter((tab) => tab.id !== activeTab && allowedTabs.includes(tab.id)).forEach((tab) => {
@@ -1728,6 +1732,7 @@ export default function OrdersPage() {
     !globalOpen &&
     !formOpen &&
     !orderTransferDialog &&
+    !abandonCandidates &&
     !comparisonOpen &&
     !instantPickupOpen &&
     !instantTabDialogOpen &&
@@ -1736,7 +1741,7 @@ export default function OrdersPage() {
 
   const ordersPageClassName = [
     "orders-page",
-    showMobileSpeedDial && isRahaf && ["orders", "unassigned"].includes(activeTab) ? "orders-page-fab-clearance" : ""
+    showMobileSpeedDial && isRahaf && ["orders", "unassigned", "abandoned"].includes(activeTab) ? "orders-page-fab-clearance" : ""
   ]
     .filter(Boolean)
     .join(" ");
@@ -1833,7 +1838,7 @@ export default function OrdersPage() {
         onActiveTabChange={setActiveTab}
         search={search}
         onSearchChange={setSearch}
-        searchCount={activeTab === "unassigned" ? filteredPurchases.length : activeTab === "instant" ? null : searchCount}
+        searchCount={activeTab === "unassigned" ? filteredPurchases.length : ["instant", "abandoned"].includes(activeTab) ? null : searchCount}
         editMode={editMode}
         onEditModeChange={setEditMode}
         onOpenSidebar={() => setGlobalOpen(true)}
@@ -1843,7 +1848,7 @@ export default function OrdersPage() {
         Icon={Icon}
       />
 
-      {activeTab !== "instant" && activeTab !== "unassigned" && String(search || "").trim() ? (
+      {activeTab !== "instant" && activeTab !== "unassigned" && activeTab !== "abandoned" && String(search || "").trim() ? (
         <div className="orders-header-search-results">
           {headerSearchLoading ? (
             <div className="orders-search-hint workspace-loader">
@@ -1937,6 +1942,7 @@ export default function OrdersPage() {
                 onOpenOrderSettings={openOrderSettingsDialog}
                 onOpenOrderTransfer={() => setOrderTransferDialog(activeTab === "unassigned" ? { id: null, name: "مشتريات غير معيّنة" } : selectedOrder)}
                 onOpenComparison={() => { if (isRahaf) setComparisonOpen(true); }}
+                onArchivePurchases={rows => { if (isRahaf) { setMenuPurchaseId(""); setAbandonCandidates(rows); } }}
                 customersError={customersError}
                 purchasesLoading={purchasesLoading}
                 purchasesError={purchasesError}
@@ -1982,6 +1988,10 @@ export default function OrdersPage() {
             />
           ) : activeTab === "instant" ? (
             <InstantPickupsTab role={profile.role} search={search} onAdd={openInstantPickup} onDialogChange={setInstantTabDialogOpen} />
+          ) : activeTab === "abandoned" && isRahaf ? (
+            <AbandonedPurchasesTab search={search} onDialogChange={setInstantTabDialogOpen}
+              onOpenLightbox={(images, index, title) => setLightbox({ open: true, images, index, title })}
+              onChanged={async () => { await refreshOrders(selectedOrderId); }} />
           ) : null}
         </section>
       </div>
@@ -2423,6 +2433,11 @@ export default function OrdersPage() {
           }}
         />
       ) : null}
+      {abandonCandidates && isRahaf ? <AbandonPurchasesDialog purchases={abandonCandidates} onClose={() => setAbandonCandidates(null)}
+        onSaved={async () => {
+          await refreshPurchases(selectedOrderId); await refreshOrders(selectedOrderId);
+          setToast({ type: "success", quick: true, text: "تم نقل المشتريات لأرشيف المتروكات بدون تغيير المالية" });
+        }} /> : null}
       {toast ? (
         <div role="status" className={`toast toast-${toast.type || "info"}${toast.quick ? " toast-quick" : ""}`}>
           <span>{toast.text}</span>

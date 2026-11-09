@@ -24,6 +24,7 @@ export default function HomeCashPanel() {
   const [saving, setSaving] = useState(false);
   const [cancellingId, setCancellingId] = useState("");
   const [offset, setOffset] = useState(0);
+  const [logView, setLogView] = useState("receipts");
   const [revision, setRevision] = useState(0);
   const requestId = useRef(null);
 
@@ -31,7 +32,7 @@ export default function HomeCashPanel() {
     let cancelled = false;
     setLoading(true);
     setError("");
-    fetchHomeCash(offset).then((result) => {
+    fetchHomeCash(offset, logView).then((result) => {
       if (!cancelled) setData(result);
     }).catch((loadError) => {
       if (!cancelled) setError(loadError?.message || "تعذر تحميل مصاري البيت.");
@@ -39,7 +40,7 @@ export default function HomeCashPanel() {
       if (!cancelled) setLoading(false);
     });
     return () => { cancelled = true; };
-  }, [offset, revision]);
+  }, [offset, revision, logView]);
 
   function reload() {
     setOffset(0);
@@ -64,6 +65,7 @@ export default function HomeCashPanel() {
       requestId.current = null;
       setExpense((previous) => ({ ...EMPTY_EXPENSE, category: previous.category }));
       setMessage("تم حفظ المصروف");
+      setLogView("manual");
       reload();
     } catch (saveError) {
       setFormError(saveError?.message || "تعذر حفظ المصروف.");
@@ -136,6 +138,14 @@ export default function HomeCashPanel() {
 
           <div className="home-cash-log-heading">
             <h3>سجل الحركات</h3>
+            <div className="home-cash-log-tabs" role="tablist" aria-label="نوع سجل الحركات">
+              {[{ value: "receipts", label: "تحصيل المشتريات" }, { value: "manual", label: "الحركات اليدوية" }].map((view) => (
+                <button key={view.value} type="button" role="tab" aria-selected={logView === view.value}
+                  disabled={saving || !!cancellingId} onClick={() => { setOffset(0); setLogView(view.value); }}>
+                  {view.label}
+                </button>
+              ))}
+            </div>
             <div className="home-cash-pagination">
               <button type="button" className="finance-ledger-icon-btn" title="الأحدث" aria-label="الحركات الأحدث"
                 disabled={offset === 0 || loading} onClick={() => setOffset((value) => Math.max(0, value - HOME_CASH_PAGE_SIZE))}>
@@ -150,7 +160,7 @@ export default function HomeCashPanel() {
           </div>
           <div className="finance-ledger-scroll" tabIndex={0} role="region" aria-label="سجل حركات مصاري البيت" aria-busy={loading}>
             <table className="home-cash-log-table">
-              <thead><tr><th>التاريخ</th><th>الحركة</th><th>المبلغ (₪)</th><th>الرصيد بعدها (₪)</th><th>بواسطة</th><th /></tr></thead>
+              <thead><tr><th>التاريخ</th><th>الحركة</th><th>المبلغ (₪)</th><th>الرصيد بعدها (₪)</th><th>بواسطة</th>{logView === "receipts" ? <th>تأكيد الاستلام بواسطة</th> : null}<th /></tr></thead>
               <tbody>
                 {data.activity.map((entry) => {
                   const category = HOME_CASH_EXPENSE_CATEGORIES.find((item) => item.value === entry.category);
@@ -167,6 +177,7 @@ export default function HomeCashPanel() {
                       </td>
                       <td className={`home-cash-log-amount ${Number(entry.balance_after) < 0 ? "is-negative" : ""}`}>{formatILS(entry.balance_after)}</td>
                       <td className="home-cash-log-actor">{entry.actor_email || "النظام"}</td>
+                      {logView === "receipts" ? <td className="home-cash-log-actor"><bdi>{entry.pickup_actor_email || "غير معروف"}</bdi></td> : null}
                       <td>
                         {entry.kind === "expense" && !entry.is_voided ? (
                           <button type="button" className="finance-ledger-icon-btn" onClick={() => cancelExpense(entry)}
@@ -178,7 +189,7 @@ export default function HomeCashPanel() {
                     </tr>
                   );
                 })}
-                {!data.activity.length ? <tr><td colSpan={6} className="finance-muted">لا توجد حركات</td></tr> : null}
+                {!data.activity.length ? <tr><td colSpan={logView === "receipts" ? 7 : 6} className="finance-muted">لا توجد حركات</td></tr> : null}
               </tbody>
             </table>
           </div>

@@ -701,6 +701,11 @@
 .profit-balances .is-negative { color: #b42318; }
 .profit-payout-form { padding-block: 24px; border-bottom: 1px solid var(--finance-border); }
 .profit-payout-form fieldset { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; border: 0; padding: 0; margin: 16px 0; min-width: 0; }
+.profit-payout-form fieldset.has-home-recipient { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.home-cash-log-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+.home-cash-log-heading { flex-wrap: wrap; }
+.home-cash-log-tabs button { border: 1px solid var(--finance-border); border-radius: 4px; padding: 8px 12px; background: #fff; color: inherit; font: inherit; cursor: pointer; }
+.home-cash-log-tabs button[aria-selected="true"] { background: #704073; color: #fff; border-color: #704073; }
 .profit-payout-form label { display: grid; gap: 6px; min-width: 0; font-size: 13px; color: #64748b; }
 .profit-payout-form input, .profit-payout-form select, .profit-orders-heading input { width: 100%; min-width: 0; height: 42px; box-sizing: border-box; border: 1px solid var(--finance-border); border-radius: 4px; padding: 8px 10px; font: inherit; background: #fff; }
 .profit-payout-submit, .profit-orders-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -715,7 +720,7 @@
   .profit-balances { grid-template-columns: 1fr; gap: 16px; }
   .profit-balances > section { padding-inline: 0; }
   .profit-balances > section + section { border-inline-start: 0; border-top: 1px solid var(--finance-border); padding-top: 16px; }
-  .profit-payout-form fieldset { grid-template-columns: 1fr; }
+  .profit-payout-form fieldset, .profit-payout-form fieldset.has-home-recipient { grid-template-columns: 1fr; }
   .profit-orders-heading input { max-width: none; }
 }
 

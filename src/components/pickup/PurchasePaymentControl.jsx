@@ -1,17 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Banknote, History, X } from "lucide-react";
+import { Archive, Banknote, History, X } from "lucide-react";
 import { sb } from "../../lib/supabaseClient";
 import { formatILS } from "../../lib/orders";
 import { formatDateTime } from "../../lib/dateFormat";
-import { agreedAmount, paidAmount, remainingAmount, collectibleAmount, canRecordPayment, canConfirmStaffPickup, confirmStaffPickup, paymentRpc, recordPayment } from "../../lib/payments";
+import { agreedAmount, paidAmount, remainingAmount, collectibleAmount, canRecordPayment, canConfirmStaffPickup, confirmFullPickup, confirmStaffPickup, paymentRpc, recordPayment } from "../../lib/payments";
 import { buildPickupStatusMessage, notifyPickupStatus } from "../../lib/pickupNotifications";
 import { setBodyScrollLock } from "../../lib/bodyScrollLock";
 import PickupAnimatedCheckbox from "../common/PickupAnimatedCheckbox";
+import AbandonPurchasesDialog from "../orders/AbandonPurchasesDialog";
+import { canArchivePurchase } from "../../lib/abandonedPurchases";
 import "./purchase-payments.css";
 
 export default function PurchasePaymentControl({ purchase, role, instant = false, onSaved, compact = false }) {
   const [open, setOpen] = useState(false);
+  const [partialPayment, setPartialPayment] = useState(false);
+  const [archiving, setArchiving] = useState(false);
   const [state, setState] = useState(null);
   const [amount, setAmount] = useState("");
   const [error, setError] = useState("");
@@ -20,11 +24,14 @@ export default function PurchasePaymentControl({ purchase, role, instant = false
   const [reason, setReason] = useState("");
   const [cancelId, setCancelId] = useState("");
   const requestRef = useRef("");
+  const fullRequestRef = useRef("");
   const dialogRef = useRef(null);
   const busyRef = useRef(false);
   const active = state?.purchase || purchase;
   const canPay = canRecordPayment(role);
   const canConfirmPickup = canConfirmStaffPickup(role);
+
+  useEffect(() => { if (!open) setPartialPayment(false); }, [open]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -33,7 +40,7 @@ export default function PurchasePaymentControl({ purchase, role, instant = false
     setLoading(true); setError(""); setState(null); setCancelId(""); setReason("");
     paymentRpc(sb, "get_purchase_payment_state", { p_id: purchase.id, p_instant: instant }).then((result) => {
       if (cancelled) return;
-      setState(result); setAmount(remainingAmount(result.purchase).toFixed(2)); requestRef.current = crypto.randomUUID();
+      setState(result); setAmount(""); requestRef.current = crypto.randomUUID();
     }).catch((e) => { if (!cancelled) setError(e.message || "تعذر تحميل الدفعات."); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; setBodyScrollLock(`payment-${purchase.id}`, false); };
@@ -100,25 +107,55 @@ export default function PurchasePaymentControl({ purchase, role, instant = false
     finally { busyRef.current = false; setBusy(false); }
   }
 
+  async function tickPickup() {
+    if (busyRef.current || (!canPay && !canConfirmPickup)) return;
+    if (purchase.picked_up || partialPayment) { setOpen(true); return; }
+    busyRef.current = true; setBusy(true); setError("");
+    try {
+      fullRequestRef.current ||= crypto.randomUUID();
+      const result = await confirmFullPickup(sb, { requestId: fullRequestRef.current, purchase, instant });
+      if (result.changed_receipt) await notifyPickupStatus(buildPickupStatusMessage({
+        picked: true, customerName: purchase.customer_name, price: agreedAmount(result.purchase), pickupLabel: result.purchase.pickup_point
+      }));
+      await onSaved?.(result.purchase);
+      fullRequestRef.current = "";
+    } catch (e) { setError(e.message || "تعذر تأكيد الاستلام."); }
+    finally { busyRef.current = false; setBusy(false); }
+  }
+
+  function openPartialPayment() {
+    if (busyRef.current || !canPay) return;
+    setPartialPayment(true); setOpen(true);
+  }
+
   return <div className="purchase-payment-control">
     {!compact ? <PickupAnimatedCheckbox checked={purchase.picked_up} disabled={busy || (!canPay && (!canConfirmPickup || purchase.picked_up))}
-      ariaLabel={`استلام ${purchase.customer_name}`} onChange={() => setOpen(true)} /> : null}
+      ariaLabel={`استلام ${purchase.customer_name}`} onChange={tickPickup} /> : null}
     <div className="purchase-payment-summary">
       <span>المدفوع {formatILS(paidAmount(purchase))} ₪ · المتبقي {formatILS(remainingAmount(purchase))} ₪</span>
       {collectibleAmount(purchase) > 0 ? <small>بانتظار التحصيل {formatILS(collectibleAmount(purchase))} ₪</small> : null}
       <div className="purchase-payment-actions">
-        {canPay && remainingAmount(purchase) > 0 ? <button type="button" onClick={() => setOpen(true)}><Banknote size={15} />{purchase.picked_up ? "إضافة دفعة" : "استلام ودفعة"}</button> : null}
-        <button type="button" title="سجل الدفعات" aria-label={`سجل دفعات ${purchase.customer_name}`} onClick={() => setOpen(true)}><History size={16} /></button>
+        {canPay && !purchase.picked_up && remainingAmount(purchase) > 0 ? <label className="purchase-partial-toggle">
+          <input type="checkbox" role="switch" aria-label={`دفع جزئي ${purchase.customer_name}`} checked={partialPayment} disabled={busy}
+            onChange={(event) => { if (event.target.checked) openPartialPayment(); else setPartialPayment(false); }} />
+          <span>دفع جزئي</span>
+        </label> : null}
+        {canPay && purchase.picked_up && remainingAmount(purchase) > 0 ? <button type="button" disabled={busy} onClick={openPartialPayment}><Banknote size={15} />إضافة دفعة</button> : null}
+        <button type="button" disabled={busy} title="سجل الدفعات" aria-label={`سجل دفعات ${purchase.customer_name}`} onClick={() => setOpen(true)}><History size={16} /></button>
+        {role === "rahaf" && !instant && canArchivePurchase(purchase) ? <button type="button" disabled={busy} title="نقل إلى أرشيف المتروكات" aria-label={`أرشفة ${purchase.customer_name}`} onClick={() => setArchiving(true)}><Archive size={16} /></button> : null}
       </div>
+      {error && !open ? <small className="purchase-payment-inline-error" role="alert">{error}</small> : null}
     </div>
+    {archiving ? <AbandonPurchasesDialog purchases={[purchase]} onClose={() => setArchiving(false)} onSaved={() => onSaved?.()} /> : null}
     {open ? createPortal(<div className="purchase-payment-overlay" onClick={() => { if (!busy) setOpen(false); }}>
       <section ref={dialogRef} className="purchase-payment-dialog" role="dialog" aria-modal="true" aria-label={`دفعات ${purchase.customer_name}`} dir="rtl" onClick={(event) => event.stopPropagation()}>
         <header><h3>{purchase.customer_name}</h3><button type="button" disabled={busy} title="إغلاق" aria-label="إغلاق الدفعات" onClick={() => setOpen(false)}><X size={20} /></button></header>
         <p>{active.pickup_point}</p>
+        {active.picked_up ? <p>تم تأكيد الاستلام بواسطة: <bdi>{active.picked_up_by_email || "غير معروف"}</bdi></p> : null}
         <dl><div><dt>السعر المتفق عليه</dt><dd>{formatILS(agreedAmount(active))} ₪</dd></div><div><dt>المدفوع</dt><dd>{formatILS(paidAmount(active))} ₪</dd></div><div><dt>المتبقي</dt><dd>{formatILS(remainingAmount(active))} ₪</dd></div></dl>
         {error ? <div className="purchase-payment-error" role="alert">{error}</div> : null}
         {loading ? <p role="status">جاري التحميل...</p> : null}
-        {state && canPay && remainingAmount(active) > 0 ? <form onSubmit={save}>
+        {state && canPay && partialPayment && remainingAmount(active) > 0 ? <form onSubmit={save}>
           <label>مبلغ الدفعة (₪)<input autoFocus type="number" inputMode="decimal" min="0.01" max={remainingAmount(active)} step="0.01" value={amount} disabled={busy} required
             onChange={(event) => { setAmount(event.target.value); requestRef.current = crypto.randomUUID(); }} /></label>
           <button className="payment-primary" type="submit" disabled={busy}>{busy ? "جاري الحفظ..." : active.picked_up ? "حفظ الدفعة" : "تأكيد الاستلام والدفعة"}</button>
@@ -142,11 +179,16 @@ export default function PurchasePaymentControl({ purchase, role, instant = false
   </div>;
 }
 
+export function PickupReceiptLog({ purchase, showLabel = true }) {
+  return purchase.picked_up ? <small className="purchase-payment-actor">{showLabel ? "تم تأكيد الاستلام بواسطة: " : null}<bdi>{purchase.picked_up_by_email || "غير معروف"}</bdi></small> : null;
+}
+
 export function OutstandingPaymentsSection({ rows, role, instant = false, onSaved }) {
   const pending = rows.filter((row) => row.picked_up && (remainingAmount(row) > 0 || collectibleAmount(row) > 0));
   if (!pending.length) return null;
   return <section className="outstanding-payments" dir="rtl"><h3>متبقي عليه مبلغ</h3>
     {pending.map((purchase) => <div className="outstanding-payment-row" key={purchase.id}><strong>{purchase.customer_name}</strong>
-      <PurchasePaymentControl compact purchase={purchase} role={role} instant={instant} onSaved={onSaved} /></div>)}
+      <PurchasePaymentControl compact purchase={purchase} role={role} instant={instant} onSaved={onSaved} />
+      <PickupReceiptLog purchase={purchase} /></div>)}
   </section>;
 }

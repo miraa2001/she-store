@@ -5,6 +5,9 @@ export const PROFIT_PARTIES = [
   { value: "home", label: "البيت" }, { value: "rahaf", label: "رهف" }, { value: "mira", label: "ميرا" }
 ];
 export const PROFIT_PAGE_SIZE = 25;
+export const HOME_PROFIT_RECIPIENTS = [
+  { value: "reem", label: "ريم" }, { value: "rawand", label: "روند" }, { value: "mama", label: "ماما" }
+];
 
 export function calculateProfitShares(profit, percentages, deductions = [0, 0, 0]) {
   if (percentages.some((value) => value === null || value === undefined)) return [null, null, null];
@@ -30,7 +33,7 @@ function profitError(error) {
 export async function fetchProfitData(offset = 0) {
   const [balances, payouts] = await Promise.all([
     sb.rpc("get_profit_balances"),
-    sb.from("profit_payouts").select("id, party, amount, deduct_home_cash, actor_email, created_at")
+    sb.from("profit_payouts").select("id, party, home_recipient, amount, deduct_home_cash, actor_email, created_at")
       .order("created_at", { ascending: false }).order("id", { ascending: false })
       .range(offset, offset + PROFIT_PAGE_SIZE)
   ]);
@@ -47,11 +50,13 @@ export async function fetchProfitData(offset = 0) {
   return { balances: balances.data || [], orders, payouts: (payouts.data || []).slice(0, PROFIT_PAGE_SIZE), hasMore: (payouts.data || []).length > PROFIT_PAGE_SIZE };
 }
 
-export async function recordProfitPayout({ requestId, party, amount, deductHomeCash }) {
+export async function recordProfitPayout({ requestId, party, amount, deductHomeCash, homeRecipient = null }) {
   const value = parseFinanceAmount(amount);
   if (value <= 0) throw new Error("أدخلي مبلغاً أكبر من صفر.");
+  if (party === "home" && !HOME_PROFIT_RECIPIENTS.some((item) => item.value === homeRecipient)) throw new Error("اختاري مستلم أرباح البيت.");
   const { data, error } = await sb.rpc("record_profit_payout", {
-    p_request_id: requestId, p_party: party, p_amount: value, p_deduct_home_cash: deductHomeCash
+    p_request_id: requestId, p_party: party, p_amount: value, p_deduct_home_cash: deductHomeCash,
+    p_home_recipient: party === "home" ? homeRecipient : null
   });
   if (error) throw profitError(error);
   return data;

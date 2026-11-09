@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowRightLeft, Scale } from "lucide-react";
+import { Archive, ArrowRightLeft, Scale } from "lucide-react";
+import { canArchivePurchase } from "../../lib/abandonedPurchases";
 import { formatILS } from "../../lib/orders";
 import { formatPickupDisplayLabel } from "../../lib/pickup";
 import SessionLoader from "../common/SessionLoader";
@@ -43,6 +44,7 @@ export default function OrdersTab({
   onOpenOrderSettings,
   onOpenOrderTransfer,
   onOpenComparison,
+  onArchivePurchases,
   customersError,
   purchasesLoading,
   purchasesError,
@@ -108,6 +110,8 @@ export default function OrdersTab({
         </div>
 
         <div className="order-detail-actions">
+          {isRahaf && editMode && !isUnassigned && selectedOrder ? <button type="button" className="icon-btn" title="نقل إلى أرشيف المتروكات" aria-label="نقل إلى أرشيف المتروكات"
+            disabled={purchasesLoading || !!purchasesError || !filteredPurchases.some(canArchivePurchase)} onClick={() => onArchivePurchases(filteredPurchases)}><Archive size={20} /></button> : null}
           {isUnassigned && isRahaf && editMode ? (
             <button type="button" className="icon-btn" disabled={purchasesLoading || !!purchasesError || !purchaseStats.count} title="مقارنة التقسيم" aria-label="مقارنة التقسيم" onClick={onOpenComparison}><Scale size={20} /></button>
           ) : null}
@@ -182,7 +186,7 @@ export default function OrdersTab({
       {!purchasesLoading && !purchasesError && filteredPurchases.length ? (
         <div className="purchase-cards-grid">
           {filteredPurchases.map((purchase) => {
-            const canShowWhatsapp = isRahaf && !!selectedOrder?.arrived;
+            const canShowWhatsapp = isRahaf && !!selectedOrder?.arrived && !purchase.abandoned_at;
             const purchaseNote = String(purchase.note || "").trim();
             const mobileNoteText = purchaseNote || "لا توجد ملاحظة";
             const shouldShowMobileNote = canShowPurchaseNotes && (isReem ? !!purchaseNote : true);
@@ -191,7 +195,7 @@ export default function OrdersTab({
               : [];
             const totalImages = imageList.length;
             const currentSlide = normalizeSlideIndex(cardSlideIndexes[purchase.id] || 0, totalImages);
-            const menuNode = isRahaf && editMode ? (
+            const menuNode = isRahaf && editMode && !purchase.abandoned_at ? (
               <div className="purchase-menu-wrap" data-menu-root>
                 <button
                   type="button"
@@ -209,6 +213,9 @@ export default function OrdersTab({
 
                 {String(menuPurchaseId) === String(purchase.id) ? (
                   <div className="purchase-menu-pop" role="menu">
+                    {!isUnassigned ? <button type="button" className="value" role="menuitem" disabled={!canArchivePurchase(purchase)} onClick={() => onArchivePurchases([purchase])}>
+                      <Archive size={17} /><span>نقل إلى أرشيف المتروكات</span>
+                    </button> : null}
                     <button type="button" className="value" role="menuitem" onClick={() => onEditPurchase(purchase)}>
                       <img src={editIcon} alt="" aria-hidden="true" className="value-icon" />
                       <span>تعديل</span>
@@ -300,6 +307,7 @@ export default function OrdersTab({
                     </div>
 
                     <div className="purchaseVBody" dir="rtl">
+                      {purchase.abandoned_at ? <span className="abandoned-purchase-badge">في أرشيف المتروكات</span> : null}
                       {isUnassigned ? <PurchaseCategoryLabels categories={purchase.purchase_categories} /> : null}
                       <div className="purchaseVField purchaseVField-primary">
                         <p className="purchaseVLabel">الاسم</p>
@@ -362,6 +370,7 @@ export default function OrdersTab({
                 <div className="purchase-mobile-shell">
                   <div className="purchase-mobile-head">
                     <strong>{purchase.customer_name || "—"}</strong>
+                    {purchase.abandoned_at ? <span className="abandoned-purchase-badge">في أرشيف المتروكات</span> : null}
                   </div>
                   {isUnassigned ? <PurchaseCategoryLabels categories={purchase.purchase_categories} /> : null}
 

@@ -43,7 +43,8 @@
 .instant-pickup-table th:first-child { width: 30%; }
 .instant-pickup-table th:nth-child(2) { width: 95px; }
 .instant-pickup-table th:nth-child(3) { width: 285px; }
-.instant-pickup-table.has-actions th:last-child { width: 156px; }
+.instant-pickup-table.has-actions th:nth-child(5) { width: 156px; }
+.instant-pickup-table th:last-child { width: 210px; }
 .instant-pickup-money { direction: ltr; font-variant-numeric: tabular-nums; }
 .instant-pickup-date { font-size: 12px; color: #64748b; }
 .instant-pickup-total { margin-top: 12px; font-size: 13px; color: #64748b; }

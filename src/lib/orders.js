@@ -164,7 +164,8 @@ async function prepareOrderPurchasesForPickup(orderId, readyAt = new Date().toIS
     .from("purchases")
     .select("id, customer_id, pickup_point")
     .eq("order_id", orderId)
-    .eq("collected", false);
+    .eq("collected", false)
+    .eq("picked_up", false);
 
   if (purchasesError) throw purchasesError;
   if (!purchaseRows?.length) return 0;
@@ -186,8 +187,13 @@ async function prepareOrderPurchasesForPickup(orderId, readyAt = new Date().toIS
     });
   }
 
+  const { data: payments, error: paymentsError } = await sb.from("purchase_payments")
+    .select("purchase_id").in("purchase_id", purchaseRows.map((purchase) => purchase.id));
+  if (paymentsError) throw paymentsError;
+  const protectedIds = new Set((payments || []).map((payment) => payment.purchase_id));
   const groupedByPickup = new Map();
   purchaseRows.forEach((purchase) => {
+    if (protectedIds.has(purchase.id)) return;
     const customer = customersById.get(String(purchase.customer_id || ""));
     const preferred = customer
       ? getPreferredPickupForCustomer(customer, purchase.pickup_point || PICKUP_HOME)
@@ -212,19 +218,6 @@ async function prepareOrderPurchasesForPickup(orderId, readyAt = new Date().toIS
   }
 
   return purchaseRows.length;
-}
-
-async function resetOrderPurchasesPickupReadiness(orderId) {
-  const { error } = await sb
-    .from("purchases")
-    .update({
-      ready_for_pickup: false,
-      ready_for_pickup_at: null
-    })
-    .eq("order_id", orderId)
-    .eq("collected", false);
-
-  if (error) throw error;
 }
 
 export async function fetchOrdersWithSummary() {
@@ -346,8 +339,6 @@ export async function updateOrderPlacedAtPickup(orderId, enabled) {
 
   if (enabled) {
     await prepareOrderPurchasesForPickup(orderId, readyAt);
-  } else {
-    await resetOrderPurchasesPickupReadiness(orderId);
   }
 
   return payload;
@@ -369,9 +360,7 @@ export async function updateOrderWorkflowStatus(orderId, nextStatus) {
   const { error } = await sb.from("orders").update(payload).eq("id", orderId);
   if (error) throw error;
 
-  if (status === ORDER_STATUS.PENDING || status === ORDER_STATUS.ARRIVED) {
-    await resetOrderPurchasesPickupReadiness(orderId);
-  } else if (status === ORDER_STATUS.AT_PICKUP) {
+  if (status === ORDER_STATUS.AT_PICKUP) {
     await prepareOrderPurchasesForPickup(orderId, nowIso);
   }
 

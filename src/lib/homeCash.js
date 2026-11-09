@@ -20,10 +20,10 @@ function cashError(error) {
   return error;
 }
 
-export async function fetchHomeCash(offset = 0) {
+export async function fetchHomeCash(offset = 0, view = "receipts") {
   const [summaryResult, activityResult] = await Promise.all([
     sb.rpc("get_home_cash_summary"),
-    sb.rpc("get_home_cash_activity", { p_offset: offset, p_limit: HOME_CASH_PAGE_SIZE + 1 })
+    sb.rpc("get_home_cash_activity_view", { p_view: view, p_offset: offset, p_limit: HOME_CASH_PAGE_SIZE + 1 })
   ]);
   if (summaryResult.error) throw cashError(summaryResult.error);
   if (activityResult.error) throw cashError(activityResult.error);

@@ -15,7 +15,7 @@ import { signOutAndRedirect } from "../lib/session";
 import { sb } from "../lib/supabaseClient";
 import SessionLoader from "../components/common/SessionLoader";
 import AppNavIcon from "../components/common/AppNavIcon";
-import PurchasePaymentControl, { OutstandingPaymentsSection } from "../components/pickup/PurchasePaymentControl";
+import PurchasePaymentControl, { OutstandingPaymentsSection, PickupReceiptLog } from "../components/pickup/PurchasePaymentControl";
 import PickupTransferDialog from "../components/pickup/PickupTransferDialog";
 import InstantPickupSection from "../components/pickup/InstantPickupSection";
 import SheStoreLogo from "../components/common/SheStoreLogo";
@@ -90,7 +90,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
   const [search, setSearch] = useState("");
   const [highlightPurchaseId, setHighlightPurchaseId] = useState("");
   const [paidEditor, setPaidEditor] = useState({ id: "", value: "", saving: false });
-  const [showAllOrdersMode, setShowAllOrdersMode] = useState(false);
+  const [showAllOrdersMode, setShowAllOrdersMode] = useState(true);
   const [transferDialog, setTransferDialog] = useState(null);
   const [transferBusy, setTransferBusy] = useState(false);
   const location = useLocation();
@@ -206,10 +206,11 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
   }, [location.pathname, location.search, location.hash]);
 
   useEffect(() => {
+    if (profile.loading) return;
     if (!canToggleAllOrders) {
       setShowAllOrdersMode(false);
     }
-  }, [canToggleAllOrders]);
+  }, [canToggleAllOrders, profile.loading]);
 
   useEffect(() => {
     if (shouldShowAllOrders) {
@@ -294,7 +295,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
     try {
       const { data, error: purchasesError } = await sb
         .from("purchases")
-        .select("id, order_id, customer_name, price, paid_price, picked_up, picked_up_at, pickup_point, ready_for_pickup, ready_for_pickup_at, collected, received_amount, remitted_amount")
+        .select("id, order_id, customer_name, price, paid_price, picked_up, picked_up_at, picked_up_by_email, pickup_point, ready_for_pickup, ready_for_pickup_at, collected, received_amount, remitted_amount, purchase_payments(id)")
         .in("order_id", orderIds)
         .eq("ready_for_pickup", true)
         .eq("collected", false)
@@ -777,6 +778,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                     </span>
                                   </th>
                                 ) : null}
+                                <th className="pickup-receipt-log-cell">مؤكد عبر</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -861,6 +863,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                         </button>
                                       </td>
                                     ) : null}
+                                    <td className="pickup-receipt-log-cell"><PickupReceiptLog purchase={purchase} showLabel={false} /></td>
                                   </tr>
                                 );
                               })}
@@ -958,6 +961,7 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                               </span>
                             </th>
                           ) : null}
+                          <th className="pickup-receipt-log-cell">مؤكد عبر</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1041,12 +1045,13 @@ export default function PickupPointPage({ embedded = false, locationId = "maryam
                                     </button>
                                   </td>
                                 ) : null}
+                                <td className="pickup-receipt-log-cell"><PickupReceiptLog purchase={purchase} showLabel={false} /></td>
                               </tr>
                             );
                           })
                         ) : (
                           <tr>
-                            <td colSpan={isRahaf ? 7 : showManagerDetails ? 5 : 4} className="pickuppoint-muted">
+                            <td colSpan={isRahaf ? 8 : showManagerDetails ? 6 : 5} className="pickuppoint-muted">
                               لا يوجد مشتريات
                             </td>
                           </tr>

@@ -26,7 +26,7 @@ export async function fetchInstantPickups(pickupPoint, collected = false) {
   const rows = [];
   for (let offset = 0; ; offset += 500) {
     const { data, error } = await sb.from("instant_pickups")
-      .select("id, customer_name, price, pickup_point, picked_up, picked_up_at, collected, collected_at, created_at, received_amount, remitted_amount")
+      .select("id, customer_name, price, pickup_point, picked_up, picked_up_at, picked_up_by_email, collected, collected_at, created_at, received_amount, remitted_amount")
       .eq("pickup_point", pickupPoint).eq("collected", collected)
       .order("created_at", { ascending: false }).order("id", { ascending: false })
       .range(offset, offset + 499);

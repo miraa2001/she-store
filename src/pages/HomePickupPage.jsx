@@ -6,7 +6,7 @@ import { usePurchaseCustomerSearch } from "../hooks/usePurchaseCustomerSearch";
 import { getOrdersNavItems, isNavHrefActive } from "../lib/navigation";
 import { formatILS, parsePrice } from "../lib/orders";
 import { movePurchaseToPickupLocation } from "../lib/purchases";
-import { collectibleAmount, collectPayments } from "../lib/payments";
+import { canCollectPayment, collectibleAmount, collectPayments } from "../lib/payments";
 import { buildCollectedMoneyMessage, notifyPickupStatus } from "../lib/pickupNotifications";
 import { PICKUP_DELIVERY, PICKUP_HOME } from "../lib/pickup";
 import { setBodyScrollLock } from "../lib/bodyScrollLock";
@@ -14,7 +14,7 @@ import { signOutAndRedirect } from "../lib/session";
 import { sb } from "../lib/supabaseClient";
 import SessionLoader from "../components/common/SessionLoader";
 import AppNavIcon from "../components/common/AppNavIcon";
-import PurchasePaymentControl, { OutstandingPaymentsSection } from "../components/pickup/PurchasePaymentControl";
+import PurchasePaymentControl, { OutstandingPaymentsSection, PickupReceiptLog } from "../components/pickup/PurchasePaymentControl";
 import PickupTransferDialog from "../components/pickup/PickupTransferDialog";
 import InstantPickupSection from "../components/pickup/InstantPickupSection";
 import SheStoreLogo from "../components/common/SheStoreLogo";
@@ -76,7 +76,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
   const [highlightPurchaseId, setHighlightPurchaseId] = useState("");
   const [paidEditor, setPaidEditor] = useState({ id: "", value: "", saving: false });
   const [lightbox, setLightbox] = useState({ open: false, images: [], index: 0, label: "" });
-  const [showAllOrdersMode, setShowAllOrdersMode] = useState(false);
+  const [showAllOrdersMode, setShowAllOrdersMode] = useState(true);
   const [transferDialog, setTransferDialog] = useState(null);
   const [transferBusy, setTransferBusy] = useState(false);
   const location = useLocation();
@@ -215,10 +215,11 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
   }, [location.pathname, location.search, location.hash]);
 
   useEffect(() => {
+    if (profile.loading) return;
     if (!canToggleAllOrders) {
       setShowAllOrdersMode(false);
     }
-  }, [canToggleAllOrders]);
+  }, [canToggleAllOrders, profile.loading]);
 
   const loadOrders = useCallback(async () => {
     setLoadingOrders(true);
@@ -246,8 +247,6 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
         .from("orders")
         .select("id, order_name, created_at")
         .in("id", orderIds)
-        .eq("arrived", true)
-        .eq("placed_at_pickup", true)
         .order("created_at", { ascending: false });
 
       if (orderError) throw orderError;
@@ -292,7 +291,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
       let purchasesQuery = sb
         .from("purchases")
         .select(
-          "id, order_id, customer_name, price, paid_price, picked_up, picked_up_at, pickup_point, ready_for_pickup, ready_for_pickup_at, collected, purchase_images(storage_path), received_amount, remitted_amount"
+          "id, order_id, customer_name, price, paid_price, picked_up, picked_up_at, picked_up_by_email, pickup_point, ready_for_pickup, ready_for_pickup_at, collected, purchase_images(storage_path), received_amount, remitted_amount, purchase_payments(id)"
         )
         .eq("pickup_point", pickupPoint)
         .eq("ready_for_pickup", true)
@@ -356,7 +355,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
 
   async function collectPaymentRows(items, busySetter) {
     if (!isRahaf) return;
-    const pending = items.filter((row) => collectibleAmount(row) > 0);
+    const pending = items.filter(canCollectPayment);
     if (!pending.length) return;
     const total = pending.reduce((sum, row) => sum + collectibleAmount(row), 0);
     if (!window.confirm("تأكيد تحصيل " + formatILS(total) + " ₪؟")) return;
@@ -547,6 +546,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
           ) : null}
           <small>{formatDateTime(purchase.picked_up_at)}</small>
         </footer>
+        <PickupReceiptLog purchase={purchase} />
       </article>
     );
   }
@@ -601,6 +601,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
                   </span>
                 </th>
               ) : null}
+              <th className="pickup-receipt-log-cell">مؤكد عبر</th>
             </tr>
           </thead>
           <tbody>
@@ -701,12 +702,13 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
                         </button>
                       </td>
                     ) : null}
+                    <td className="pickup-receipt-log-cell"><PickupReceiptLog purchase={purchase} showLabel={false} /></td>
                   </tr>
                 );
               })
             ) : (
               <tr>
-                <td colSpan={isRahaf ? 7 : 5} className="homepickup-muted">
+                <td colSpan={isRahaf ? 8 : 6} className="homepickup-muted">
                   لا توجد مشتريات
                 </td>
               </tr>
@@ -918,7 +920,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
                       type="button"
                       className="homepickup-btn homepickup-allorders-collect-btn"
                       onClick={collectAllHomeMoney}
-                      disabled={collectingAll || amountToCollect <= 0}
+                      disabled={collectingAll || !visiblePurchases.some(canCollectPayment)}
                     >
                       {collectingAll ? "جاري التحصيل..." : "تم استلام تحصيل الكل"}
                     </button>
@@ -1084,6 +1086,7 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
                                 </span>
                               </th>
                             ) : null}
+                            <th className="pickup-receipt-log-cell">مؤكد عبر</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1185,12 +1188,13 @@ export default function HomePickupPage({ embedded = false, pickupPoint = PICKUP_
                                       </button>
                                     </td>
                                   ) : null}
+                                  <td className="pickup-receipt-log-cell"><PickupReceiptLog purchase={purchase} showLabel={false} /></td>
                                 </tr>
                               );
                             })
                           ) : (
                             <tr>
-                              <td colSpan={isRahaf ? 7 : 5} className="homepickup-muted">
+                              <td colSpan={isRahaf ? 8 : 6} className="homepickup-muted">
                                 لا توجد مشتريات
                               </td>
                             </tr>

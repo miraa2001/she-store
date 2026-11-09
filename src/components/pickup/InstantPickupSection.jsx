@@ -4,8 +4,8 @@ import { formatDateTime } from "../../lib/dateFormat";
 import { formatILS } from "../../lib/orders";
 import { searchByName } from "../../lib/search";
 import { collectInstantPickups, deleteInstantPickup, fetchInstantPickups, INSTANT_PICKUPS_CHANGED, updateInstantPickup } from "../../lib/instantPickups";
-import PurchasePaymentControl, { OutstandingPaymentsSection } from "./PurchasePaymentControl";
-import { collectibleAmount, paidAmount } from "../../lib/payments";
+import PurchasePaymentControl, { OutstandingPaymentsSection, PickupReceiptLog } from "./PurchasePaymentControl";
+import { canCollectPayment, collectibleAmount, paidAmount } from "../../lib/payments";
 import PickupTransferDialog from "./PickupTransferDialog";
 import InstantPickupDialog from "./InstantPickupDialog";
 import "./instant-pickups.css";
@@ -80,7 +80,7 @@ export default function InstantPickupSection({ pickupPoint, role, title = "", se
   }
 
   async function collect(items) {
-    const pending = items.filter((row) => collectibleAmount(row) > 0);
+    const pending = items.filter(canCollectPayment);
     if (!pending.length || busy || loading) return;
     const total = pending.reduce((sum, row) => sum + collectibleAmount(row), 0);
     if (!window.confirm(`تأكيد تحصيل ${formatILS(total)} ₪؟`)) return;
@@ -118,14 +118,14 @@ export default function InstantPickupSection({ pickupPoint, role, title = "", se
               <button type="button" className="instant-pickup-icon-btn" title="تحديث" aria-label="تحديث المشتريات" disabled={loading || !!busy} onClick={() => setRevision((value) => value + 1)}>
                 {loading ? <LoaderCircle size={18} className="instant-pickup-spinner" /> : <RefreshCw size={18} />}
               </button>
-              {isRahaf && !showCollected ? <button type="button" className="instant-pickup-command" onClick={() => collect(group.rows)} disabled={loading || !!busy || !group.rows.some((row) => collectibleAmount(row) > 0)}><Banknote size={18} />تحصيل الكل</button> : null}
+              {isRahaf && !showCollected ? <button type="button" className="instant-pickup-command" onClick={() => collect(group.rows)} disabled={loading || !!busy || !group.rows.some(canCollectPayment)}><Banknote size={18} />تحصيل الكل</button> : null}
             </div>
           </div>
           <div className="instant-pickup-total">المبلغ للتحصيل: <b>{formatILS(group.rows.reduce((sum, row) => sum + collectibleAmount(row), 0))} ₪</b></div>
           <OutstandingPaymentsSection rows={group.rows} role={role} instant onSaved={() => setRevision((value) => value + 1)} />
           <div className="instant-pickup-scroll" tabIndex={0} role="region" aria-label={group.label}>
             <table className={`instant-pickup-table ${isRahaf ? "has-actions" : ""}`}>
-              <thead><tr><th>الزبون</th><th>السعر (₪)</th><th>الاستلام</th><th>التاريخ</th>{isRahaf ? <th>الإجراءات</th> : null}</tr></thead>
+              <thead><tr><th>الزبون</th><th>السعر (₪)</th><th>الاستلام</th><th>التاريخ</th>{isRahaf ? <th>الإجراءات</th> : null}<th className="pickup-receipt-log-cell">مؤكد عبر</th></tr></thead>
               <tbody>{group.rows.map((row) => <tr key={row.id} data-instant-pickup-id={row.id}>
                 <td>{row.customer_name}</td><td className="instant-pickup-money">{formatILS(row.price)}</td>
                 <td><div className="instant-pickup-received"><PurchasePaymentControl purchase={row} role={role} instant onSaved={() => setRevision((value) => value + 1)} />
@@ -133,11 +133,12 @@ export default function InstantPickupSection({ pickupPoint, role, title = "", se
                 <td className="instant-pickup-date">{formatDateTime(row.picked_up_at || row.created_at)}</td>
                 {isRahaf ? <td><div className="instant-pickup-row-actions">
                   <button type="button" className="instant-pickup-icon-btn danger" title={row.collected ? "لا يمكن حذف مستلم تم تحصيله" : row.picked_up ? "ألغِ الاستلام قبل الحذف" : "حذف المستلم"} aria-label={`حذف ${row.customer_name}`} disabled={row.picked_up || row.collected || !!busy || loading} onClick={() => remove(row)}><Trash2 size={18} /></button>
-                  <button type="button" className="instant-pickup-icon-btn" title="تحصيل" aria-label={`تحصيل ${row.customer_name}`} disabled={collectibleAmount(row) <= 0 || !!busy || loading} onClick={() => collect([row])}><Banknote size={18} /></button>
+                  <button type="button" className="instant-pickup-icon-btn" title="تحصيل" aria-label={`تحصيل ${row.customer_name}`} disabled={!canCollectPayment(row) || !!busy || loading} onClick={() => collect([row])}><Banknote size={18} /></button>
                   <button type="button" className="instant-pickup-icon-btn" title="نقل المشترى" aria-label={`نقل ${row.customer_name}`} disabled={paidAmount(row) > 0 || row.collected || !!busy || loading} onClick={() => setTransfer(row)}><ArrowRightLeft size={18} /></button>
                 </div></td> : null}
+                <td className="pickup-receipt-log-cell"><PickupReceiptLog purchase={row} showLabel={false} /></td>
               </tr>)}
-              {!group.rows.length ? <tr><td colSpan={isRahaf ? 5 : 4}>{loading ? "جاري التحميل..." : "لا توجد مشتريات"}</td></tr> : null}</tbody>
+              {!group.rows.length ? <tr><td colSpan={isRahaf ? 6 : 5}>{loading ? "جاري التحميل..." : "لا توجد مشتريات"}</td></tr> : null}</tbody>
             </table>
           </div>
         </div>
